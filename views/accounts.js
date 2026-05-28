@@ -6,7 +6,8 @@ import { store } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderAccounts(mountPoint, appInstance) {
-  const wallets = store.wallets.filter(w => !w.isAEPS);
+  const g2cWallets = store.wallets.filter(w => !w.isAEPS);
+  const aepsWallets = store.wallets.filter(w => w.isAEPS);
   const bankAccounts = store.bankAccounts;
   const currentBalances = store.getCurrentBalances();
 
@@ -93,8 +94,8 @@ export function renderAccounts(mountPoint, appInstance) {
       </div>
     </div>
 
-    <div class="wallet-grid">
-      ${wallets.map(w => {
+    <div class="wallet-grid" style="margin-bottom: 35px;">
+      ${g2cWallets.map(w => {
         const bal = currentBalances[w.id] !== undefined ? currentBalances[w.id] : 0.00;
         let balColor = '#fff';
         if (bal < 100) balColor = 'var(--color-danger)';
@@ -102,6 +103,44 @@ export function renderAccounts(mountPoint, appInstance) {
 
         return `
           <div class="wallet-card" style="border-left: 4px solid var(--color-primary);">
+            <div class="wallet-card-header">
+              <div>
+                <span class="wallet-name">${w.name}</span>
+                <div class="wallet-meta">Login: <code>${w.loginId}</code></div>
+              </div>
+              <button class="btn btn-sm btn-secondary btn-edit-wallet" data-id="${w.id}" style="padding: 4px;">
+                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+              </button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              Commission Rate: <strong>${(w.commissionRate * 100).toFixed(2)}%</strong>
+            </div>
+            <div class="wallet-card-body" style="margin-top: auto; padding-top: 10px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center;">
+              <span class="wallet-balance-label">Balance</span>
+              <span class="wallet-balance-val" style="color: ${balColor};">₹${bal.toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <!-- AEPS Portal Wallets Section -->
+    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3>AEPS & Money Transfer Wallets</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Wallets used for cash withdrawals & money transfers</span>
+      </div>
+    </div>
+
+    <div class="wallet-grid">
+      ${aepsWallets.map(w => {
+        const bal = currentBalances[w.id] !== undefined ? currentBalances[w.id] : 0.00;
+        let balColor = '#fff';
+        if (bal < 100) balColor = 'var(--color-danger)';
+        else if (bal > 1000) balColor = 'var(--color-success)';
+
+        return `
+          <div class="wallet-card" style="border-left: 4px solid var(--color-info);">
             <div class="wallet-card-header">
               <div>
                 <span class="wallet-name">${w.name}</span>
@@ -555,7 +594,7 @@ export function renderAccounts(mountPoint, appInstance) {
   const btnWalletTopup = document.getElementById('btn-wallet-topup');
   if (btnWalletTopup) {
     btnWalletTopup.addEventListener('click', () => {
-      const walletOptions = wallets
+      const walletOptions = store.wallets
         .filter(w => w.isActive)
         .map(w => `<option value="${w.id}">${w.name}</option>`)
         .join('');

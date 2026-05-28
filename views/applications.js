@@ -217,7 +217,7 @@ export function renderApplications(mountPoint, appInstance) {
       amount: feePaid + serviceCharge,
       paidByCash: feePaid + serviceCharge, // Default to Cash In Hand payment
       paidByUPI: 0,
-      deductedFrom: 'edistrict', // eDistrict portal wallet
+      deductedFrom: 'csc', // CSC portal wallet
       deductedAmount: feePaid,
       customerId: customerId,
       staffId: document.getElementById('app-staff').value

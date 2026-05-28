@@ -16,7 +16,6 @@ const INITIAL_BALANCES = {
   cash: 0,
   main_sbi: 17729.76,
   csc: 1606.28,
-  edistrict: 0.00,
   digipay: 0.00,
   ibkart: 11.15,
   airtel_pb: 113.94,
@@ -29,7 +28,6 @@ const INITIAL_BALANCES = {
 // Initial Wallets metadata
 const INITIAL_WALLETS = [
   { id: 'csc', name: 'CSC Wallet', loginId: 'CSC-889920', commissionRate: 0.015, isActive: true, isAEPS: false },
-  { id: 'edistrict', name: 'e-District Wallet', loginId: 'ED-99824', commissionRate: 0.0, isActive: true, isAEPS: false },
   { id: 'digipay', name: 'Digipay (AEPS)', loginId: 'DP-882011', commissionRate: 0.002, isActive: true, isAEPS: true },
   { id: 'paynearby', name: 'PayNearby (AEPS)', loginId: 'PNB-9844001', commissionRate: 0.002, isActive: true, isAEPS: true },
   { id: 'airtel_pb', name: 'Airtel Payments Bank', loginId: 'APB-773349', commissionRate: 0.0015, isActive: true, isAEPS: true },
@@ -109,9 +107,9 @@ class StateStore {
       this.recalculateAllBalances();
     }
 
-    // Ensure edistrict wallet exists in active wallets list
-    if (!this.wallets.some(w => w.id === 'edistrict')) {
-      this.wallets.push({ id: 'edistrict', name: 'e-District Wallet', loginId: 'ED-99824', commissionRate: 0.0, isActive: true, isAEPS: false });
+    // Clean up/remove edistrict wallet if it is present in active state database
+    if (this.wallets.some(w => w.id === 'edistrict')) {
+      this.wallets = this.wallets.filter(w => w.id !== 'edistrict');
       this.saveItem('cyberone_v2_wallets', this.wallets);
     }
 
@@ -121,7 +119,7 @@ class StateStore {
       this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
     }
 
-    // Reset opening cash balance to 0 if it is not already 0, and ensure edistrict has balance keys
+    // Reset opening cash balance to 0 if it is not already 0, and ensure edistrict is removed
     let needRecalculate = false;
     const sortedDates = Object.keys(this.dailyLogs || {}).sort();
     if (sortedDates.length > 0) {
@@ -135,12 +133,29 @@ class StateStore {
     if (this.dailyLogs) {
       Object.keys(this.dailyLogs).forEach(date => {
         const log = this.dailyLogs[date];
-        if (log.openingBalances && log.openingBalances.edistrict === undefined) {
-          log.openingBalances.edistrict = 0.00;
+        // Clean up any transactions referencing edistrict
+        if (log.transactions) {
+          log.transactions.forEach(txn => {
+            if (txn.deductedFrom === 'edistrict') {
+              txn.deductedFrom = 'csc';
+              needRecalculate = true;
+            }
+            if (txn.targetWallet === 'edistrict') {
+              txn.targetWallet = 'csc';
+              needRecalculate = true;
+            }
+            if (txn.source === 'edistrict') {
+              txn.source = 'csc';
+              needRecalculate = true;
+            }
+          });
+        }
+        if (log.openingBalances && log.openingBalances.edistrict !== undefined) {
+          delete log.openingBalances.edistrict;
           needRecalculate = true;
         }
-        if (log.closingBalances && log.closingBalances.edistrict === undefined) {
-          log.closingBalances.edistrict = 0.00;
+        if (log.closingBalances && log.closingBalances.edistrict !== undefined) {
+          delete log.closingBalances.edistrict;
           needRecalculate = true;
         }
       });

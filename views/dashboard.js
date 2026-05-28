@@ -23,7 +23,6 @@ export function renderDashboard(mountPoint, appInstance) {
     { key: 'cash', name: 'Cash In Hand', type: 'cash', icon: 'wallet', color: 'var(--color-success)' },
     { key: 'account', name: 'Bank Accounts', type: 'bank', icon: 'landmark', color: 'var(--color-info)' },
     { key: 'csc', name: 'CSC Wallet', type: 'wallet', icon: 'globe', color: 'var(--color-primary)' },
-    { key: 'edistrict', name: 'e-District Wallet', type: 'wallet', icon: 'file-text', color: '#f59e0b' },
     { key: 'digipay', name: 'Digipay (AEPS)', type: 'wallet', icon: 'smartphone', color: '#06b6d4' },
     { key: 'paynearby', name: 'PayNearby (AEPS)', type: 'wallet', icon: 'smartphone', color: '#10b981' },
     { key: 'airtel_pb', name: 'Airtel Payments Bank', type: 'wallet', icon: 'phone', color: '#ef4444' },
