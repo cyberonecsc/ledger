@@ -15,7 +15,6 @@ export function getTodayDateString() {
 const INITIAL_BALANCES = {
   cash: 937,
   main_sbi: 17729.76,
-  fed_retail: 0.00,
   csc: 1606.28,
   digipay: 0.00,
   ibkart: 11.15,
@@ -40,8 +39,7 @@ const INITIAL_WALLETS = [
 
 // Initial Bank accounts
 const INITIAL_BANK_ACCOUNTS = [
-  { id: 'main_sbi', name: 'SBI Main A/C', bankName: 'State Bank of India', accountNumber: '34488299101', ifsc: 'SBIN0007820', upiId: 'cyberone@sbi' },
-  { id: 'fed_retail', name: 'Federal Bank', bankName: 'Federal Bank', accountNumber: '122901009843', ifsc: 'FDRL0001402', upiId: 'cyberone@federal' }
+  { id: 'main_sbi', name: 'SBI Main A/C', bankName: 'State Bank of India', accountNumber: '34488299101', ifsc: 'SBIN0007820', upiId: 'cyberone@sbi' }
 ];
 
 // Initial pre-registered customers matching common Kerala CYBER ONE citizen logs
@@ -73,6 +71,12 @@ class StateStore {
   loadState() {
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
+    
+    // Auto-remove Federal Bank (fed_retail) if present in active state database
+    if (this.bankAccounts.some(b => b.id === 'fed_retail')) {
+      this.bankAccounts = this.bankAccounts.filter(b => b.id !== 'fed_retail');
+      this.persistAll();
+    }
     this.customers = this.getItem('cyberone_v2_customers', INITIAL_CUSTOMERS);
     this.staff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
     this.products = this.getItem('cyberone_v2_products', INITIAL_PRODUCTS);
