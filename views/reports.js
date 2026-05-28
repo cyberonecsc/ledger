@@ -382,6 +382,14 @@ function renderDaybookData(dateString) {
     }
   });
 
+  // Dynamically calculate total bank balances by summing up all bank accounts
+  let openingBankTotal = 0;
+  let closingBankTotal = 0;
+  store.bankAccounts.forEach(b => {
+    openingBankTotal += log.openingBalances[b.id] || 0;
+    closingBankTotal += log.closingBalances[b.id] || 0;
+  });
+
   mount.innerHTML = `
     <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
       <tr style="border-bottom: 1px solid var(--panel-border);">
@@ -410,7 +418,7 @@ function renderDaybookData(dateString) {
     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
       <tr style="border-bottom: 1px solid var(--panel-border);">
         <td style="padding: 8px 0;">Opening Bank Balance</td>
-        <td style="padding: 8px 0; text-align: right;">₹${log.openingBalances.account.toFixed(2)}</td>
+        <td style="padding: 8px 0; text-align: right;">₹${openingBankTotal.toFixed(2)}</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-info);">
         <td style="padding: 8px 0;">+ Received via UPI Payments</td>
@@ -418,7 +426,7 @@ function renderDaybookData(dateString) {
       </tr>
       <tr style="font-weight:700; border-bottom: 1px solid var(--panel-border);">
         <td style="padding: 10px 0;">Closing Bank Balance</td>
-        <td style="padding: 10px 0; text-align: right; color:var(--color-info);">₹${log.closingBalances.account.toFixed(2)}</td>
+        <td style="padding: 10px 0; text-align: right; color:var(--color-info);">₹${closingBankTotal.toFixed(2)}</td>
       </tr>
     </table>
   `;

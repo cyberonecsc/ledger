@@ -121,12 +121,12 @@ class StateStore {
       this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
     }
 
-    // Reset opening cash balance of 937 to 0 if it was loaded from initial seed, and ensure edistrict has balance keys
+    // Reset opening cash balance to 0 if it is not already 0, and ensure edistrict has balance keys
     let needRecalculate = false;
     const sortedDates = Object.keys(this.dailyLogs || {}).sort();
     if (sortedDates.length > 0) {
       const firstLog = this.dailyLogs[sortedDates[0]];
-      if (firstLog && firstLog.openingBalances && firstLog.openingBalances.cash === 937) {
+      if (firstLog && firstLog.openingBalances && firstLog.openingBalances.cash !== 0) {
         firstLog.openingBalances.cash = 0;
         needRecalculate = true;
       }
