@@ -215,7 +215,7 @@ export function renderApplications(mountPoint, appInstance) {
       type: 'sale',
       description: `${serviceType} application`,
       amount: feePaid + serviceCharge,
-      paidByCash: feePaid + serviceCharge, // Default to cash drawer payment
+      paidByCash: feePaid + serviceCharge, // Default to Cash In Hand payment
       paidByUPI: 0,
       deductedFrom: 'edistrict', // eDistrict portal wallet
       deductedAmount: feePaid,

@@ -38,7 +38,7 @@ const DEFAULT_PRIVILEGES = {
     manage_settings: false
   },
   staff: {
-    view_balances: false, // Staff cannot see cash drawer total & bank balance
+    view_balances: false, // Staff cannot see Cash In Hand total & bank balance
     edit_balances: false,
     manage_ledger: true, // Staff can log daily sales
     manage_applications: true, // Staff can register certificates

@@ -28,6 +28,28 @@ export function renderAccounts(mountPoint, appInstance) {
     </div>
 
     <div class="wallet-grid" style="margin-bottom: 35px;">
+      <!-- Cash In Hand Card -->
+      <div class="wallet-card" style="height: 190px; border-left: 4px solid var(--color-success);">
+        <div class="wallet-card-header">
+          <div>
+            <span class="wallet-name">Cash In Hand</span>
+            <div class="wallet-meta">Physical cash drawer</div>
+          </div>
+          <button class="btn btn-sm btn-secondary btn-edit-cash" style="padding: 4px;">
+            <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+          </button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">
+          <div>Type: <code>Physical Currency</code></div>
+          <div>Location: <code>Office Safe / Drawer</code></div>
+          <div>Audit: <code>System Recalculated</code></div>
+        </div>
+        <div class="wallet-card-body" style="margin-top: auto; padding-top: 10px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center;">
+          <span class="wallet-balance-label">Balance</span>
+          <span class="wallet-balance-val" style="color: var(--color-success);">₹${currentBalances.cash.toFixed(2)}</span>
+        </div>
+      </div>
+
       ${bankAccounts.map(bank => {
         const bal = currentBalances[bank.id] !== undefined ? currentBalances[bank.id] : 0.00;
         return `
@@ -276,6 +298,51 @@ export function renderAccounts(mountPoint, appInstance) {
     });
   }
 
+  // Edit Cash In Hand balance binding
+  const btnEditCash = document.querySelector('.btn-edit-cash');
+  if (btnEditCash) {
+    btnEditCash.addEventListener('click', () => {
+      const cashBal = currentBalances.cash !== undefined ? currentBalances.cash : 0.00;
+
+      document.getElementById('account-modal-title').innerText = 'Adjust Cash In Hand';
+      formMount.innerHTML = `
+        <form id="form-edit-cash">
+          <div class="form-group">
+            <label class="form-label">Account Label Name</label>
+            <input type="text" class="form-control" value="Cash In Hand" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Current Balance (₹)</label>
+            <input type="number" step="0.01" id="cash-balance" class="form-control" value="${cashBal.toFixed(2)}" required>
+            <span style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px; display:block;">
+              *Adjusting this will create a manual ledger balance correction.
+            </span>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn btn-primary" style="flex-grow:1;">
+              <i data-lucide="save" style="width:16px; height:16px;"></i> Save Cash Balance
+            </button>
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+          </div>
+        </form>
+      `;
+
+      lucide.createIcons();
+      bindCancelBtn();
+      backdrop.classList.add('show');
+
+      document.getElementById('form-edit-cash').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const newBal = parseFloat(document.getElementById('cash-balance').value || 0);
+        store.adjustBalance(appInstance.getActiveDate(), 'cash', newBal);
+
+        appInstance.showToast('Cash In Hand balance adjusted successfully!', 'success');
+        closeModal();
+        appInstance.handleRouting();
+      });
+    });
+  }
+
   // Edit Bank Account buttons binding
   const editBankBtns = document.querySelectorAll('.btn-edit-bank');
   editBankBtns.forEach(btn => {
@@ -427,7 +494,7 @@ export function renderAccounts(mountPoint, appInstance) {
         <form id="form-cash-deposit">
           <div class="form-group">
             <label class="form-label">Source Cash Reservoir</label>
-            <input type="text" class="form-control" value="Cash Drawer (Cash in Hand: ₹${currentBalances.cash.toFixed(2)})" disabled>
+            <input type="text" class="form-control" value="Cash In Hand (Balance: ₹${currentBalances.cash.toFixed(2)})" disabled>
           </div>
           
           <div class="form-group">

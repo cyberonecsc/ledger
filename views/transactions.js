@@ -69,10 +69,10 @@ export function renderTransactions(mountPoint, appInstance) {
     </div>
 
     <div class="card-grid day-balance-grid" style="gap: 15px;">
-      <!-- Cash Drawer -->
+      <!-- Cash In Hand -->
       <div class="glass-card success" style="padding: 16px;">
         <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight:600; color:var(--text-muted);">
-          <span>Cash Drawer</span>
+          <span>Cash In Hand</span>
           <i data-lucide="wallet" style="width: 14px; height: 14px; color: var(--color-success);"></i>
         </div>
         <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline;">
@@ -537,7 +537,7 @@ function loadTabForm(tab, activeDate, appInstance) {
         <div class="form-group">
           <label class="form-label">Payment Source</label>
           <select id="expense-source" class="form-control">
-            <option value="cash">Cash Drawer (Physical Cash)</option>
+            <option value="cash">Cash In Hand (Physical Cash)</option>
             <option value="account">Bank Account (UPI / Transfer)</option>
           </select>
         </div>

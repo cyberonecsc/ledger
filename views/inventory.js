@@ -262,7 +262,7 @@ export function renderInventory(mountPoint, appInstance) {
             <label class="form-label">Expense Payment Source</label>
             <select id="restock-source" class="form-control">
               <option value="account">Bank Account (UPI/Transfer)</option>
-              <option value="cash">Cash Drawer (Cash)</option>
+              <option value="cash">Cash In Hand (Cash)</option>
             </select>
           </div>
 
