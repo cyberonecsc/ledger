@@ -71,12 +71,6 @@ class StateStore {
   loadState() {
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
-    
-    // Auto-remove Federal Bank (fed_retail) if present in active state database
-    if (this.bankAccounts.some(b => b.id === 'fed_retail')) {
-      this.bankAccounts = this.bankAccounts.filter(b => b.id !== 'fed_retail');
-      this.persistAll();
-    }
     this.customers = this.getItem('cyberone_v2_customers', INITIAL_CUSTOMERS);
     this.staff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
     this.products = this.getItem('cyberone_v2_products', INITIAL_PRODUCTS);
@@ -112,6 +106,12 @@ class StateStore {
       
       this.recalculateAllBalances();
     }
+
+    // Auto-remove Federal Bank (fed_retail) if present in active state database
+    if (this.bankAccounts.some(b => b.id === 'fed_retail')) {
+      this.bankAccounts = this.bankAccounts.filter(b => b.id !== 'fed_retail');
+      this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
+    }
   }
 
   getSeededInvoices() {
@@ -120,7 +120,13 @@ class StateStore {
 
   getItem(key, fallback) {
     const val = localStorage.getItem(key);
-    return val ? JSON.parse(val) : fallback;
+    if (!val || val === 'undefined') return fallback;
+    try {
+      return JSON.parse(val);
+    } catch (e) {
+      console.error("Error parsing localStorage key: " + key, e);
+      return fallback;
+    }
   }
 
   saveItem(key, data) {
