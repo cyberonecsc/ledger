@@ -24,6 +24,7 @@ export function renderDashboard(mountPoint, appInstance) {
     { key: 'account', name: 'Bank Accounts', type: 'bank', icon: 'landmark', color: 'var(--color-info)' },
     { key: 'csc', name: 'CSC Wallet', type: 'wallet', icon: 'globe', color: 'var(--color-primary)' },
     { key: 'edistrict', name: 'e-District Wallet', type: 'wallet', icon: 'file-text', color: '#f59e0b' },
+    { key: 'digipay', name: 'Digipay (AEPS)', type: 'wallet', icon: 'smartphone', color: '#06b6d4' },
     { key: 'paynearby', name: 'PayNearby (AEPS)', type: 'wallet', icon: 'smartphone', color: '#10b981' },
     { key: 'airtel_pb', name: 'Airtel Payments Bank', type: 'wallet', icon: 'phone', color: '#ef4444' },
     { key: 'ibkart', name: 'IBKART Wallet', type: 'wallet', icon: 'shopping-bag', color: '#8b5cf6' },
@@ -114,8 +115,17 @@ export function renderDashboard(mountPoint, appInstance) {
           let totalDiff = 0;
 
           const rowsHtml = accountMeta.map(acc => {
-            const opVal = opening[acc.key] || 0;
-            const clVal = closing[acc.key] || 0;
+            let opVal = 0;
+            let clVal = 0;
+            if (acc.key === 'account') {
+              store.bankAccounts.forEach(b => {
+                opVal += opening[b.id] || 0;
+                clVal += closing[b.id] || 0;
+              });
+            } else {
+              opVal = opening[acc.key] || 0;
+              clVal = closing[acc.key] || 0;
+            }
             const diff = clVal - opVal;
 
             totalOpening += opVal;

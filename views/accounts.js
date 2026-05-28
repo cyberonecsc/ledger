@@ -216,7 +216,7 @@ export function renderAccounts(mountPoint, appInstance) {
         store.persistAll();
 
         if (balance > 0) {
-          store.adjustBalance(appInstance.getActiveDate(), bankId, balance);
+          store.adjustBalance(appInstance.getActiveDate(), bankId, balance, auth.currentUser ? auth.currentUser.name : 'System');
         }
 
         appInstance.showToast('Bank Account registered successfully!', 'success');
@@ -288,7 +288,7 @@ export function renderAccounts(mountPoint, appInstance) {
         store.persistAll();
 
         if (balance > 0) {
-          store.adjustBalance(appInstance.getActiveDate(), walletId, balance);
+          store.adjustBalance(appInstance.getActiveDate(), walletId, balance, auth.currentUser ? auth.currentUser.name : 'System');
         }
 
         appInstance.showToast('Portal Wallet registered successfully!', 'success');
@@ -334,7 +334,7 @@ export function renderAccounts(mountPoint, appInstance) {
       document.getElementById('form-edit-cash').addEventListener('submit', (ev) => {
         ev.preventDefault();
         const newBal = parseFloat(document.getElementById('cash-balance').value || 0);
-        store.adjustBalance(appInstance.getActiveDate(), 'cash', newBal);
+        store.adjustBalance(appInstance.getActiveDate(), 'cash', newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Cash In Hand balance adjusted successfully!', 'success');
         closeModal();
@@ -406,7 +406,7 @@ export function renderAccounts(mountPoint, appInstance) {
         });
 
         const newBal = parseFloat(document.getElementById('bank-balance').value || 0);
-        store.adjustBalance(appInstance.getActiveDate(), bankId, newBal);
+        store.adjustBalance(appInstance.getActiveDate(), bankId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Bank details updated successfully!', 'success');
         closeModal();
@@ -476,7 +476,7 @@ export function renderAccounts(mountPoint, appInstance) {
         });
 
         const newBal = parseFloat(document.getElementById('wallet-balance').value || 0);
-        store.adjustBalance(appInstance.getActiveDate(), walletId, newBal);
+        store.adjustBalance(appInstance.getActiveDate(), walletId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Wallet parameters updated successfully!', 'success');
         closeModal();

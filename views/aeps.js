@@ -142,7 +142,7 @@ export function renderAEPS(mountPoint, appInstance) {
       store.persistAll();
 
       if (balance > 0) {
-        store.adjustBalance(activeDate, walletId, balance);
+        store.adjustBalance(activeDate, walletId, balance, auth.currentUser ? auth.currentUser.name : 'System');
       }
 
       appInstance.showToast('AEPS Wallet registered successfully!', 'success');
@@ -202,7 +202,7 @@ export function renderAEPS(mountPoint, appInstance) {
 
         // Update balance adjustments
         const newBal = parseFloat(document.getElementById('edit-aeps-balance').value || 0);
-        store.adjustBalance(activeDate, walletId, newBal);
+        store.adjustBalance(activeDate, walletId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         // Update daily transferred
         const newTsf = parseFloat(document.getElementById('edit-aeps-transferred').value || 0);

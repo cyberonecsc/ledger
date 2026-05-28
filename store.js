@@ -13,9 +13,10 @@ export function getTodayDateString() {
 
 // Initial configuration for default opening balances (May 28, 2026)
 const INITIAL_BALANCES = {
-  cash: 937,
+  cash: 0,
   main_sbi: 17729.76,
   csc: 1606.28,
+  edistrict: 0.00,
   digipay: 0.00,
   ibkart: 11.15,
   airtel_pb: 113.94,
@@ -28,6 +29,7 @@ const INITIAL_BALANCES = {
 // Initial Wallets metadata
 const INITIAL_WALLETS = [
   { id: 'csc', name: 'CSC Wallet', loginId: 'CSC-889920', commissionRate: 0.015, isActive: true, isAEPS: false },
+  { id: 'edistrict', name: 'e-District Wallet', loginId: 'ED-99824', commissionRate: 0.0, isActive: true, isAEPS: false },
   { id: 'digipay', name: 'Digipay (AEPS)', loginId: 'DP-882011', commissionRate: 0.002, isActive: true, isAEPS: true },
   { id: 'paynearby', name: 'PayNearby (AEPS)', loginId: 'PNB-9844001', commissionRate: 0.002, isActive: true, isAEPS: true },
   { id: 'airtel_pb', name: 'Airtel Payments Bank', loginId: 'APB-773349', commissionRate: 0.0015, isActive: true, isAEPS: true },
@@ -107,10 +109,45 @@ class StateStore {
       this.recalculateAllBalances();
     }
 
+    // Ensure edistrict wallet exists in active wallets list
+    if (!this.wallets.some(w => w.id === 'edistrict')) {
+      this.wallets.push({ id: 'edistrict', name: 'e-District Wallet', loginId: 'ED-99824', commissionRate: 0.0, isActive: true, isAEPS: false });
+      this.saveItem('cyberone_v2_wallets', this.wallets);
+    }
+
     // Auto-remove Federal Bank (fed_retail) if present in active state database
     if (this.bankAccounts.some(b => b.id === 'fed_retail')) {
       this.bankAccounts = this.bankAccounts.filter(b => b.id !== 'fed_retail');
       this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
+    }
+
+    // Reset opening cash balance of 937 to 0 if it was loaded from initial seed, and ensure edistrict has balance keys
+    let needRecalculate = false;
+    const sortedDates = Object.keys(this.dailyLogs || {}).sort();
+    if (sortedDates.length > 0) {
+      const firstLog = this.dailyLogs[sortedDates[0]];
+      if (firstLog && firstLog.openingBalances && firstLog.openingBalances.cash === 937) {
+        firstLog.openingBalances.cash = 0;
+        needRecalculate = true;
+      }
+    }
+
+    if (this.dailyLogs) {
+      Object.keys(this.dailyLogs).forEach(date => {
+        const log = this.dailyLogs[date];
+        if (log.openingBalances && log.openingBalances.edistrict === undefined) {
+          log.openingBalances.edistrict = 0.00;
+          needRecalculate = true;
+        }
+        if (log.closingBalances && log.closingBalances.edistrict === undefined) {
+          log.closingBalances.edistrict = 0.00;
+          needRecalculate = true;
+        }
+      });
+    }
+
+    if (needRecalculate) {
+      this.recalculateAllBalances();
     }
   }
 
@@ -377,7 +414,7 @@ class StateStore {
     return newTxn;
   }
 
-  adjustBalance(dateString, sourceId, targetBalance) {
+  adjustBalance(dateString, sourceId, targetBalance, adjustedBy = 'System') {
     const log = this.getOrCreateDailyLog(dateString);
     const currentVal = log.closingBalances[sourceId] || 0;
     const diff = parseFloat((targetBalance - currentVal).toFixed(2));
@@ -385,10 +422,11 @@ class StateStore {
 
     this.addTransaction(dateString, {
       type: 'adjustment',
-      description: `Manual Balance Adjustment`,
+      description: `Manual Balance Adjustment (by ${adjustedBy})`,
       amount: Math.abs(diff),
       sourceId: sourceId,
       diff: diff,
+      staffId: adjustedBy,
       timestamp: new Date().toISOString()
     });
   }
