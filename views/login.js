@@ -1,0 +1,364 @@
+/* ==========================================================================
+   CYBER ONE Center Management Platform - Login & Registration (views/login.js)
+   ========================================================================== */
+
+import { auth } from '../auth.js';
+
+export function renderLogin(mountPoint, appInstance) {
+  let isSignUpMode = false;
+  let generatedOtp = '';
+  let isEmailVerified = false;
+  let photoBase64 = '';
+
+  const updateCardContent = () => {
+    if (!isSignUpMode) {
+      // Render Sign In form
+      mountPoint.innerHTML = `
+        <div class="login-screen">
+          <div class="login-card">
+            <div class="login-header">
+              <i data-lucide="shield-check" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>
+              <h2>CYBERONE CSC Portal Login</h2>
+              <p>Sign in to manage service records & accounting</p>
+            </div>
+
+            <div id="login-error" class="badge expense" style="width: 100%; display: none; justify-content: center; margin-bottom: 15px; padding: 10px; border-radius: var(--border-radius-sm);">
+              Invalid username or password
+            </div>
+
+            <form id="login-form">
+              <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" id="username" class="form-control" placeholder="Enter username" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Sign In
+              </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px; font-size: 13px;">
+              <span style="color: var(--text-muted);">Don't have an account? </span>
+              <a href="#" id="toggle-signup" style="color: var(--color-primary); font-weight: 600; text-decoration: none; outline: none;">Sign Up</a>
+            </div>
+
+            <div class="login-presets">
+              <div class="login-presets-title">Quick Owner Login</div>
+              <div class="preset-grid" style="grid-template-columns: 1fr;">
+                <button class="btn-preset" data-user="owner">Owner Login (Bypass)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      bindLoginEvents();
+    } else {
+      // Render Sign Up form
+      mountPoint.innerHTML = `
+        <div class="login-screen">
+          <div class="login-card" style="max-width: 480px; margin: 30px auto; max-height: 90vh; overflow-y: auto;">
+            <div class="login-header">
+              <i data-lucide="user-plus" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>
+              <h2>Create Operator Account</h2>
+              <p>Register as a center owner, admin, or staff</p>
+            </div>
+
+            <div id="signup-error" class="badge expense" style="width: 100%; display: none; justify-content: center; margin-bottom: 15px; padding: 10px; border-radius: var(--border-radius-sm);">
+              Username already exists
+            </div>
+
+            <form id="signup-form">
+              <div class="form-group">
+                <label class="form-label" for="fullname">Full Name</label>
+                <input type="text" id="fullname" class="form-control" placeholder="Enter full name" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="new-username">Username</label>
+                <input type="text" id="new-username" class="form-control" placeholder="Choose username" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="new-password">Password</label>
+                <input type="password" id="new-password" class="form-control" placeholder="Create password" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="role-select">Select Access Level (Role)</label>
+                <select id="role-select" class="form-control" required>
+                  <option value="owner">Owner (Full Permissions)</option>
+                  <option value="admin">Admin (All operations)</option>
+                  <option value="accountant">Accountant (Ledger & Reports)</option>
+                  <option value="staff">Staff (Daily sales logs only)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="mobile">Mobile Number (WhatsApp)</label>
+                <input type="tel" id="mobile" class="form-control" placeholder="e.g. +91 9845012345" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="email">Email ID</label>
+                <div style="display: flex; gap: 10px;">
+                  <input type="email" id="email" class="form-control" placeholder="Enter email address" required style="flex-grow: 1;">
+                  <button type="button" id="btn-send-otp" class="btn btn-secondary" style="white-space: nowrap; padding: 10px 15px; font-size: 13px; font-weight: 600;">Send OTP</button>
+                </div>
+              </div>
+
+              <!-- OTP Verification Input Section (Hidden by default) -->
+              <div id="otp-section" class="form-group" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px;">
+                <label class="form-label" for="otp-input" style="color: var(--color-primary);">Verify Email OTP</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="text" id="otp-input" class="form-control" placeholder="6-digit OTP" maxLength="6" style="flex-grow: 1; text-align: center; font-weight: 700; letter-spacing: 2px;">
+                  <button type="button" id="btn-verify-otp" class="btn btn-primary" style="white-space: nowrap; padding: 10px 15px; font-size: 13px;">Verify</button>
+                </div>
+                <div id="otp-status" style="font-size: 11px; margin-top: 6px; font-weight: 600;"></div>
+                <div id="resend-otp-container" style="font-size: 11px; margin-top: 8px; color: var(--text-muted); font-weight: 500;">
+                  Resend OTP in <span id="resend-timer-seconds">30</span>s
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 15px;">
+                <label class="form-label" for="photo-upload">Profile Photo (Optional)</label>
+                <input type="file" id="photo-upload" class="form-control" accept="image/*" style="padding: 6px 14px;">
+                <div id="photo-preview-container" style="display: none; margin-top: 10px; align-items: center; gap: 10px;">
+                  <img id="photo-preview" src="" alt="Preview" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary); box-shadow: 0 0 8px var(--color-primary-glow);">
+                  <span style="font-size: 11px; color: var(--text-muted);">Photo uploaded successfully</span>
+                </div>
+              </div>
+
+              <button type="submit" id="register-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 15px;" disabled>
+                <i data-lucide="user-check" style="width: 16px; height: 16px;"></i> Register Account
+              </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px; font-size: 13px; padding-bottom: 10px;">
+              <span style="color: var(--text-muted);">Already have an account? </span>
+              <a href="#" id="toggle-login" style="color: var(--color-primary); font-weight: 600; text-decoration: none; outline: none;">Sign In</a>
+            </div>
+          </div>
+        </div>
+      `;
+      bindSignUpEvents();
+    }
+    lucide.createIcons();
+  };
+
+  const bindLoginEvents = () => {
+    const form = document.getElementById('login-form');
+    const errorDiv = document.getElementById('login-error');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userVal = document.getElementById('username').value;
+      const passVal = document.getElementById('password').value;
+      
+      const res = auth.login(userVal, passVal);
+      if (res.success) {
+        appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
+        window.location.hash = '#dashboard';
+      } else {
+        errorDiv.style.display = 'flex';
+        errorDiv.innerText = res.message;
+      }
+    });
+
+    const toggleLink = document.getElementById('toggle-signup');
+    if (toggleLink) {
+      toggleLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        isSignUpMode = true;
+        updateCardContent();
+      });
+    }
+
+    const presetButtons = document.querySelectorAll('.btn-preset');
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const res = auth.login('owner', '123');
+        if (res.success) {
+          appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
+          window.location.hash = '#dashboard';
+        }
+      });
+    });
+  };
+
+  const bindSignUpEvents = () => {
+    const form = document.getElementById('signup-form');
+    const errorDiv = document.getElementById('signup-error');
+    
+    const emailInput = document.getElementById('email');
+    const btnSendOtp = document.getElementById('btn-send-otp');
+    const otpSection = document.getElementById('otp-section');
+    const otpInput = document.getElementById('otp-input');
+    const btnVerifyOtp = document.getElementById('btn-verify-otp');
+    const otpStatus = document.getElementById('otp-status');
+    const photoUpload = document.getElementById('photo-upload');
+    const photoPreviewContainer = document.getElementById('photo-preview-container');
+    const photoPreview = document.getElementById('photo-preview');
+    const registerBtn = document.getElementById('register-submit-btn');
+
+    // Handle photo select preview & base64 load
+    if (photoUpload) {
+      photoUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            photoBase64 = event.target.result;
+            if (photoPreview && photoPreviewContainer) {
+              photoPreview.src = photoBase64;
+              photoPreviewContainer.style.display = 'flex';
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    // Handle Send OTP with 30s Resend Timer
+    let countdownInterval = null;
+    const startOtpTimer = () => {
+      let secondsLeft = 30;
+      const container = document.getElementById('resend-otp-container');
+      if (!container) return;
+      
+      container.innerHTML = `Resend OTP in <span id="resend-timer-seconds" style="font-weight:700; color:var(--color-primary);">${secondsLeft}</span>s`;
+      
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+          clearInterval(countdownInterval);
+          container.innerHTML = `Didn't receive OTP? <a href="#" id="link-resend-otp" style="color: var(--color-primary); font-weight: 600; text-decoration: none;">Resend OTP</a>`;
+          
+          // Bind resend click
+          const resendLink = document.getElementById('link-resend-otp');
+          if (resendLink) {
+            resendLink.addEventListener('click', (e) => {
+              e.preventDefault();
+              // Re-trigger OTP generation
+              generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+              appInstance.showToast(`[Simulated Email] New verification OTP sent! Code: ${generatedOtp}`, 'warning');
+              console.log(`[CYBER ONE OTP] New verification code: ${generatedOtp}`);
+              startOtpTimer();
+            });
+          }
+        } else {
+          const secondsSpan = document.getElementById('resend-timer-seconds');
+          if (secondsSpan) secondsSpan.innerText = secondsLeft;
+        }
+      }, 1000);
+    };
+
+    if (btnSendOtp) {
+      btnSendOtp.addEventListener('click', () => {
+        const emailVal = emailInput.value.trim();
+        if (!emailVal || !emailInput.checkValidity()) {
+          appInstance.showToast('Please enter a valid email address first.', 'error');
+          return;
+        }
+
+        // Generate random 6 digit code
+        generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+        
+        // Show simulated OTP in toast message (and console)
+        appInstance.showToast(`[Simulated Email] Verification OTP sent! Code: ${generatedOtp}`, 'warning');
+        
+        if (otpSection) {
+          otpSection.style.display = 'block';
+        }
+        
+        // Disable email modification during verification
+        emailInput.disabled = true;
+        btnSendOtp.disabled = true;
+        btnSendOtp.innerText = 'OTP Sent';
+        
+        console.log(`[CYBER ONE OTP] Verification code: ${generatedOtp}`);
+        startOtpTimer();
+      });
+    }
+
+    // Handle Verify OTP
+    if (btnVerifyOtp) {
+      btnVerifyOtp.addEventListener('click', () => {
+        const enteredVal = otpInput.value.trim();
+        if (enteredVal === generatedOtp) {
+          isEmailVerified = true;
+          if (otpStatus) {
+            otpStatus.innerText = 'Email verified successfully!';
+            otpStatus.style.color = 'var(--color-success)';
+          }
+          otpInput.disabled = true;
+          btnVerifyOtp.disabled = true;
+          if (registerBtn) {
+            registerBtn.disabled = false;
+          }
+          appInstance.showToast('Email verified successfully!', 'success');
+        } else {
+          isEmailVerified = false;
+          if (otpStatus) {
+            otpStatus.innerText = 'Invalid OTP. Please try again.';
+            otpStatus.style.color = 'var(--color-danger)';
+          }
+          appInstance.showToast('Incorrect OTP. Check verification code.', 'error');
+        }
+      });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      if (!isEmailVerified) {
+        appInstance.showToast('Please verify your email address with OTP first!', 'error');
+        return;
+      }
+
+      const name = document.getElementById('fullname').value;
+      const username = document.getElementById('new-username').value;
+      const password = document.getElementById('new-password').value;
+      const role = document.getElementById('role-select').value;
+      const mobile = document.getElementById('mobile').value;
+      const email = emailInput.value;
+
+      const res = auth.addUser(name, username, password, role, mobile, email, photoBase64);
+      if (res.success) {
+        appInstance.showToast('Registration successful! Please sign in.', 'success');
+        isSignUpMode = false;
+        // reset states
+        generatedOtp = '';
+        isEmailVerified = false;
+        photoBase64 = '';
+        updateCardContent();
+      } else {
+        errorDiv.style.display = 'flex';
+        errorDiv.innerText = res.message;
+      }
+    });
+
+    const toggleLink = document.getElementById('toggle-login');
+    if (toggleLink) {
+      toggleLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        isSignUpMode = false;
+        // reset states
+        generatedOtp = '';
+        isEmailVerified = false;
+        photoBase64 = '';
+        updateCardContent();
+      });
+    }
+  };
+
+  // Initial render
+  updateCardContent();
+}
+
+export default renderLogin;

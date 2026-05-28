@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERONE CSC - Management & Accounting</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="./index.css">
+  <!-- Error Diagnostics Handler -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      const loadingEl = document.getElementById('app-loading');
+      if (loadingEl) {
+        loadingEl.innerHTML = `
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; padding: 25px; color: #ef4444; max-width: 550px; margin: 20px; text-align: left; font-family: sans-serif; backdrop-filter: blur(10px);">
+            <h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight:700;">⚠️ Startup Error Detected:</h4>
+            <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.3); padding:10px; border-radius:6px; color:#f87171;">${message}\n\nFile: ${source}\nLine: ${lineno}:${colno}</pre>
+            <button onclick="window.location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight:600;">Reload Portal</button>
+          </div>
+        `;
+      }
+      return false;
+    };
+    window.onunhandledrejection = function(event) {
+      const loadingEl = document.getElementById('app-loading');
+      if (loadingEl) {
+        loadingEl.innerHTML = `
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; padding: 25px; color: #ef4444; max-width: 550px; margin: 20px; text-align: left; font-family: sans-serif; backdrop-filter: blur(10px);">
+            <h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight:700;">⚠️ Unhandled Promise Rejection:</h4>
+            <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.3); padding:10px; border-radius:6px; color:#f87171;">${event.reason}</pre>
+            <button onclick="window.location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight:600;">Reload Portal</button>
+          </div>
+        `;
+      }
+    };
+  </script>
+</head>
+<body>
+  <div id="app-root">
+    <!-- Screen overlay for loading -->
+    <div id="app-loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Initializing CYBERONE CSC Portal...</p>
+    </div>
+  </div>
+
+  <!-- Entry Script as ES Module -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
