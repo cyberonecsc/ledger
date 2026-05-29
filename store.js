@@ -178,9 +178,8 @@ class StateStore {
       });
     }
 
-    if (needRecalculate) {
-      this.recalculateAllBalances();
-    }
+    // Always recalculate all balances on startup to guarantee database consistency
+    this.recalculateAllBalances();
   }
 
   getSeededInvoices() {
