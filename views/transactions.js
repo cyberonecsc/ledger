@@ -421,8 +421,20 @@ export function renderTransactions(mountPoint, appInstance) {
         .map(c => `<option value="${c.id}">${c.name} (${c.uniqueNumber})</option>`)
         .join('');
 
+      const productOptions = store.products
+        .map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || 'N/A'}, Price: ₹${p.sellPrice})</option>`)
+        .join('');
+
       mount.innerHTML = `
         <form id="form-add-sale">
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label class="form-label" style="font-size: 11px;">Link to Inventory Product (Optional)</label>
+            <select id="sale-product-link" class="form-control" style="font-size:12px;">
+              <option value="">-- No linked physical product --</option>
+              ${productOptions}
+            </select>
+            <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">Selecting a product will automatically fill its details and deduct 1 unit from inventory stock on save.</span>
+          </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Service Type / Description</label>
@@ -542,6 +554,7 @@ export function renderTransactions(mountPoint, appInstance) {
 
       // Fill values if editing
       if (editTxn) {
+        document.getElementById('sale-product-link').value = editTxn.productId || '';
         document.getElementById('sale-desc').value = editTxn.description || '';
         inputAmount.value = editTxn.amount || 0;
         inputCash.value = editTxn.paidByCash || 0;
@@ -582,6 +595,27 @@ export function renderTransactions(mountPoint, appInstance) {
 
       inputDeduct.addEventListener('input', updateProfitMath);
 
+      // Link product selection listener to auto-populate transaction fields
+      const selectProduct = document.getElementById('sale-product-link');
+      if (selectProduct) {
+        selectProduct.addEventListener('change', (e) => {
+          const prodId = e.target.value;
+          if (prodId) {
+            const product = store.products.find(p => p.id === prodId);
+            if (product) {
+              document.getElementById('sale-desc').value = product.name;
+              inputAmount.value = product.sellPrice.toFixed(2);
+              inputCash.value = product.sellPrice.toFixed(2);
+              inputUPI.value = '0.00';
+              inputCredit.value = '0.00';
+              document.getElementById('sale-deduct-source').value = 'none';
+              document.getElementById('sale-deduct-amount').value = product.buyPrice.toFixed(2);
+              updateProfitMath();
+            }
+          }
+        });
+      }
+
       // Submit handler
       document.getElementById('form-add-sale').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -592,6 +626,7 @@ export function renderTransactions(mountPoint, appInstance) {
         const credit = parseFloat(inputCredit.value || 0);
         const deductCost = parseFloat(inputDeduct.value || 0);
         const customerId = document.getElementById('sale-customer').value;
+        const productId = document.getElementById('sale-product-link').value || null;
 
         if (Math.abs((cash + upi + credit) - amount) > 0.02) {
           alert('Total of Cash + UPI + Credit payments must match the total bill amount!');
@@ -614,6 +649,7 @@ export function renderTransactions(mountPoint, appInstance) {
           deductedFrom: document.getElementById('sale-deduct-source').value,
           deductedAmount: deductCost,
           customerId: customerId,
+          productId,
           staffId: editTxn ? editTxn.staffId : 'STAFF-04'
         };
 
@@ -739,7 +775,7 @@ function renderLedgerRows(txns) {
 
     if (t.type === 'sale') {
       typeBadge = `<span class="badge sale">Sale</span>`;
-      columns[0] = t.description;
+      columns[0] = t.description + (t.productId ? ` <span style="font-size:10px; color:var(--color-primary); background:rgba(139,92,246,0.15); padding:1px 4px; border-radius:3px; font-weight: 500; margin-left: 5px;">Product</span>` : '');
       columns[1] = fmt(t.amount);
       columns[2] = fmt(t.paidByCash);
       columns[3] = fmt(t.paidByUPI);
