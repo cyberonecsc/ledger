@@ -20,6 +20,7 @@ import { renderReports } from './views/reports.js';
 import { renderUserManagement } from './views/users.js';
 import { renderAEPS } from './views/aeps.js';
 import { renderAuditLog } from './views/audit.js';
+import { renderBackupRestore } from './views/backup.js';
 
 
 // Route configurations and permission keys
@@ -37,7 +38,8 @@ const ROUTES = {
   '#users': { render: renderUserManagement, permission: 'manage_settings' },
   '#settings': { render: renderSettings, permission: 'manage_settings' },
   '#aeps': { render: renderAEPS, permission: 'manage_accounts' },
-  '#audit-log': { render: renderAuditLog, permission: 'manage_settings' }
+  '#audit-log': { render: renderAuditLog, permission: 'manage_settings' },
+  '#backup': { render: renderBackupRestore, permission: 'manage_settings' }
 };
 
 class Application {
@@ -147,7 +149,7 @@ class Application {
       });
 
       // Update Settings submenu visibility based on active route
-      const isSettingsRoute = (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log');
+      const isSettingsRoute = (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup');
       const settingsSubmenu = appContainer.querySelector('.sidebar-item.has-submenu');
       if (settingsSubmenu) {
         if (isSettingsRoute) {
@@ -245,15 +247,15 @@ class Application {
             </div>
             
             <ul class="sidebar-menu" style="margin: 10px 0 0 0; padding: 0;">
-              <li class="sidebar-item has-submenu ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log') ? 'active expanded' : ''}">
+              <li class="sidebar-item has-submenu ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'active expanded' : ''}">
                 <a href="javascript:void(0);" class="submenu-toggle" style="display: flex; align-items: center; justify-content: space-between;">
                   <span style="display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
                     <span>Settings</span>
                   </span>
-                  <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log') ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
+                  <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
                 </a>
-                <ul class="submenu-list" style="display: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log') ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
+                <ul class="submenu-list" style="display: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
                   <li class="sidebar-item ${this.activeRoute === '#settings' ? 'active' : ''}">
                     <a href="#settings" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="sliders" style="width: 14px; height: 14px;"></i><span>General</span></a>
                   </li>
@@ -262,6 +264,9 @@ class Application {
                   </li>
                   <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
                     <a href="#accounts" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 14px; height: 14px;"></i><span>Account Management</span></a>
+                  </li>
+                  <li class="sidebar-item ${this.activeRoute === '#backup' ? 'active' : ''}">
+                    <a href="#backup" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="database" style="width: 14px; height: 14px;"></i><span>Backup & Restore</span></a>
                   </li>
                   <li class="sidebar-item ${this.activeRoute === '#audit-log' ? 'active' : ''}">
                     <a href="#audit-log" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="history" style="width: 14px; height: 14px;"></i><span>Audit Log</span></a>

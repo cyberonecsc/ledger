@@ -8,6 +8,7 @@ import { auth } from '../auth.js';
 export function renderAccounts(mountPoint, appInstance) {
   const bankAccounts = store.bankAccounts;
   const currentBalances = store.getCurrentBalances();
+  const initialBalances = store.initialBalances || {};
   const sortedDates = Object.keys(store.dailyLogs).sort();
   const latestDate = sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : appInstance.getActiveDate();
 
@@ -122,6 +123,46 @@ export function renderAccounts(mountPoint, appInstance) {
           </div>
         `;
       }).join('')}
+    </div>
+
+    <!-- Initial Opening Balances Config Card -->
+    <div class="glass-card" style="padding:24px; max-width: 100%; margin-top: 35px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Initial Opening Balances</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
+      </div>
+      <form id="form-opening-balances">
+        <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Cash Reservoirs</h4>
+        <div class="form-row" style="margin-bottom:15px; display: grid; grid-template-columns: 1fr 1fr;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Cash In Hand (₹)</label>
+            <input type="number" step="0.01" id="opening-cash" class="form-control" value="${initialBalances.cash || 0.00}" style="font-size:12px;" required>
+          </div>
+          <div style="margin-bottom:0;"></div>
+        </div>
+
+        <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; margin-top: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Bank Accounts</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+          ${bankAccounts.map(b => `
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">${b.name} (₹)</label>
+              <input type="number" step="0.01" data-id="${b.id}" class="form-control bank-opening-input" value="${initialBalances[b.id] !== undefined ? initialBalances[b.id] : 0.00}" style="font-size:12px;" required>
+            </div>
+          `).join('')}
+        </div>
+
+        <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; margin-top: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Wallets</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+          ${store.wallets.map(w => `
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">${w.name} (₹)</label>
+              <input type="number" step="0.01" data-id="${w.id}" class="form-control wallet-opening-input" value="${initialBalances[w.id] !== undefined ? initialBalances[w.id] : 0.00}" style="font-size:12px;" required>
+            </div>
+          `).join('')}
+        </div>
+
+        <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Opening Balances</button>
+      </form>
     </div>
 
     <!-- Accounts Editor Modals -->
@@ -617,8 +658,40 @@ export function renderAccounts(mountPoint, appInstance) {
 
         appInstance.showToast(`Transferred ₹${amount.toFixed(2)} from ${bank ? bank.name : 'Bank'} to ${wallet ? wallet.name : 'Wallet'}`, 'success');
         closeModal();
-        appInstance.handleRouting();
       });
+    });
+  }
+
+  // Initial Opening Balances Form submit handler
+  const formOpeningBalances = document.getElementById('form-opening-balances');
+  if (formOpeningBalances) {
+    formOpeningBalances.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const newBalances = {
+        cash: parseFloat(document.getElementById('opening-cash').value || 0)
+      };
+
+      // Gather bank opening balances
+      const bankInputs = document.querySelectorAll('.bank-opening-input');
+      bankInputs.forEach(input => {
+        const id = input.getAttribute('data-id');
+        newBalances[id] = parseFloat(input.value || 0);
+      });
+
+      // Gather wallet opening balances
+      const walletInputs = document.querySelectorAll('.wallet-opening-input');
+      walletInputs.forEach(input => {
+        const id = input.getAttribute('data-id');
+        newBalances[id] = parseFloat(input.value || 0);
+      });
+
+      store.updateInitialBalances(newBalances);
+      appInstance.showToast('Initial opening balances saved successfully!', 'success');
+      
+      setTimeout(() => {
+        appInstance.handleRouting();
+      }, 300);
     });
   }
 }
