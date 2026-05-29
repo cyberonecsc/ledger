@@ -7,10 +7,6 @@ import { store } from '../store.js';
 export function renderSettings(mountPoint, appInstance) {
   const profile = store.centerProfile;
   
-  const bankAccounts = store.bankAccounts;
-  const wallets = store.wallets;
-  const initialBalances = store.initialBalances;
-
   mountPoint.innerHTML = `
     <!-- Global Store Profile Settings Config -->
     <div class="glass-card" style="padding:24px; max-width: 700px;">
@@ -77,27 +73,6 @@ export function renderSettings(mountPoint, appInstance) {
 
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Center Details</button>
       </form>
-    </div>
-
-
-
-    <!-- Database Diagnostics Config -->
-    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
-      <div class="section-header" style="margin-bottom:15px;">
-        <h3>System Diagnostics</h3>
-        <span style="font-size:12px; color:var(--text-muted);">View raw database state (Read-Only)</span>
-      </div>
-      <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); padding: 15px; font-family: monospace; font-size: 11px; max-height: 250px; overflow-y: auto; color: #a5f3fc; white-space: pre-wrap;"><strong>Initial Balances (cyberone_v2_initial_balances):</strong>
-${JSON.stringify(initialBalances, null, 2)}
-
-<strong style="display:block; margin-top: 15px;">Active Wallets (cyberone_v2_wallets):</strong>
-${JSON.stringify(wallets, null, 2)}
-
-<strong style="display:block; margin-top: 15px;">Active Bank Accounts:</strong>
-${JSON.stringify(bankAccounts, null, 2)}
-
-<strong style="display:block; margin-top: 15px;">Ledger Dates:</strong>
-${Object.keys(store.dailyLogs).sort().join(', ')}</div>
     </div>
   `;
 
