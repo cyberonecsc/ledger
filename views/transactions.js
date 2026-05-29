@@ -129,15 +129,7 @@ export function renderTransactions(mountPoint, appInstance) {
       </div>
     </div>
 
-    <!-- Opening vs Closing Balances Summary -->
-    <div class="section-header">
-      <h3>Day Balance Summary</h3>
-      <span style="font-size: 12px; color: var(--text-muted);">Opening $\rightarrow$ Closing reconciliation</span>
-    </div>
 
-    <div class="card-grid day-balance-grid" style="gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-      ${cardsHtml}
-    </div>
 
     <!-- Modals backdrop and containers -->
     <div id="txn-modal-backdrop" class="modal-backdrop">

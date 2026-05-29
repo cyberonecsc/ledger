@@ -131,11 +131,11 @@ class AuthService {
     return this.users;
   }
 
-  addUser(name, username, password, role, mobile = '', email = '', photo = '') {
+  addUser(name, username, password, role, mobile = '', email = '', photo = '', baseSalary = null) {
     const exists = this.users.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (exists) return { success: false, message: 'Username already exists' };
 
-    const newUser = { name, username, password, role, mobile, email, photo };
+    const newUser = { name, username, password, role, mobile, email, photo, baseSalary: baseSalary !== null ? parseFloat(baseSalary) : null };
     this.users.push(newUser);
     localStorage.setItem('cyberone_v2_users', JSON.stringify(this.users));
     return { success: true, user: newUser };

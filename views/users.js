@@ -3,6 +3,7 @@
    ========================================================================== */
 
 import { auth } from '../auth.js';
+import { store } from '../store.js';
 
 export function renderUserManagement(mountPoint, appInstance) {
   const users = auth.getPresetUsers();
@@ -54,8 +55,13 @@ export function renderUserManagement(mountPoint, appInstance) {
                       </div>
                     </div>
                     
-                    <div style="display:flex; gap:6px;">
-                      <!-- Edit Button (Available for all users, including owner) -->
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <!-- ID Card Button -->
+                      <button class="btn-idcard-user btn btn-secondary" data-username="${u.username}" style="padding: 4px 8px; font-size: 11px; height: 24px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; border-color: rgba(99,102,241,0.25);">
+                        <i data-lucide="contact" style="width: 11px; height: 11px; color: var(--color-primary);"></i> ID Card
+                      </button>
+
+                      <!-- Edit Button -->
                       <button class="btn-edit-user btn btn-secondary" data-username="${u.username}" style="padding: 4px 8px; font-size: 11px; height: 24px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px;">
                         <i data-lucide="edit-2" style="width: 11px; height: 11px;"></i> Edit
                       </button>
@@ -101,6 +107,11 @@ export function renderUserManagement(mountPoint, appInstance) {
                     <option value="accountant">Accountant</option>
                     <option value="staff">Staff</option>
                   </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Base Salary (₹)</label>
+                  <input type="number" step="1" id="op-salary" class="form-control" placeholder="e.g. 15000" style="font-size:12px; padding:8px 12px;" required>
                 </div>
 
                 <div class="form-group" style="margin-bottom:0;">
@@ -179,6 +190,13 @@ export function renderUserManagement(mountPoint, appInstance) {
           </div>
         </div>
       </div>
+
+      <!-- Modals Backdrop for Staff ID Card -->
+      <div id="staff-modal-backdrop" class="modal-backdrop">
+        <div class="modal-container" id="staff-modal-container" style="max-width: 500px;">
+          <!-- Dynamic Modal content -->
+        </div>
+      </div>
     `;
 
     // Re-initialize lucide icons
@@ -204,6 +222,10 @@ export function renderUserManagement(mountPoint, appInstance) {
           document.getElementById('op-role').value = userObj.role;
           document.getElementById('op-mobile').value = userObj.mobile || '';
           document.getElementById('op-email').value = userObj.email || '';
+          
+          const staffObj = store.staff.find(s => s.id === userObj.username);
+          const currentSal = userObj.baseSalary !== undefined && userObj.baseSalary !== null ? userObj.baseSalary : (staffObj ? staffObj.baseSalary : 0);
+          document.getElementById('op-salary').value = currentSal;
           
           if (userObj.photo) {
             const preview = document.getElementById('op-photo-preview');
@@ -258,7 +280,8 @@ export function renderUserManagement(mountPoint, appInstance) {
         const role = document.getElementById('op-role').value;
         const mobile = document.getElementById('op-mobile').value.trim();
         const email = document.getElementById('op-email').value.trim();
-
+        const baseSalary = parseFloat(document.getElementById('op-salary').value || 0);
+ 
         if (editingUsername) {
           // Edit Mode
           const result = auth.updateUser(editingUsername, {
@@ -267,10 +290,12 @@ export function renderUserManagement(mountPoint, appInstance) {
             role,
             mobile,
             email,
-            photo: editPhotoBase64
+            photo: editPhotoBase64,
+            baseSalary
           });
           
           if (result.success) {
+            store.loadState(); // Force reload staff lists
             appInstance.showToast(`Operator account @${editingUsername} updated successfully!`, 'success');
             editingUsername = null;
             editPhotoBase64 = '';
@@ -287,8 +312,9 @@ export function renderUserManagement(mountPoint, appInstance) {
         } else {
           // Add Mode
           const username = document.getElementById('op-username').value.trim().toLowerCase();
-          const result = auth.addUser(name, username, password, role, mobile, email, editPhotoBase64);
+          const result = auth.addUser(name, username, password, role, mobile, email, editPhotoBase64, baseSalary);
           if (result.success) {
+            store.loadState(); // Force reload staff lists
             appInstance.showToast(`User Account @${username} created successfully!`, 'success');
             editPhotoBase64 = '';
             renderView();
@@ -335,6 +361,33 @@ export function renderUserManagement(mountPoint, appInstance) {
         }
       });
     });
+
+    // Default base salary on role selection changes in add mode
+    const opRoleSelect = document.getElementById('op-role');
+    const opSalaryInput = document.getElementById('op-salary');
+    if (opRoleSelect && opSalaryInput) {
+      opRoleSelect.addEventListener('change', (e) => {
+        if (!editingUsername) {
+          const role = e.target.value;
+          const defaults = { owner: 35000, admin: 20000, accountant: 18000, staff: 12000 };
+          opSalaryInput.value = defaults[role] || 12000;
+        }
+      });
+    }
+
+    // Bind Staff ID Card buttons click
+    const idCardUserBtns = document.querySelectorAll('.btn-idcard-user');
+    idCardUserBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const username = e.currentTarget.getAttribute('data-username');
+        const userObj = auth.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (userObj) {
+          const backdrop = document.getElementById('staff-modal-backdrop');
+          const container = document.getElementById('staff-modal-container');
+          renderStaffIDCardModal(userObj, container, backdrop, appInstance);
+        }
+      });
+    });
   };
 
   // Initial Draw
@@ -343,6 +396,107 @@ export function renderUserManagement(mountPoint, appInstance) {
   // Set titles in header
   document.getElementById('page-heading-title').innerText = 'User Access & Privilege Control';
   document.getElementById('page-heading-sub').innerText = 'Create operator accounts and configure granular permission overrides';
+}
+
+function renderStaffIDCardModal(user, container, backdrop, appInstance) {
+  const primaryBank = store.bankAccounts.find(b => b.id === 'main_bob') || store.bankAccounts[0];
+  const upiId = primaryBank ? primaryBank.upiId : 'cyberone@barodampay';
+  const centerName = store.centerProfile.name || 'CYBER ONE CSC';
+
+  container.innerHTML = `
+    <div class="modal-header">
+      <h4>Operator Digital ID Card</h4>
+      <button id="staff-modal-close" class="modal-close" style="display:none;">&times;</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; overflow-y: auto; max-height: 480px; padding: 10px;">
+      <!-- Card Container for printing -->
+      <div id="printable-staff-idcard" class="preview-normal" style="background:#f8fafc; border: 1px solid #e2e8f0; padding: 25px; display:flex; flex-direction:column; gap:20px; align-items:center; border-radius: var(--border-radius-md); max-width: 380px;">
+        
+        <!-- Front Side -->
+        <div class="idcard-front" style="width: 330px; height: 200px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 15px; position: relative; color: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.1); overflow:hidden; font-family: 'Outfit', sans-serif;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <img src="./logo.png" style="width:22px; height:22px; object-fit:contain;" onerror="this.style.display='none';">
+              <span style="font-family: 'Outfit', sans-serif; font-size:12px; font-weight:800; letter-spacing:0.5px; color:#1e40af;">CYBER ONE CSC</span>
+            </div>
+            <span style="font-size:9px; color:#64748b; font-weight:800; letter-spacing:0.5px;">ATTINGAL CENTER</span>
+          </div>
+          
+          <div style="display:flex; gap:12px; align-items:center;">
+            ${user.photo ? `
+              <img src="${user.photo}" style="width:65px; height:65px; border-radius:50%; object-fit:cover; border: 2.5px solid #3b82f6; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(59,130,246,0.15);">
+            ` : `
+              <div style="width:65px; height:65px; border-radius:50%; background:#eff6ff; border: 2.5px solid #3b82f6; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:#1d4ed8; box-shadow: 0 4px 12px rgba(59,130,246,0.15);">
+                ${user.name.charAt(0)}
+              </div>
+            `}
+            <div>
+              <h4 style="font-family: 'Outfit', sans-serif; font-size:15px; font-weight:700; margin:0; color:#0f172a;">${user.name}</h4>
+              <span style="font-size:11px; color:#0284c7; font-weight:700; font-family:monospace; text-transform:uppercase;">Role: ${user.role}</span>
+              <div style="font-size: 10px; color:#475569; margin-top:4px;">Username: <strong>@${user.username}</strong></div>
+              <div style="font-size: 10px; color:#475569;">Mob: <strong>${user.mobile || '—'}</strong></div>
+            </div>
+          </div>
+          <div style="position:absolute; bottom:12px; left:15px; right:15px; font-size:9px; color:#64748b; display:flex; justify-content:space-between; border-top:1px solid #e2e8f0; padding-top:6px;">
+            <span style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Email: ${user.email || '—'}</span>
+            <span style="font-weight:700; color:#1d4ed8;">OPERATOR IDENTITY</span>
+          </div>
+        </div>
+
+        <!-- Back Side -->
+        <div class="idcard-back" style="width: 330px; height: 200px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 15px; position: relative; color: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:space-between; align-items:center; font-family: 'Outfit', sans-serif;">
+          <div style="width: 100%; border-bottom: 2px solid #e2e8f0; padding-bottom:5px; font-size: 10px; font-weight:800; color:#475569; text-align:center; letter-spacing:0.8px;">
+            SCAN FOR QUICK UPI PAYMENT
+          </div>
+          
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-grow:1; padding: 10px 0;">
+            <div style="text-align:left; max-width:170px;">
+              <h5 style="font-family: 'Outfit', sans-serif; font-size:11px; font-weight:800; margin:0 0 4px 0; color:#1d4ed8; text-transform:uppercase;">${centerName}</h5>
+              <p style="font-size:8px; color:#475569; margin:2px 0; line-height:1.2;">${store.centerProfile.address || 'Attingal'}</p>
+              <p style="font-size:8px; color:#475569; margin:2px 0;">Mob: ${store.centerProfile.mobile || '—'}</p>
+              <p style="font-size:8px; color:#475569; margin:2px 0;">UPI ID: <strong>${upiId}</strong></p>
+            </div>
+            
+            <!-- UPI QR Code -->
+            <div style="background:#fff; padding:5px; border-radius:6px; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=upi://pay?pa=${encodeURIComponent(upiId)}%26pn=${encodeURIComponent(centerName)}" style="width:80px; height:80px; display:block;">
+            </div>
+          </div>
+          
+          <div style="width:100%; font-size:8px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:5px; text-align:center; font-weight:500;">
+            Common Service Center (CSC) | Attingal Branch
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:20px; border-top:1px solid var(--panel-border); padding-top:15px;">
+      <button id="btn-print-staff-idcard" class="btn btn-primary" style="flex-grow:1;">
+        <i data-lucide="printer" style="width:16px; height:16px;"></i> Print Card
+      </button>
+      <button id="btn-download-staff-idcard" class="btn btn-secondary" style="flex-grow:1;">
+        <i data-lucide="download" style="width:16px; height:16px;"></i> Download PDF
+      </button>
+      <button type="button" class="btn btn-secondary btn-modal-cancel">Close</button>
+    </div>
+  `;
+
+  lucide.createIcons();
+  const closeModal = () => backdrop.classList.remove('show');
+  container.querySelector('.btn-modal-cancel').addEventListener('click', closeModal);
+  backdrop.classList.add('show');
+
+  // Print button
+  document.getElementById('btn-print-staff-idcard').addEventListener('click', () => {
+    appInstance.printElement('normal');
+  });
+
+  // Download PDF button
+  document.getElementById('btn-download-staff-idcard').addEventListener('click', () => {
+    appInstance.downloadElementAsPDF('printable-staff-idcard', `Staff_Card_${user.username}.pdf`, false);
+  });
 }
 
 export default renderUserManagement;
