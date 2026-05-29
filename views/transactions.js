@@ -255,10 +255,10 @@ export function renderTransactions(mountPoint, appInstance) {
   const redrawTable = () => {
     const query = searchInput.value.toLowerCase();
     
-    // Filter transactions based on query
-    let filteredTxns = log.transactions;
+    // Filter transactions based on query, showing only sales transactions
+    let filteredTxns = log.transactions.filter(t => t.type === 'sale');
     if (query) {
-      filteredTxns = log.transactions.filter(t => 
+      filteredTxns = filteredTxns.filter(t => 
         (t.description || '').toLowerCase().includes(query) ||
         (t.id || '').toLowerCase().includes(query) ||
         (t.customerId || '').toLowerCase().includes(query)

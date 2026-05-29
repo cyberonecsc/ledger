@@ -376,17 +376,24 @@ export function renderInvoices(mountPoint, appInstance) {
           <div class="receipt-header">
             <div class="header-left">
               <img class="receipt-logo" src="./logo.png" alt="logo" onerror="this.style.display='none';">
-              <div class="company-info">
-                <h3>${store.centerProfile.name}</h3>
-                <p>Center Code: ${store.centerProfile.code}</p>
-                <p>${store.centerProfile.address}, ${store.centerProfile.city}, ${store.centerProfile.state} - ${store.centerProfile.pin}</p>
-                <p>Mob: ${store.centerProfile.mobile} ${store.centerProfile.landPhone ? `| Land: ${store.centerProfile.landPhone}` : ''}</p>
-                <p>Email: ${store.centerProfile.email}</p>
-                ${store.centerProfile.gstin ? `<p>GSTIN: ${store.centerProfile.gstin}</p>` : ''}
+              <div class="company-info" style="display: flex; flex-direction: column; gap: 4px;">
+                <h3 style="font-size: 18px; margin: 0; color: #1e1b4b; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">${store.centerProfile.name}</h3>
+                <div style="font-size: 11px; font-weight: 700; color: #4338ca; display: flex; gap: 8px; align-items: center; margin-bottom: 2px;">
+                  <span>CENTER CODE: ${store.centerProfile.code}</span>
+                  ${store.centerProfile.gstin ? `<span>|</span><span>GSTIN: ${store.centerProfile.gstin}</span>` : ''}
+                </div>
+                <p style="margin: 0; font-size: 11px; color: #4b5563; line-height: 1.4;">
+                  ${store.centerProfile.address}, ${store.centerProfile.city}, ${store.centerProfile.state} - ${store.centerProfile.pin}
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: #1f2937; font-weight: 500; margin-top: 2px;">
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">📞 ${store.centerProfile.mobile} ${store.centerProfile.landPhone ? `/ ${store.centerProfile.landPhone}` : ''}</span>
+                  <span>•</span>
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">✉️ ${store.centerProfile.email}</span>
+                </div>
               </div>
             </div>
             <div class="header-right">
-              <h2 class="doc-type-title">Official Receipt</h2>
+              <h2 class="doc-type-title">Receipt</h2>
               <table class="meta-details-table">
                 <tr>
                   <td>Receipt No:</td>

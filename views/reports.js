@@ -30,6 +30,10 @@ export function renderReports(mountPoint, appInstance) {
           <!-- Calculations mount here -->
         </div>
 
+        <div id="daybook-chart-mount" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--panel-border); display: flex; justify-content: center;" class="no-print">
+          <!-- SVG chart will mount here -->
+        </div>
+
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:30px;" class="no-print">
           <button id="btn-print-daybook" class="btn btn-primary">
             <i data-lucide="printer" style="width:16px; height:16px;"></i> Print Daybook
@@ -48,6 +52,10 @@ export function renderReports(mountPoint, appInstance) {
 
         <div id="pl-math-mount">
           <!-- Profit & Loss calculations mount here -->
+        </div>
+
+        <div id="pl-chart-mount" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--panel-border); display: flex; justify-content: center;" class="no-print">
+          <!-- SVG chart will mount here -->
         </div>
 
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:30px;" class="no-print">
@@ -89,6 +97,9 @@ export function renderReports(mountPoint, appInstance) {
               }).join('')}
             </tbody>
           </table>
+        </div>
+        <div id="wallet-chart-mount" style="margin-top: 25px; border-top: 1px solid var(--panel-border); padding-top: 20px; display: flex; justify-content: center;">
+          <!-- SVG chart will mount here -->
         </div>
       </div>
     </div>
@@ -146,6 +157,9 @@ export function renderReports(mountPoint, appInstance) {
               }).join('')}
             </tbody>
           </table>
+        </div>
+        <div id="staff-chart-mount" style="margin-top: 25px; border-top: 1px solid var(--panel-border); padding-top: 20px; display: flex; justify-content: center;">
+          <!-- SVG chart will mount here -->
         </div>
       </div>
     </div>
@@ -233,6 +247,10 @@ export function renderReports(mountPoint, appInstance) {
           </div>
         </div>
 
+        <div id="custom-chart-mount" style="margin-top: 25px; margin-bottom: 25px; padding: 15px; background: rgba(255,255,255,0.01); border: 1px solid var(--panel-border); border-radius: var(--border-radius-md); display: flex; justify-content: center;" class="no-print">
+          <!-- SVG chart will mount here -->
+        </div>
+
         <h4 style="font-family: var(--font-display); font-weight:700; margin-bottom:15px; border-bottom:1px solid var(--panel-border); padding-bottom:5px;">Monthly & Yearly Performance Breakdown</h4>
         <div class="table-responsive">
           <table class="custom-table" style="width: 100%;">
@@ -291,6 +309,12 @@ export function renderReports(mountPoint, appInstance) {
 
   // Render Profit & Loss details
   renderPLData(currentMonth);
+
+  // Render Wallet Reconciliation details
+  renderWalletChart();
+
+  // Render Staff Performance details
+  renderStaffChart();
 
   // Print buttons binders
   document.getElementById('btn-print-daybook').addEventListener('click', () => {
@@ -396,6 +420,8 @@ export function renderReports(mountPoint, appInstance) {
 
       if (sortedMonths.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-dimmed); padding:20px;">No transactions logged in this range.</td></tr>`;
+        const chartMount = document.getElementById('custom-chart-mount');
+        if (chartMount) chartMount.innerHTML = '';
       } else {
         tbody.innerHTML = sortedMonths.map(m => {
           const mData = monthlySummary[m];
@@ -411,6 +437,11 @@ export function renderReports(mountPoint, appInstance) {
             </tr>
           `;
         }).join('');
+
+        const chartMount = document.getElementById('custom-chart-mount');
+        if (chartMount) {
+          chartMount.innerHTML = generateTimelineSVG(monthlySummary);
+        }
       }
     };
 
@@ -519,6 +550,16 @@ function renderDaybookData(dateString) {
       </tr>
     </table>
   `;
+
+  const daybookChart = document.getElementById('daybook-chart-mount');
+  if (daybookChart) {
+    daybookChart.innerHTML = generateDaybookSVG(
+      log.openingBalances.cash,
+      log.closingBalances.cash,
+      openingBankTotal,
+      closingBankTotal
+    );
+  }
 }
 
 function renderPLData(monthString) {
@@ -622,6 +663,508 @@ function renderPLData(monthString) {
         ₹${stats.netProfit.toFixed(2)}
       </strong>
     </div>
+  `;
+
+  const plChart = document.getElementById('pl-chart-mount');
+  if (plChart) {
+    plChart.innerHTML = generatePLSVG(
+      govtRev,
+      dtpRev,
+      utilitiesRev,
+      rechargesRev,
+      totalRevenues,
+      totalExpenses
+    );
+  }
+}
+
+export default renderReports;
+
+function renderWalletChart() {
+  const mount = document.getElementById('wallet-chart-mount');
+  if (!mount) return;
+  const balances = store.getCurrentBalances();
+  mount.innerHTML = generateWalletSVG(store.wallets, balances);
+}
+
+function renderStaffChart() {
+  const mount = document.getElementById('staff-chart-mount');
+  if (!mount) return;
+
+  const staffData = store.staff.map(s => {
+    const appCount = store.applications.filter(a => a.assignedStaffId === s.id).length;
+    let salesVolume = 0;
+    Object.keys(store.dailyLogs).forEach(date => {
+      store.dailyLogs[date].transactions.forEach(t => {
+        if (t.type === 'sale' && t.staffId === s.id) {
+          salesVolume += t.amount;
+        }
+      });
+    });
+    return {
+      name: s.name,
+      role: s.role,
+      apps: appCount,
+      sales: salesVolume
+    };
+  });
+
+  mount.innerHTML = generateStaffSVG(staffData);
+}
+
+function generateDaybookSVG(opCash, clCash, opBank, clBank) {
+  const max = Math.max(opCash, clCash, opBank, clBank, 1000) * 1.15; // 15% padding at top
+  const height = 180;
+  const width = 500;
+  const paddingLeft = 50;
+  const paddingTop = 20;
+  const chartHeight = height - paddingTop;
+  const chartWidth = width - paddingLeft - 20;
+
+  const getH = (val) => (val / max) * chartHeight;
+  const getTop = (val) => chartHeight - getH(val) + paddingTop;
+
+  const hOpCash = getH(opCash);
+  const hClCash = getH(clCash);
+  const hOpBank = getH(opBank);
+  const hClBank = getH(clBank);
+
+  const tOpCash = getTop(opCash);
+  const tClCash = getTop(clCash);
+  const tOpBank = getTop(opBank);
+  const tClBank = getTop(clBank);
+
+  return `
+    <svg viewBox="0 0 500 240" style="width: 100%; max-width: 500px; height: auto; font-family: inherit;">
+      <!-- Gridlines -->
+      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - 20}" y2="${paddingTop}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.33}" x2="${width - 20}" y2="${paddingTop + chartHeight * 0.33}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.66}" x2="${width - 20}" y2="${paddingTop + chartHeight * 0.66}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${chartHeight + paddingTop}" x2="${width - 20}" y2="${chartHeight + paddingTop}" stroke="rgba(255,255,255,0.1)" />
+
+      <!-- Y Axis Labels -->
+      <text x="${paddingLeft - 8}" y="${paddingTop + 4}" fill="var(--text-muted)" font-size="9" text-anchor="end">₹${Math.round(max).toLocaleString('en-IN')}</text>
+      <text x="${paddingLeft - 8}" y="${paddingTop + chartHeight * 0.33 + 4}" fill="var(--text-muted)" font-size="9" text-anchor="end">₹${Math.round(max * 0.66).toLocaleString('en-IN')}</text>
+      <text x="${paddingLeft - 8}" y="${paddingTop + chartHeight * 0.66 + 4}" fill="var(--text-muted)" font-size="9" text-anchor="end">₹${Math.round(max * 0.33).toLocaleString('en-IN')}</text>
+      <text x="${paddingLeft - 8}" y="${chartHeight + paddingTop + 4}" fill="var(--text-muted)" font-size="9" text-anchor="end">₹0</text>
+
+      <!-- Cash Bars -->
+      <!-- Opening Cash -->
+      <rect x="90" y="${tOpCash}" width="36" height="${hOpCash}" rx="4" fill="url(#grad-cash-op)" style="transition: all 0.5s ease-in-out;" />
+      <text x="108" y="${tOpCash - 6}" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(opCash)}</text>
+      <text x="108" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Opening</text>
+      
+      <!-- Closing Cash -->
+      <rect x="136" y="${tClCash}" width="36" height="${hClCash}" rx="4" fill="url(#grad-cash-cl)" style="transition: all 0.5s ease-in-out;" />
+      <text x="154" y="${tClCash - 6}" fill="#fb923c" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(clCash)}</text>
+      <text x="154" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Closing</text>
+
+      <!-- Label for Cash Group -->
+      <text x="131" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">Physical Cash</text>
+
+      <!-- Bank Bars -->
+      <!-- Opening Bank -->
+      <rect x="290" y="${tOpBank}" width="36" height="${hOpBank}" rx="4" fill="url(#grad-bank-op)" style="transition: all 0.5s ease-in-out;" />
+      <text x="308" y="${tOpBank - 6}" fill="#06b6d4" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(opBank)}</text>
+      <text x="308" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Opening</text>
+      
+      <!-- Closing Bank -->
+      <rect x="336" y="${tClBank}" width="36" height="${hClBank}" rx="4" fill="url(#grad-bank-cl)" style="transition: all 0.5s ease-in-out;" />
+      <text x="354" y="${tClBank - 6}" fill="#38bdf8" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(clBank)}</text>
+      <text x="354" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Closing</text>
+
+      <!-- Label for Bank Group -->
+      <text x="331" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">Bank/UPI</text>
+
+      <!-- Gradients Definition -->
+      <defs>
+        <linearGradient id="grad-cash-op" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.2"/>
+        </linearGradient>
+        <linearGradient id="grad-cash-cl" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fb923c" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#fb923c" stop-opacity="0.2"/>
+        </linearGradient>
+        <linearGradient id="grad-bank-op" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.2"/>
+        </linearGradient>
+        <linearGradient id="grad-bank-cl" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.2"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  `;
+}
+
+function generatePLSVG(govt, dtp, bills, recharges, totalRev, totalExp) {
+  // Donut chart calculations for Revenue Breakdown
+  const total = (govt + dtp + bills + recharges) || 1;
+  const categories = [
+    { label: 'Govt Applications', value: govt, color: '#a855f7' }, // Purple
+    { label: 'DTP & Printing', value: dtp, color: '#3b82f6' }, // Blue
+    { label: 'Utilities / Bills', value: bills, color: '#eab308' }, // Yellow
+    { label: 'Recharges', value: recharges, color: '#06b6d4' } // Cyan
+  ].filter(c => c.value > 0);
+
+  const radius = 45;
+  const circ = 2 * Math.PI * radius; // 282.74
+  let accumulatedPercent = 0;
+  
+  let donutSlices = '';
+  let legendHtml = '';
+  
+  categories.forEach((cat, index) => {
+    const percent = cat.value / total;
+    const strokeDash = percent * circ;
+    const strokeOffset = circ - strokeDash + (accumulatedPercent * circ);
+    accumulatedPercent -= percent; // rotate backwards to go clockwise starting at top
+
+    donutSlices += `
+      <circle r="${radius}" cx="80" cy="100" fill="transparent"
+              stroke="${cat.color}" stroke-width="14"
+              stroke-dasharray="${strokeDash} ${circ - strokeDash}"
+              stroke-dashoffset="${strokeOffset}"
+              transform="rotate(-90 80 100)">
+      </circle>
+    `;
+
+    legendHtml += `
+      <g transform="translate(150, ${40 + index * 24})">
+        <rect width="10" height="10" rx="2" fill="${cat.color}" />
+        <text x="18" y="9" fill="var(--text-muted)" font-size="10">${cat.label}</text>
+        <text x="130" y="9" fill="#fff" font-weight="700" font-size="10">₹${Math.round(cat.value)}</text>
+      </g>
+    `;
+  });
+
+  if (categories.length === 0) {
+    donutSlices = `<circle r="${radius}" cx="80" cy="100" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="14"></circle>`;
+    legendHtml = `<text x="150" y="105" fill="var(--text-dimmed)" font-size="11">No revenue logged</text>`;
+  }
+
+  // Revenue vs Expenses comparison bars (on the right)
+  const maxBar = Math.max(totalRev, totalExp, 1000) * 1.15;
+  const barChartWidth = 180;
+  const getBarW = (val) => (val / maxBar) * barChartWidth;
+
+  const wRev = getBarW(totalRev);
+  const wExp = getBarW(totalExp);
+
+  return `
+    <svg viewBox="0 0 600 200" style="width: 100%; max-width: 600px; height: auto; font-family: inherit;">
+      <!-- Background Pane Splitter -->
+      <line x1="320" y1="15" x2="320" y2="185" stroke="rgba(255,255,255,0.08)" />
+
+      <!-- Left Side: Revenue Breakdown Donut -->
+      <text x="15" y="25" fill="#fff" font-size="12" font-weight="700">Revenue Distribution</text>
+      
+      <!-- Donut Circle Group -->
+      ${donutSlices}
+      <circle r="36" cx="80" cy="100" fill="#18181b" />
+      <text x="80" y="97" fill="var(--text-muted)" font-size="8" text-anchor="middle">TOTAL REV</text>
+      <text x="80" y="110" fill="#10b981" font-size="12" font-weight="800" text-anchor="middle">₹${Math.round(totalRev)}</text>
+
+      <!-- Donut Legends -->
+      ${legendHtml}
+
+      <!-- Right Side: Revenue vs Expenses -->
+      <text x="340" y="25" fill="#fff" font-size="12" font-weight="700">Operating Summary</text>
+      
+      <!-- Revenue Bar -->
+      <text x="340" y="55" fill="var(--text-muted)" font-size="10">Total Revenues (SC)</text>
+      <rect x="340" y="65" width="${barChartWidth}" height="16" rx="4" fill="rgba(255,255,255,0.02)" />
+      <rect x="340" y="65" width="${wRev}" height="16" rx="4" fill="url(#grad-pl-rev)" />
+      <text x="${Math.max(345, 340 + wRev + 8)}" y="77" fill="#10b981" font-size="11" font-weight="700">₹${Math.round(totalRev)}</text>
+
+      <!-- Expenses Bar -->
+      <text x="340" y="110" fill="var(--text-muted)" font-size="10">Operating Expenses</text>
+      <rect x="340" y="120" width="${barChartWidth}" height="16" rx="4" fill="rgba(255,255,255,0.02)" />
+      <rect x="340" y="120" width="${wExp}" height="16" rx="4" fill="url(#grad-pl-exp)" />
+      <text x="${Math.max(345, 340 + wExp + 8)}" y="132" fill="#ef4444" font-size="11" font-weight="700">₹${Math.round(totalExp)}</text>
+
+      <!-- Net Profit Indicator -->
+      <g transform="translate(340, 160)">
+        <text x="0" y="12" fill="var(--text-muted)" font-size="11">Net Operating Profit:</text>
+        <text x="135" y="14" fill="${totalRev - totalExp >= 0 ? '#10b981' : '#ef4444'}" font-size="15" font-weight="800">
+          ₹${Math.round(totalRev - totalExp)}
+        </text>
+      </g>
+
+      <!-- Defs for gradients -->
+      <defs>
+        <linearGradient id="grad-pl-rev" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#34d399" stop-opacity="0.8"/>
+        </linearGradient>
+        <linearGradient id="grad-pl-exp" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ef4444" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#f87171" stop-opacity="0.8"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  `;
+}
+
+function generateWalletSVG(wallets, balances) {
+  const data = wallets.map(w => ({
+    name: w.name,
+    bal: balances[w.id] || 0,
+    login: w.loginId
+  }));
+
+  const maxBal = Math.max(...data.map(d => d.bal), 1000);
+  const height = 40 + data.length * 45;
+  const width = 600;
+  const labelWidth = 140;
+  const chartWidth = width - labelWidth - 90;
+
+  let barsHtml = '';
+  const colors = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+
+  data.forEach((wData, index) => {
+    const barW = (wData.bal / maxBal) * chartWidth;
+    const y = 30 + index * 45;
+
+    barsHtml += `
+      <g transform="translate(0, ${y})">
+        <!-- Label -->
+        <text x="10" y="14" fill="#fff" font-size="11" font-weight="700">${wData.name}</text>
+        <text x="10" y="26" fill="var(--text-dimmed)" font-size="9">${wData.login}</text>
+        
+        <!-- Bar background -->
+        <rect x="${labelWidth}" y="6" width="${chartWidth}" height="16" rx="4" fill="rgba(255,255,255,0.02)" />
+        
+        <!-- Fill Bar -->
+        <rect x="${labelWidth}" y="6" width="${barW}" height="16" rx="4" fill="url(#grad-wallet-${index})" />
+        
+        <!-- Balance value -->
+        <text x="${labelWidth + barW + 8}" y="18" fill="#fff" font-size="11" font-weight="700">₹${wData.bal.toFixed(2)}</text>
+      </g>
+    `;
+  });
+
+  let gradientsHtml = '';
+  data.forEach((wData, index) => {
+    const color = colors[index % colors.length];
+    gradientsHtml += `
+      <linearGradient id="grad-wallet-${index}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0.25"/>
+      </linearGradient>
+    `;
+  });
+
+  return `
+    <svg viewBox="0 0 600 ${height}" style="width: 100%; max-width: 600px; height: auto; font-family: inherit;">
+      <text x="10" y="15" fill="var(--text-muted)" font-size="10" font-weight="700" text-transform="uppercase">Wallet Balance Comparison</text>
+      ${barsHtml}
+      <defs>
+        ${gradientsHtml}
+      </defs>
+    </svg>
+  `;
+}
+
+function generateStaffSVG(staffData) {
+  const max = Math.max(...staffData.map(d => d.sales), 1000) * 1.15;
+  const height = 200;
+  const width = 600;
+  const paddingLeft = 60;
+  const paddingRight = 20;
+  const paddingTop = 25;
+  const chartHeight = height - paddingTop;
+  const chartWidth = width - paddingLeft - paddingRight;
+
+  const barCount = staffData.length;
+  const spacing = chartWidth / (barCount || 1);
+  const barWidth = Math.min(45, spacing * 0.5);
+
+  let barsHtml = '';
+  
+  staffData.forEach((s, index) => {
+    const h = (s.sales / max) * chartHeight;
+    const top = chartHeight - h + paddingTop;
+    const x = paddingLeft + index * spacing + (spacing - barWidth) / 2;
+
+    barsHtml += `
+      <g>
+        <!-- Sales Bar -->
+        <rect x="${x}" y="${top}" width="${barWidth}" height="${h}" rx="4" fill="url(#grad-staff-${index})" style="transition: all 0.5s ease-in-out;" />
+        
+        <!-- Sales value text -->
+        <text x="${x + barWidth/2}" y="${top - 6}" fill="#22d3ee" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(s.sales)}</text>
+        
+        <!-- Files counter bubble inside/above bar -->
+        <circle cx="${x + barWidth/2}" cy="${top + 15}" r="8" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
+        <text x="${x + barWidth/2}" y="${top + 18}" fill="#fff" font-size="8" font-weight="700" text-anchor="middle">${s.apps}</text>
+
+        <!-- X Label (Name) -->
+        <text x="${x + barWidth/2}" y="${chartHeight + paddingTop + 15}" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">${s.name}</text>
+        <text x="${x + barWidth/2}" y="${chartHeight + paddingTop + 26}" fill="var(--text-dimmed)" font-size="8" text-anchor="middle" style="text-transform:capitalize;">${s.role}</text>
+      </g>
+    `;
+  });
+
+  const colors = ['#06b6d4', '#10b981', '#a855f7', '#f59e0b', '#3b82f6'];
+  let gradientsHtml = '';
+  staffData.forEach((s, index) => {
+    const color = colors[index % colors.length];
+    gradientsHtml += `
+      <linearGradient id="grad-staff-${index}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0.15"/>
+      </linearGradient>
+    `;
+  });
+
+  return `
+    <svg viewBox="0 0 600 240" style="width: 100%; max-width: 600px; height: auto; font-family: inherit;">
+      <text x="10" y="15" fill="var(--text-muted)" font-size="10" font-weight="700" text-transform="uppercase">Revenue & Application File Output</text>
+      
+      <!-- Gridlines -->
+      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - paddingRight}" y2="${paddingTop}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.5}" x2="${width - paddingRight}" y2="${paddingTop + chartHeight * 0.5}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${chartHeight + paddingTop}" x2="${width - paddingRight}" y2="${chartHeight + paddingTop}" stroke="rgba(255,255,255,0.1)" />
+
+      <!-- Y Axis Labels -->
+      <text x="${paddingLeft - 8}" y="${paddingTop + 4}" fill="var(--text-muted)" font-size="8" text-anchor="end">₹${Math.round(max).toLocaleString('en-IN')}</text>
+      <text x="${paddingLeft - 8}" y="${paddingTop + chartHeight * 0.5 + 4}" fill="var(--text-muted)" font-size="8" text-anchor="end">₹${Math.round(max * 0.5).toLocaleString('en-IN')}</text>
+      <text x="${paddingLeft - 8}" y="${chartHeight + paddingTop + 4}" fill="var(--text-muted)" font-size="8" text-anchor="end">₹0</text>
+
+      ${barsHtml}
+
+      <!-- Legend -->
+      <g transform="translate(480, 10)">
+        <circle cx="10" cy="5" r="5" fill="#06b6d4" />
+        <text x="20" y="9" fill="var(--text-muted)" font-size="9">Sales Vol</text>
+        <circle cx="70" cy="5" r="5" fill="rgba(255,255,255,0.15)" stroke="#fff" stroke-width="0.5" />
+        <text x="80" y="9" fill="var(--text-muted)" font-size="9">Files Filed</text>
+      </g>
+
+      <defs>
+        ${gradientsHtml}
+      </defs>
+    </svg>
+  `;
+}
+
+function generateTimelineSVG(monthlySummary) {
+  const sortedMonths = Object.keys(monthlySummary).sort();
+  if (sortedMonths.length === 0) return '';
+
+  const data = sortedMonths.map(m => {
+    const stats = monthlySummary[m];
+    const netProfit = stats.income - stats.expenses;
+    return {
+      month: m,
+      profit: netProfit,
+      income: stats.income,
+      expenses: stats.expenses
+    };
+  });
+
+  const profits = data.map(d => d.profit);
+  const minVal = Math.min(...profits, 0); // include 0 to show deficit
+  const maxVal = Math.max(...profits, 1000);
+  const spread = maxVal - minVal;
+
+  const height = 180;
+  const width = 600;
+  const paddingLeft = 50;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const chartHeight = height - paddingTop;
+  const chartWidth = width - paddingLeft - paddingRight;
+
+  const getX = (index) => paddingLeft + (index / Math.max(1, data.length - 1)) * chartWidth;
+  const getY = (val) => chartHeight - ((val - minVal) / (spread || 1)) * chartHeight + paddingTop;
+
+  let pathD = '';
+  let areaD = '';
+  let dotsHtml = '';
+
+  data.forEach((d, index) => {
+    const x = getX(index);
+    const y = getY(d.profit);
+
+    if (index === 0) {
+      pathD = `M ${x} ${y}`;
+      areaD = `M ${x} ${chartHeight + paddingTop} L ${x} ${y}`;
+    } else {
+      pathD += ` L ${x} ${y}`;
+    }
+
+    if (index === data.length - 1) {
+      areaD += ` L ${x} ${y} L ${x} ${chartHeight + paddingTop} Z`;
+    } else if (index > 0) {
+      areaD += ` L ${x} ${y}`;
+    }
+
+    const dateObj = new Date(d.month + "-02");
+    const label = dateObj.toLocaleString('default', { month: 'short' }) + " '" + dateObj.getFullYear().toString().substring(2);
+
+    dotsHtml += `
+      <g>
+        <circle cx="${x}" cy="${y}" r="4" fill="#06b6d4" stroke="#fff" stroke-width="1.5" />
+        <text x="${x}" y="${y - 8}" fill="${d.profit >= 0 ? '#10b981' : '#ef4444'}" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(d.profit)}</text>
+        <text x="${x}" y="${chartHeight + paddingTop + 15}" fill="var(--text-muted)" font-size="9" text-anchor="middle">${label}</text>
+      </g>
+    `;
+  });
+
+  if (data.length === 1) {
+    const x = paddingLeft + chartWidth / 2;
+    const y = getY(data[0].profit);
+    const dateObj = new Date(data[0].month + "-02");
+    const label = dateObj.toLocaleString('default', { month: 'short' }) + " '" + dateObj.getFullYear().toString().substring(2);
+    
+    return `
+      <svg viewBox="0 0 600 220" style="width: 100%; max-width: 600px; height: auto; font-family: inherit;">
+        <text x="10" y="15" fill="var(--text-muted)" font-size="10" font-weight="700" text-transform="uppercase">Net Profit Timeline</text>
+        <rect x="${x - 30}" y="${y}" width="60" height="${chartHeight + paddingTop - y}" rx="4" fill="url(#grad-timeline-area)" />
+        <circle cx="${x}" cy="${y}" r="5" fill="#06b6d4" stroke="#fff" stroke-width="1.5" />
+        <text x="${x}" y="${y - 8}" fill="${data[0].profit >= 0 ? '#10b981' : '#ef4444'}" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(data[0].profit)}</text>
+        <text x="${x}" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">${label}</text>
+        
+        <defs>
+          <linearGradient id="grad-timeline-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.05"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    `;
+  }
+
+  const zeroY = getY(0);
+
+  return `
+    <svg viewBox="0 0 600 220" style="width: 100%; max-width: 600px; height: auto; font-family: inherit;">
+      <text x="10" y="15" fill="var(--text-muted)" font-size="10" font-weight="700" text-transform="uppercase">Net Profit Timeline</text>
+      
+      <!-- Baseline 0 -->
+      <line x1="${paddingLeft}" y1="${zeroY}" x2="${width - paddingRight}" y2="${zeroY}" stroke="rgba(255,255,255,0.15)" stroke-dasharray="3" />
+      <text x="${width - paddingRight + 4}" y="${zeroY + 3}" fill="var(--text-dimmed)" font-size="8">₹0</text>
+
+      <!-- Fill Area -->
+      <path d="${areaD}" fill="url(#grad-timeline-area)" />
+      
+      <!-- Line Path -->
+      <path d="${pathD}" fill="none" stroke="#06b6d4" stroke-width="2.5" />
+
+      <!-- Interactive Nodes -->
+      ${dotsHtml}
+
+      <defs>
+        <linearGradient id="grad-timeline-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.00"/>
+        </linearGradient>
+      </defs>
+    </svg>
   `;
 }
 

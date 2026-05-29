@@ -533,6 +533,83 @@ class Application {
     setTimeout(cleanUp, 1000);
   }
 
+  mergeSyncData(remoteBackup) {
+    const keys = Object.keys(remoteBackup);
+    keys.forEach(key => {
+      if (key.startsWith('cyberone_v2_')) {
+        const localRaw = localStorage.getItem(key);
+        const remoteRaw = remoteBackup[key];
+        
+        if (!localRaw || localRaw === '[]' || localRaw === '{}') {
+          localStorage.setItem(key, remoteRaw);
+          return;
+        }
+        
+        if (key === 'cyberone_v2_daily_logs') {
+          try {
+            const localLogs = JSON.parse(localRaw || '{}');
+            const remoteLogs = JSON.parse(remoteRaw || '{}');
+            const mergedLogs = { ...remoteLogs, ...localLogs };
+            
+            Object.keys(mergedLogs).forEach(date => {
+              if (localLogs[date] && remoteLogs[date]) {
+                const localTxns = localLogs[date].transactions || [];
+                const remoteTxns = remoteLogs[date].transactions || [];
+                const txnMap = new Map();
+                
+                remoteTxns.forEach(t => txnMap.set(t.id, t));
+                localTxns.forEach(t => txnMap.set(t.id, t));
+                
+                mergedLogs[date].transactions = Array.from(txnMap.values());
+              }
+            });
+            localStorage.setItem(key, JSON.stringify(mergedLogs));
+          } catch (e) {
+            console.error("Failed to merge daily logs", e);
+            localStorage.setItem(key, remoteRaw);
+          }
+        } else if (key === 'cyberone_v2_activity_logs') {
+          try {
+            const localAct = JSON.parse(localRaw || '[]');
+            const remoteAct = JSON.parse(remoteRaw || '[]');
+            const actMap = new Map();
+            remoteAct.forEach(a => actMap.set(a.id, a));
+            localAct.forEach(a => actMap.set(a.id, a));
+            const mergedAct = Array.from(actMap.values()).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            localStorage.setItem(key, JSON.stringify(mergedAct));
+          } catch(e) {
+            localStorage.setItem(key, remoteRaw);
+          }
+        } else {
+          try {
+            const localData = JSON.parse(localRaw);
+            const remoteData = JSON.parse(remoteRaw);
+            
+            if (Array.isArray(localData) && Array.isArray(remoteData)) {
+              const map = new Map();
+              localData.forEach(item => { if (item && item.id) map.set(item.id, item); });
+              remoteData.forEach(item => {
+                if (item && item.id) {
+                  const existing = map.get(item.id);
+                  map.set(item.id, existing ? { ...existing, ...item } : item);
+                }
+              });
+              localStorage.setItem(key, JSON.stringify(Array.from(map.values())));
+            } else if (localData && typeof localData === 'object' && remoteData && typeof remoteData === 'object') {
+              const mergedObj = { ...localData, ...remoteData };
+              localStorage.setItem(key, JSON.stringify(mergedObj));
+            } else {
+              localStorage.setItem(key, remoteRaw);
+            }
+          } catch(e) {
+            console.error("Failed to merge key " + key, e);
+            localStorage.setItem(key, remoteRaw);
+          }
+        }
+      }
+    });
+  }
+
   syncDatabase() {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (!isLocal) {
@@ -572,52 +649,7 @@ class Application {
           const keys = Object.keys(remoteBackup);
           
           if (keys.length > 0) {
-            keys.forEach(key => {
-              if (key.startsWith('cyberone_v2_')) {
-                if (key === 'cyberone_v2_daily_logs') {
-                  try {
-                    const localLogs = JSON.parse(localStorage.getItem('cyberone_v2_daily_logs') || '{}');
-                    const remoteLogs = JSON.parse(remoteBackup[key] || '{}');
-                    const mergedLogs = { ...remoteLogs, ...localLogs };
-                    
-                    Object.keys(mergedLogs).forEach(date => {
-                      if (localLogs[date] && remoteLogs[date]) {
-                        const localTxns = localLogs[date].transactions || [];
-                        const remoteTxns = remoteLogs[date].transactions || [];
-                        const txnMap = new Map();
-                        
-                        remoteTxns.forEach(t => txnMap.set(t.id, t));
-                        localTxns.forEach(t => txnMap.set(t.id, t));
-                        
-                        mergedLogs[date].transactions = Array.from(txnMap.values());
-                      }
-                    });
-                    
-                    localStorage.setItem('cyberone_v2_daily_logs', JSON.stringify(mergedLogs));
-                  } catch (e) {
-                    console.error("Failed to merge daily logs, overwriting", e);
-                    localStorage.setItem(key, remoteBackup[key]);
-                  }
-                } else if (key === 'cyberone_v2_activity_logs') {
-                  try {
-                    const localAct = JSON.parse(localStorage.getItem('cyberone_v2_activity_logs') || '[]');
-                    const remoteAct = JSON.parse(remoteBackup[key] || '[]');
-                    const actMap = new Map();
-                    remoteAct.forEach(a => actMap.set(a.id, a));
-                    localAct.forEach(a => actMap.set(a.id, a));
-                    const mergedAct = Array.from(actMap.values()).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    localStorage.setItem('cyberone_v2_activity_logs', JSON.stringify(mergedAct));
-                  } catch(e) {
-                    localStorage.setItem(key, remoteBackup[key]);
-                  }
-                } else {
-                  const localVal = localStorage.getItem(key);
-                  if (!localVal || localVal === '[]' || localVal === '{}') {
-                    localStorage.setItem(key, remoteBackup[key]);
-                  }
-                }
-              }
-            });
+            self.mergeSyncData(remoteBackup);
             
             const localPayload = {};
             for (let i = 0; i < localStorage.length; i++) {
@@ -687,7 +719,6 @@ class Application {
       window.removeEventListener('message', handleMessage);
     };
 
-    // Silently stop trying after 8 seconds if GitHub is offline or not deployed yet
     const timeoutId = setTimeout(cleanup, 8000);
 
     const self = this;
@@ -701,7 +732,6 @@ class Application {
           if (keys.length > 0) {
             let hasChanges = false;
             
-            // Check if there are differences before overwriting and reloading
             keys.forEach(key => {
               if (key.startsWith('cyberone_v2_') && key !== 'cyberone_v2_last_sync_date' && key !== 'cyberone_v2_sidebar_collapsed') {
                 const localVal = localStorage.getItem(key);
@@ -711,14 +741,7 @@ class Application {
               }
             });
 
-            // Write sync payload to local storage
-            keys.forEach(key => {
-              if (key.startsWith('cyberone_v2_')) {
-                localStorage.setItem(key, backup[key]);
-              }
-            });
-
-            // Set the sync timestamp to prevent subsequent sync requests today
+            self.mergeSyncData(backup);
             localStorage.setItem('cyberone_v2_last_sync_date', todayStr);
 
             if (hasChanges) {
@@ -728,7 +751,6 @@ class Application {
               }, 1200);
             }
           } else {
-            // No data on GitHub to pull, mark today as checked
             localStorage.setItem('cyberone_v2_last_sync_date', todayStr);
           }
           cleanup();

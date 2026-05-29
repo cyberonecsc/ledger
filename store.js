@@ -308,6 +308,7 @@ class StateStore {
 
   updateInitialBalances(balances) {
     this.initialBalances = { ...this.initialBalances, ...balances };
+    this.logActivity('Edit Initial Balances', `Updated initial opening balances: ${JSON.stringify(balances)}`);
     this.persistAll();
     this.recalculateAllBalances();
     return true;
@@ -318,6 +319,7 @@ class StateStore {
       ...this.centerProfile,
       ...profileData
     };
+    this.logActivity('Edit Profile', `Updated center profile settings: ${profileData.name}`);
     this.persistAll();
     return true;
   }
@@ -761,6 +763,7 @@ class StateStore {
       ...updatedData,
       creditBalance: parseFloat(updatedData.creditBalance || 0)
     };
+    this.logActivity('Edit Customer', `Updated customer ${customerId}: name set to "${updatedData.name}", credit balance set to ₹${updatedData.creditBalance}`);
     this.persistAll();
     return this.customers[idx];
   }
@@ -805,8 +808,10 @@ class StateStore {
   updateApplicationStatus(appId, status) {
     const app = this.applications.find(a => a.id === appId);
     if (app) {
+      const oldStatus = app.status;
       app.status = status;
       app.lastUpdated = getTodayDateString();
+      this.logActivity('Edit Application', `Updated application ${appId} status from "${oldStatus}" to "${status}"`);
       this.persistAll();
     }
   }
@@ -834,6 +839,7 @@ class StateStore {
     const idx = this.products.findIndex(p => p.id === prodId);
     if (idx === -1) return null;
     
+    const oldProduct = this.products[idx];
     this.products[idx] = {
       ...this.products[idx],
       ...updatedData,
@@ -843,8 +849,20 @@ class StateStore {
       minStock: updatedData.type === 'service' ? 0 : parseInt(updatedData.minStock || 0),
       type: updatedData.type || 'product'
     };
+    this.logActivity('Edit Product', `Updated product ${prodId}: changed name from "${oldProduct.name}" to "${updatedData.name}", stock to ${updatedData.stock}, price to ₹${updatedData.sellPrice}`);
     this.persistAll();
     return this.products[idx];
+  }
+
+  deleteProduct(prodId) {
+    const idx = this.products.findIndex(p => p.id === prodId);
+    if (idx === -1) return false;
+    const name = this.products[idx].name;
+    const sku = this.products[idx].sku;
+    this.products.splice(idx, 1);
+    this.logActivity('Delete Product', `Deleted inventory item ${prodId}: "${name}" (SKU/HSN: ${sku})`);
+    this.persistAll();
+    return true;
   }
 
   adjustStock(prodId, qty) {
@@ -864,6 +882,7 @@ class StateStore {
       ...this.wallets[idx],
       ...data
     };
+    this.logActivity('Edit Wallet', `Updated wallet details for ${walletId}`);
     this.persistAll();
     return true;
   }
@@ -876,6 +895,7 @@ class StateStore {
       ...this.bankAccounts[idx],
       ...data
     };
+    this.logActivity('Edit Bank', `Updated bank account details for ${accountId}`);
     this.persistAll();
     return true;
   }

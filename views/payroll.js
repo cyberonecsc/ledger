@@ -169,12 +169,15 @@ export function renderPayroll(mountPoint, appInstance) {
           </div>
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:15px;" class="no-print">
+        <div style="display:flex; gap:10px; margin-top:15px; flex-wrap: wrap;" class="no-print">
           <button id="btn-print-slip" class="btn btn-primary" style="flex-grow:1;">
             <i data-lucide="printer" style="width:16px; height:16px;"></i> Print
           </button>
           <button id="btn-download-slip" class="btn btn-secondary" style="flex-grow:1;">
             <i data-lucide="download" style="width:16px; height:16px;"></i> Download PDF
+          </button>
+          <button id="btn-whatsapp-slip" class="btn btn-secondary" style="flex-grow:1; background: #16a34a; border-color: #16a34a; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+            <i data-lucide="message-square" style="width:16px; height:16px;"></i> WhatsApp
           </button>
           <button id="btn-close-slip" class="btn btn-secondary">Close</button>
         </div>
@@ -479,6 +482,30 @@ export function renderPayroll(mountPoint, appInstance) {
     // Download Payslip
     document.getElementById('btn-download-slip').onclick = () => {
       appInstance.downloadElementAsPDF('payroll-slip-print', `Payslip_${staffName}_${currentMonth}.pdf`, slipPrintFormat === 'thermal');
+    };
+
+    // Send Payslip to WhatsApp
+    document.getElementById('btn-whatsapp-slip').onclick = () => {
+      const monthLabel = new Date(activeDate).toLocaleString('default', { month: 'long', year: 'numeric' });
+      const rawPhone = employee.phone || '';
+      const phoneDigits = rawPhone.replace(/[^0-9]/g, '');
+      const formattedPhone = phoneDigits.length === 10 ? '91' + phoneDigits : phoneDigits;
+      
+      const slipMsg = `*CYBERONE CSC - SALARY PAYSLIP*\n` +
+                      `*Month:* ${monthLabel}\n` +
+                      `*Employee:* ${staffName} (${employee.role})\n` +
+                      `*Attendance:* ${daysVal} / 30 days\n` +
+                      `---------------------------------\n` +
+                      `Basic Pro-rata Pay: ₹${proRataVal.toFixed(2)}\n` +
+                      `Service Incentive Bonus: +₹${bonusVal.toFixed(2)}\n` +
+                      `Tax / Deductions: -₹${deductionsVal.toFixed(2)}\n` +
+                      `---------------------------------\n` +
+                      `*Net Salary Paid: ₹${netPayVal.toFixed(2)}*\n` +
+                      `---------------------------------\n` +
+                      `Voucher No: SAL-${activeStaffId}-${currentMonth.replace('-', '')}\n` +
+                      `Thank you for your dedicated service!`;
+                      
+      window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(slipMsg)}`, '_blank');
     };
   });
 }
