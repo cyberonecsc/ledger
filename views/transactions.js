@@ -56,6 +56,10 @@ export function renderTransactions(mountPoint, appInstance) {
     `;
   }).join('');
 
+  // State for pagination
+  let currentPage = 1;
+  const itemsPerPage = 10;
+
   // Render view layout
   mountPoint.innerHTML = `
     <!-- Top Action bar with Search/Filters & Log Transaction button -->
@@ -98,9 +102,25 @@ export function renderTransactions(mountPoint, appInstance) {
             </tr>
           </thead>
           <tbody id="ledger-tbody">
-            ${renderLedgerRows(log.transactions, fmt)}
+            <!-- Rendered dynamically via redrawTable -->
           </tbody>
         </table>
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--panel-border); font-size: 13px;">
+        <div style="color: var(--text-muted);">
+          Showing <span id="pagination-start">0</span> to <span id="pagination-end">0</span> of <span id="pagination-total">0</span> transactions
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-prev-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Previous
+          </button>
+          <span style="font-weight: 600; color: #fff; padding: 0 8px; font-family: var(--font-primary);">Page <span id="pagination-current">1</span> of <span id="pagination-max">1</span></span>
+          <button id="btn-next-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -117,15 +137,15 @@ export function renderTransactions(mountPoint, appInstance) {
     <!-- Modals backdrop and containers -->
     <div id="txn-modal-backdrop" class="modal-backdrop">
       <div class="modal-container" style="max-width: 600px;">
-        <div class="modal-header">
+        <div class="modal-header" style="position: relative;">
           <h4>Record New Log</h4>
-          <button id="txn-modal-close" class="modal-close" style="display:none;">&times;</button>
+          <button id="txn-modal-close" class="modal-close" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; outline: none; transition: var(--transition-smooth);">&times;</button>
         </div>
 
         <!-- Form tabs selector -->
-        <div class="tab-row" style="margin-bottom:15px;">
-          <button class="btn btn-sm btn-primary tab-btn" data-tab="sale">Service Sale</button>
-          <button class="btn btn-sm btn-secondary tab-btn" data-tab="expense">Log Expense</button>
+        <div class="tab-row" style="margin-bottom:15px; display: flex; gap: 10px; padding: 0 4px;">
+          <button class="btn btn-sm btn-primary tab-btn" data-tab="sale" style="flex: 1;">Service Sale</button>
+          <button class="btn btn-sm btn-secondary tab-btn" data-tab="expense" style="flex: 1;">Log Expense</button>
         </div>
 
         <!-- Dynamic Form Body mount -->
@@ -138,31 +158,59 @@ export function renderTransactions(mountPoint, appInstance) {
   document.getElementById('page-heading-title').innerText = 'Daily Transactions Ledger';
   document.getElementById('page-heading-sub').innerText = `Reconciliation sheet for ${activeDate}`;
 
-  lucide.createIcons();
-
-  // Initialize Search filter functionality
-  const searchInput = document.getElementById('ledger-search');
-  searchInput.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    const rows = document.querySelectorAll('#ledger-tbody tr');
-    
-    rows.forEach(row => {
-      const text = row.innerText.toLowerCase();
-      row.style.display = text.includes(query) ? '' : 'none';
-    });
-  });
-
-  // Modal open/close handlers
+  // Modal selector references
   const modalBackdrop = document.getElementById('txn-modal-backdrop');
   const btnOpenModal = document.getElementById('btn-open-txn-modal');
+  const btnCloseModalX = document.getElementById('txn-modal-close');
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const searchInput = document.getElementById('ledger-search');
+  const btnPrevPage = document.getElementById('btn-prev-page');
+  const btnNextPage = document.getElementById('btn-next-page');
 
-  btnOpenModal.addEventListener('click', () => {
+  // Unified modal handlers
+  const openAddModal = () => {
+    const headerTitle = modalBackdrop.querySelector('.modal-header h4');
+    const tabRow = modalBackdrop.querySelector('.tab-row');
+    if (headerTitle) headerTitle.innerText = 'Record New Log';
+    if (tabRow) tabRow.style.display = 'flex';
+
+    // Highlight Service Sale tab by default
+    tabButtons.forEach(b => {
+      if (b.getAttribute('data-tab') === 'sale') {
+        b.classList.add('btn-primary');
+        b.classList.remove('btn-secondary');
+      } else {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-secondary');
+      }
+    });
+
     modalBackdrop.classList.add('show');
-    loadTabForm('sale', activeDate, appInstance);
+    loadTabForm('sale');
+  };
+
+  const openEditModal = (txn) => {
+    const headerTitle = modalBackdrop.querySelector('.modal-header h4');
+    const tabRow = modalBackdrop.querySelector('.tab-row');
+    if (headerTitle) headerTitle.innerText = `Edit Transaction (${txn.id})`;
+    if (tabRow) tabRow.style.display = 'none'; // Hide switching tabs when editing
+
+    modalBackdrop.classList.add('show');
+    loadTabForm(txn.type, txn);
+  };
+
+  const closeModal = () => {
+    modalBackdrop.classList.remove('show');
+    document.getElementById('txn-form-mount').innerHTML = '';
+  };
+
+  btnOpenModal.addEventListener('click', openAddModal);
+  btnCloseModalX.addEventListener('click', closeModal);
+  modalBackdrop.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) closeModal();
   });
 
   // Tab switching inside modal
-  const tabButtons = document.querySelectorAll('.tab-btn');
   tabButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       tabButtons.forEach(b => {
@@ -173,30 +221,459 @@ export function renderTransactions(mountPoint, appInstance) {
       e.target.classList.remove('btn-secondary');
       
       const selectedTab = e.target.getAttribute('data-tab');
-      loadTabForm(selectedTab, activeDate, appInstance);
+      loadTabForm(selectedTab);
     });
   });
 
-  // Delete transaction action bindings
-  const deleteButtons = document.querySelectorAll('.btn-delete-txn');
-  deleteButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const txnId = e.currentTarget.getAttribute('data-id');
-      if (confirm(`Are you sure you want to delete this transaction (${txnId})?`)) {
-        const deleted = store.deleteTransaction(activeDate, txnId);
-        if (deleted) {
-          appInstance.showToast('Transaction deleted successfully', 'success');
-          appInstance.handleRouting(); // Reload view
-        } else {
-          appInstance.showToast('Failed to delete transaction', 'error');
-        }
-      }
-    });
+  // Search input handler
+  searchInput.addEventListener('input', () => {
+    currentPage = 1;
+    redrawTable();
   });
+
+  // Pagination navigation handlers
+  btnPrevPage.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      redrawTable();
+    }
+  });
+
+  btnNextPage.addEventListener('click', () => {
+    currentPage++;
+    redrawTable();
+  });
+
+  // Redraw the table rows based on filters, pagination, and sorting
+  const redrawTable = () => {
+    const query = searchInput.value.toLowerCase();
+    
+    // Filter transactions based on query
+    let filteredTxns = log.transactions;
+    if (query) {
+      filteredTxns = log.transactions.filter(t => 
+        (t.description || '').toLowerCase().includes(query) ||
+        (t.id || '').toLowerCase().includes(query) ||
+        (t.customerId || '').toLowerCase().includes(query)
+      );
+    }
+
+    // Sort transactions: newest first (reverse order)
+    const reversedTxns = [...filteredTxns].reverse();
+
+    const totalItems = reversedTxns.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const pageTxns = reversedTxns.slice(startIndex, endIndex);
+
+    const tbody = document.getElementById('ledger-tbody');
+    if (tbody) {
+      tbody.innerHTML = renderLedgerRows(pageTxns);
+    }
+
+    // Update pagination indicator text
+    document.getElementById('pagination-start').innerText = totalItems > 0 ? startIndex + 1 : 0;
+    document.getElementById('pagination-end').innerText = endIndex;
+    document.getElementById('pagination-total').innerText = totalItems;
+    document.getElementById('pagination-current').innerText = currentPage;
+    document.getElementById('pagination-max').innerText = totalPages;
+
+    btnPrevPage.disabled = (currentPage === 1);
+    btnNextPage.disabled = (currentPage === totalPages);
+
+    // Bind action events on buttons
+    bindRowActions();
+    lucide.createIcons();
+  };
+
+  // Re-render the bottom summary balance cards
+  const updateBalanceCards = () => {
+    const cardsContainer = document.querySelector('.day-balance-grid');
+    if (cardsContainer) {
+      const freshLog = store.getOrCreateDailyLog(activeDate);
+      const freshCardsHtml = accountsToDisplay.map(acc => {
+        const op = (freshLog.openingBalances[acc.key] || 0).toFixed(2);
+        const cl = (freshLog.closingBalances[acc.key] || 0).toFixed(2);
+        return `
+          <div class="glass-card ${acc.class}" style="padding: 16px;">
+            <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight:600; color:var(--text-muted); align-items: center;">
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${acc.name}</span>
+              <i data-lucide="${acc.icon}" style="width: 14px; height: 14px; color: ${acc.color}; flex-shrink: 0;"></i>
+            </div>
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
+              <span style="font-size: 11px; color: var(--text-dimmed); white-space: nowrap;">Op: ₹${op}</span>
+              <span style="font-family: var(--font-display); font-size: 16px; font-weight: 700; color: ${acc.class === 'success' ? 'var(--color-success)' : acc.class === 'info' ? 'var(--color-info)' : '#fff'}; white-space: nowrap;">Cl: ₹${cl}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      cardsContainer.innerHTML = freshCardsHtml;
+      lucide.createIcons();
+    }
+  };
+
+  // Bind click handlers for edit/delete icons in rows
+  const bindRowActions = () => {
+    // Delete action handler
+    document.querySelectorAll('.btn-delete-txn').forEach(btn => {
+      btn.onclick = (e) => {
+        const txnId = e.currentTarget.getAttribute('data-id');
+        if (confirm(`Are you sure you want to delete this transaction (${txnId})?`)) {
+          const deleted = store.deleteTransaction(activeDate, txnId);
+          if (deleted) {
+            appInstance.showToast('Transaction deleted successfully', 'success');
+            // Refresh logic and redraw
+            const freshLog = store.getOrCreateDailyLog(activeDate);
+            log.transactions = freshLog.transactions;
+            redrawTable();
+            updateBalanceCards();
+          } else {
+            appInstance.showToast('Failed to delete transaction', 'error');
+          }
+        }
+      };
+    });
+
+    // Edit action handler
+    document.querySelectorAll('.btn-edit-txn').forEach(btn => {
+      btn.onclick = (e) => {
+        const txnId = e.currentTarget.getAttribute('data-id');
+        const txn = log.transactions.find(t => t.id === txnId);
+        if (txn) {
+          openEditModal(txn);
+        }
+      };
+    });
+  };
+
+  // Dynamic Form loader for modal (sale or expense)
+  const loadTabForm = (tab, editTxn = null) => {
+    const mount = document.getElementById('txn-form-mount');
+    if (!mount) return;
+
+    if (tab === 'sale') {
+      const walletOptions = store.wallets
+        .filter(w => w.isActive)
+        .map(w => `<option value="${w.id}">${w.name}</option>`)
+        .join('');
+
+      const customerOptions = store.customers
+        .map(c => `<option value="${c.id}">${c.name} (${c.uniqueNumber})</option>`)
+        .join('');
+
+      mount.innerHTML = `
+        <form id="form-add-sale">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Service Type / Description</label>
+              <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" required list="service-presets">
+              <datalist id="service-presets">
+                <option value="e-District Application">
+                <option value="PAN Card Application">
+                <option value="Passport Registration">
+                <option value="Aadhaar Update">
+                <option value="Print / Copy Service">
+                <option value="Mobile Recharge">
+                <option value="KSEB Bill Payout">
+                <option value="AEPS Cash Withdrawal">
+                <option value="PVC Card Service">
+                <option value="PVC Lamination">
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Total Customer Bill Amount (₹)</label>
+              <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Paid By Cash (₹)</label>
+              <input type="number" step="0.01" id="sale-cash" class="form-control" value="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Paid By UPI / Bank (₹)</label>
+              <input type="number" step="0.01" id="sale-upi" class="form-control" value="0.00">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Add to Citizen Credit (₹)</label>
+              <input type="number" step="0.01" id="sale-credit" class="form-control" value="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pages Printed (Deducts A4 paper)</label>
+              <input type="number" id="sale-pages-printed" class="form-control" value="0" min="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Deducted Cost Source</label>
+              <select id="sale-deduct-source" class="form-control">
+                <option value="none">None (DTP/Print - 100% Service Charge)</option>
+                <option value="account">Direct Bank Account</option>
+                ${walletOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
+              <input type="number" step="0.01" id="sale-deduct-amount" class="form-control" value="0.00">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Customer Link (Required for Credit/App)</label>
+              <select id="sale-customer" class="form-control">
+                <option value="">-- Unregistered Walk-in --</option>
+                ${customerOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Calculated Service Charge (Profit)</label>
+              <div id="sale-profit-preview" style="padding: 10px 14px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: var(--border-radius-sm); color: var(--color-success); font-family: var(--font-display); font-weight:700;">
+                ₹0.00
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn btn-success" style="flex-grow:1;">
+              <i data-lucide="${editTxn ? 'check-circle' : 'plus-circle'}" style="width: 16px; height: 16px;"></i> ${editTxn ? 'Update Sale' : 'Log Sale'}
+            </button>
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+          </div>
+        </form>
+      `;
+
+      // Cancel button click
+      mount.querySelector('.btn-modal-cancel').addEventListener('click', closeModal);
+
+      // DOM form elements for calculations
+      const inputAmount = document.getElementById('sale-amount');
+      const inputCash = document.getElementById('sale-cash');
+      const inputUPI = document.getElementById('sale-upi');
+      const inputCredit = document.getElementById('sale-credit');
+      const inputDeduct = document.getElementById('sale-deduct-amount');
+      const profitDiv = document.getElementById('sale-profit-preview');
+
+      const updateProfitMath = () => {
+        const amt = parseFloat(inputAmount.value || 0);
+        const cash = parseFloat(inputCash.value || 0);
+        const upi = parseFloat(inputUPI.value || 0);
+        const credit = parseFloat(inputCredit.value || 0);
+        const cost = parseFloat(inputDeduct.value || 0);
+        
+        const profit = (cash + upi + credit) - cost;
+        profitDiv.innerText = `₹${profit.toFixed(2)}`;
+        
+        if (profit < 0) {
+          profitDiv.style.color = 'var(--color-danger)';
+          profitDiv.style.background = 'rgba(239, 68, 68, 0.05)';
+          profitDiv.style.borderColor = 'rgba(239, 68, 68, 0.15)';
+        } else {
+          profitDiv.style.color = 'var(--color-success)';
+          profitDiv.style.background = 'rgba(16, 185, 129, 0.05)';
+          profitDiv.style.borderColor = 'rgba(16, 185, 129, 0.15)';
+        }
+      };
+
+      // Fill values if editing
+      if (editTxn) {
+        document.getElementById('sale-desc').value = editTxn.description || '';
+        inputAmount.value = editTxn.amount || 0;
+        inputCash.value = editTxn.paidByCash || 0;
+        inputUPI.value = editTxn.paidByUPI || 0;
+        inputCredit.value = editTxn.paidByCredit || 0;
+        document.getElementById('sale-pages-printed').value = editTxn.pagesPrinted || 0;
+        document.getElementById('sale-deduct-source').value = editTxn.deductedFrom || 'none';
+        inputDeduct.value = editTxn.deductedAmount || 0;
+        document.getElementById('sale-customer').value = editTxn.customerId || '';
+        updateProfitMath();
+      }
+
+      // Automatically fill payment distributions based on total amount
+      inputAmount.addEventListener('input', (e) => {
+        inputCash.value = e.target.value;
+        inputUPI.value = '0.00';
+        inputCredit.value = '0.00';
+        updateProfitMath();
+      });
+
+      const adjustPayments = () => {
+        const amt = parseFloat(inputAmount.value || 0);
+        const cash = parseFloat(inputCash.value || 0);
+        const credit = parseFloat(inputCredit.value || 0);
+        inputUPI.value = Math.max(0, amt - cash - credit).toFixed(2);
+        updateProfitMath();
+      };
+
+      inputCash.addEventListener('input', adjustPayments);
+      inputCredit.addEventListener('input', adjustPayments);
+      inputUPI.addEventListener('input', () => {
+        const amt = parseFloat(inputAmount.value || 0);
+        const upi = parseFloat(inputUPI.value || 0);
+        const credit = parseFloat(inputCredit.value || 0);
+        inputCash.value = Math.max(0, amt - upi - credit).toFixed(2);
+        updateProfitMath();
+      });
+
+      inputDeduct.addEventListener('input', updateProfitMath);
+
+      // Submit handler
+      document.getElementById('form-add-sale').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const amount = parseFloat(inputAmount.value);
+        const cash = parseFloat(inputCash.value || 0);
+        const upi = parseFloat(inputUPI.value || 0);
+        const credit = parseFloat(inputCredit.value || 0);
+        const deductCost = parseFloat(inputDeduct.value || 0);
+        const customerId = document.getElementById('sale-customer').value;
+
+        if (Math.abs((cash + upi + credit) - amount) > 0.02) {
+          alert('Total of Cash + UPI + Credit payments must match the total bill amount!');
+          return;
+        }
+
+        if (credit > 0 && !customerId) {
+          alert('You must select a registered Customer to link outstanding credit!');
+          return;
+        }
+
+        const txnData = {
+          type: 'sale',
+          description: document.getElementById('sale-desc').value,
+          amount,
+          paidByCash: cash,
+          paidByUPI: upi,
+          paidByCredit: credit,
+          pagesPrinted: parseInt(document.getElementById('sale-pages-printed').value || 0),
+          deductedFrom: document.getElementById('sale-deduct-source').value,
+          deductedAmount: deductCost,
+          customerId: customerId,
+          staffId: editTxn ? editTxn.staffId : 'STAFF-04'
+        };
+
+        if (editTxn) {
+          store.updateTransaction(activeDate, editTxn.id, txnData);
+          appInstance.showToast('Transaction updated successfully', 'success');
+        } else {
+          store.addTransaction(activeDate, txnData);
+          appInstance.showToast('Service Sale registered successfully', 'success');
+        }
+
+        closeModal();
+        
+        // Refresh local data & UI
+        const freshLog = store.getOrCreateDailyLog(activeDate);
+        log.transactions = freshLog.transactions;
+        redrawTable();
+        updateBalanceCards();
+      });
+
+    } else if (tab === 'expense') {
+      mount.innerHTML = `
+        <form id="form-add-expense">
+          <div class="form-group">
+            <label class="form-label">Expense Description / Payee</label>
+            <input type="text" id="expense-desc" class="form-control" placeholder="e.g. Tea and Snacks, Shop Rent, Paper purchase" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select id="expense-category" class="form-control">
+                <option value="Utilities">Utilities (Electricity, Internet)</option>
+                <option value="Supplies">Office Supplies / Printing Materials</option>
+                <option value="Refreshments">Refreshments / Food</option>
+                <option value="Rent">Rent & Taxes</option>
+                <option value="Salary">Staff Payouts</option>
+                <option value="Drawings">Owner Drawings (Shibu Draw)</option>
+                <option value="Other">Other Miscellaneous</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount (₹)</label>
+              <input type="number" step="0.01" id="expense-amount" class="form-control" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Source</label>
+            <select id="expense-source" class="form-control">
+              <option value="cash">Cash In Hand (Physical Cash)</option>
+              <option value="account">Bank Account (UPI / Transfer)</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn btn-success" style="flex-grow:1;">
+              <i data-lucide="${editTxn ? 'check-circle' : 'plus-circle'}" style="width: 16px; height: 16px;"></i> ${editTxn ? 'Update Expense' : 'Log Expense'}
+            </button>
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+          </div>
+        </form>
+      `;
+
+      mount.querySelector('.btn-modal-cancel').addEventListener('click', closeModal);
+
+      // Pre-fill values if editing
+      if (editTxn) {
+        document.getElementById('expense-desc').value = editTxn.description || '';
+        document.getElementById('expense-category').value = editTxn.category || 'Other';
+        document.getElementById('expense-amount').value = editTxn.amount || 0;
+        document.getElementById('expense-source').value = editTxn.source || 'cash';
+      }
+
+      document.getElementById('form-add-expense').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const txnData = {
+          type: 'expense',
+          description: document.getElementById('expense-desc').value,
+          amount: parseFloat(document.getElementById('expense-amount').value),
+          category: document.getElementById('expense-category').value,
+          source: document.getElementById('expense-source').value
+        };
+
+        if (editTxn) {
+          store.updateTransaction(activeDate, editTxn.id, txnData);
+          appInstance.showToast('Transaction updated successfully', 'success');
+        } else {
+          store.addTransaction(activeDate, txnData);
+          appInstance.showToast('Expense recorded successfully', 'success');
+        }
+
+        closeModal();
+        
+        // Refresh local data & UI
+        const freshLog = store.getOrCreateDailyLog(activeDate);
+        log.transactions = freshLog.transactions;
+        redrawTable();
+        updateBalanceCards();
+      });
+    }
+
+    lucide.createIcons();
+  };
+
+  // Initial draw of the table when view renders
+  redrawTable();
 }
 
 // Generate rows based on transactions
-function renderLedgerRows(txns, fmt) {
+function renderLedgerRows(txns) {
+  // Helper to format currency inside rows
+  const fmt = (val) => val !== undefined && val !== 0 ? `₹${parseFloat(val).toFixed(2)}` : '—';
+
   if (txns.length === 0) {
     return `<tr><td colspan="17" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
   }
@@ -233,11 +710,10 @@ function renderLedgerRows(txns, fmt) {
       
       const source = t.source === 'account' ? 'main_bob' : t.source;
       if (source === 'cash') {
-        columns[2] = `-${fmt(t.amount)}`; // deducted from cash
-        columns[7] = `+${fmt(t.amount)}`; // credited to BOB bank account
+        columns[2] = `-${fmt(t.amount)}`;
+        columns[7] = `+${fmt(t.amount)}`;
       } else {
         if (source === 'main_bob') columns[7] = fmt(t.amount);
-        // Credit to target wallet column
         const target = t.targetWallet === 'account' ? 'main_bob' : t.targetWallet;
         if (target === 'csc') columns[8] = `+${fmt(t.amount)}`;
         else if (target === 'paynearby') columns[9] = `+${fmt(t.amount)}`;
@@ -274,6 +750,9 @@ function renderLedgerRows(txns, fmt) {
       else if (source === 'airtel') columns[14] = `${sign}${fmt(t.diff)}`;
     }
 
+    // Only allow editing for sales and expenses (the ones loggable via this screen)
+    const isEditable = (t.type === 'sale' || t.type === 'expense');
+
     return `
       <tr>
         <td>${typeBadge}</td>
@@ -292,7 +771,12 @@ function renderLedgerRows(txns, fmt) {
         <td>${columns[12]}</td>
         <td>${columns[13]}</td>
         <td>${columns[14]}</td>
-        <td style="text-align: center;">
+        <td style="text-align: center; white-space: nowrap;">
+          ${isEditable ? `
+            <button class="btn btn-sm btn-secondary btn-edit-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-info); border: 1px solid rgba(14,165,233,0.15); background: rgba(14,165,233,0.02); margin-right: 4px;">
+              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+            </button>
+          ` : ''}
           <button class="btn btn-sm btn-secondary btn-delete-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-danger); border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.02);">
             <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
           </button>
@@ -300,284 +784,6 @@ function renderLedgerRows(txns, fmt) {
       </tr>
     `;
   }).join('');
-}
-
-// Render dynamic forms inside the modal based on selected tab
-function loadTabForm(tab, activeDate, appInstance) {
-  const mount = document.getElementById('txn-form-mount');
-  if (!mount) return;
-
-  if (tab === 'sale') {
-    // Generate options for wallets
-    const walletOptions = store.wallets
-      .filter(w => w.isActive)
-      .map(w => `<option value="${w.id}">${w.name}</option>`)
-      .join('');
-
-    // Generate option list for customers
-    const customerOptions = store.customers
-      .map(c => `<option value="${c.id}">${c.name} (${c.uniqueNumber})</option>`)
-      .join('');
-
-    mount.innerHTML = `
-      <form id="form-add-sale">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Service Type / Description</label>
-            <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" required list="service-presets">
-            <datalist id="service-presets">
-              <option value="e-District Application">
-              <option value="PAN Card Application">
-              <option value="Passport Registration">
-              <option value="Aadhaar Update">
-              <option value="Print / Copy Service">
-              <option value="Mobile Recharge">
-              <option value="KSEB Bill Payout">
-              <option value="AEPS Cash Withdrawal">
-              <option value="PVC Card Service">
-              <option value="PVC Lamination">
-            </datalist>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Total Customer Bill Amount (₹)</label>
-            <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Paid By Cash (₹)</label>
-            <input type="number" step="0.01" id="sale-cash" class="form-control" value="0.00">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Paid By UPI / Bank (₹)</label>
-            <input type="number" step="0.01" id="sale-upi" class="form-control" value="0.00">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Add to Citizen Credit (₹)</label>
-            <input type="number" step="0.01" id="sale-credit" class="form-control" value="0.00">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Pages Printed (Deducts A4 paper)</label>
-            <input type="number" id="sale-pages-printed" class="form-control" value="0" min="0">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Deducted Cost Source</label>
-            <select id="sale-deduct-source" class="form-control">
-              <option value="none">None (DTP/Print - 100% Service Charge)</option>
-              <option value="account">Direct Bank Account</option>
-              ${walletOptions}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
-            <input type="number" step="0.01" id="sale-deduct-amount" class="form-control" value="0.00">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Customer Link (Required for Credit/App)</label>
-            <select id="sale-customer" class="form-control">
-              <option value="">-- Unregistered Walk-in --</option>
-              ${customerOptions}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Calculated Service Charge (Profit)</label>
-            <div id="sale-profit-preview" style="padding: 10px 14px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: var(--border-radius-sm); color: var(--color-success); font-family: var(--font-display); font-weight:700;">
-              ₹0.00
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:15px;">
-          <button type="submit" class="btn btn-success" style="flex-grow:1;">
-            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Log Sale
-          </button>
-          <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
-        </div>
-      </form>
-    `;
-
-    lucide.createIcons();
-
-    // Cancel click handler
-    mount.querySelector('.btn-modal-cancel').addEventListener('click', () => {
-      document.getElementById('txn-modal-backdrop').classList.remove('show');
-    });
-
-    // Attach automation handlers for calculation
-    const inputAmount = document.getElementById('sale-amount');
-    const inputCash = document.getElementById('sale-cash');
-    const inputUPI = document.getElementById('sale-upi');
-    const inputCredit = document.getElementById('sale-credit');
-    const inputDeduct = document.getElementById('sale-deduct-amount');
-    const profitDiv = document.getElementById('sale-profit-preview');
-
-    const updateProfitMath = () => {
-      const amt = parseFloat(inputAmount.value || 0);
-      const cash = parseFloat(inputCash.value || 0);
-      const upi = parseFloat(inputUPI.value || 0);
-      const credit = parseFloat(inputCredit.value || 0);
-      const cost = parseFloat(inputDeduct.value || 0);
-      
-      const profit = (cash + upi + credit) - cost;
-      profitDiv.innerText = `₹${profit.toFixed(2)}`;
-      
-      if (profit < 0) {
-        profitDiv.style.color = 'var(--color-danger)';
-        profitDiv.style.background = 'rgba(239, 68, 68, 0.05)';
-        profitDiv.style.borderColor = 'rgba(239, 68, 68, 0.15)';
-      } else {
-        profitDiv.style.color = 'var(--color-success)';
-        profitDiv.style.background = 'rgba(16, 185, 129, 0.05)';
-        profitDiv.style.borderColor = 'rgba(16, 185, 129, 0.15)';
-      }
-    };
-
-    // Auto calculate paid values based on Total Customer Bill
-    inputAmount.addEventListener('input', (e) => {
-      inputCash.value = e.target.value;
-      inputUPI.value = '0.00';
-      inputCredit.value = '0.00';
-      updateProfitMath();
-    });
-
-    // Handle interactive distributions
-    const adjustPayments = () => {
-      const amt = parseFloat(inputAmount.value || 0);
-      const cash = parseFloat(inputCash.value || 0);
-      const credit = parseFloat(inputCredit.value || 0);
-      inputUPI.value = Math.max(0, amt - cash - credit).toFixed(2);
-      updateProfitMath();
-    };
-
-    inputCash.addEventListener('input', adjustPayments);
-    inputCredit.addEventListener('input', adjustPayments);
-    inputUPI.addEventListener('input', () => {
-      const amt = parseFloat(inputAmount.value || 0);
-      const upi = parseFloat(inputUPI.value || 0);
-      const credit = parseFloat(inputCredit.value || 0);
-      inputCash.value = Math.max(0, amt - upi - credit).toFixed(2);
-      updateProfitMath();
-    });
-
-    inputDeduct.addEventListener('input', updateProfitMath);
-
-    // Form submit
-    document.getElementById('form-add-sale').addEventListener('submit', (e) => {
-      e.preventDefault();
-      
-      const amount = parseFloat(inputAmount.value);
-      const cash = parseFloat(inputCash.value || 0);
-      const upi = parseFloat(inputUPI.value || 0);
-      const credit = parseFloat(inputCredit.value || 0);
-      const deductCost = parseFloat(inputDeduct.value || 0);
-      const customerId = document.getElementById('sale-customer').value;
-
-      if (Math.abs((cash + upi + credit) - amount) > 0.02) {
-        alert('Total of Cash + UPI + Credit payments must match the total bill amount!');
-        return;
-      }
-
-      if (credit > 0 && !customerId) {
-        alert('You must select a registered Customer to link outstanding credit!');
-        return;
-      }
-
-      store.addTransaction(activeDate, {
-        type: 'sale',
-        description: document.getElementById('sale-desc').value,
-        amount,
-        paidByCash: cash,
-        paidByUPI: upi,
-        paidByCredit: credit,
-        pagesPrinted: parseInt(document.getElementById('sale-pages-printed').value || 0),
-        deductedFrom: document.getElementById('sale-deduct-source').value,
-        deductedAmount: deductCost,
-        customerId: customerId,
-        staffId: 'STAFF-04'
-      });
-
-      appInstance.showToast('Service Sale registered successfully', 'success');
-      document.getElementById('txn-modal-backdrop').classList.remove('show');
-      appInstance.handleRouting();
-    });
-
-  } else if (tab === 'expense') {
-    mount.innerHTML = `
-      <form id="form-add-expense">
-        <div class="form-group">
-          <label class="form-label">Expense Description / Payee</label>
-          <input type="text" id="expense-desc" class="form-control" placeholder="e.g. Tea and Snacks, Shop Rent, Paper purchase" required>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Category</label>
-            <select id="expense-category" class="form-control">
-              <option value="Utilities">Utilities (Electricity, Internet)</option>
-              <option value="Supplies">Office Supplies / Printing Materials</option>
-              <option value="Refreshments">Refreshments / Food</option>
-              <option value="Rent">Rent & Taxes</option>
-              <option value="Salary">Staff Payouts</option>
-              <option value="Drawings">Owner Drawings (Shibu Draw)</option>
-              <option value="Other">Other Miscellaneous</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Amount (₹)</label>
-            <input type="number" step="0.01" id="expense-amount" class="form-control" placeholder="0.00" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Payment Source</label>
-          <select id="expense-source" class="form-control">
-            <option value="cash">Cash In Hand (Physical Cash)</option>
-            <option value="account">Bank Account (UPI / Transfer)</option>
-          </select>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:15px;">
-          <button type="submit" class="btn btn-success" style="flex-grow:1;">
-            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Log Expense
-          </button>
-          <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
-        </div>
-      </form>
-    `;
-
-    lucide.createIcons();
-
-    // Cancel click handler
-    mount.querySelector('.btn-modal-cancel').addEventListener('click', () => {
-      document.getElementById('txn-modal-backdrop').classList.remove('show');
-    });
-
-    document.getElementById('form-add-expense').addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      store.addTransaction(activeDate, {
-        type: 'expense',
-        description: document.getElementById('expense-desc').value,
-        amount: parseFloat(document.getElementById('expense-amount').value),
-        category: document.getElementById('expense-category').value,
-        source: document.getElementById('expense-source').value
-      });
-
-      appInstance.showToast('Expense recorded successfully', 'success');
-      document.getElementById('txn-modal-backdrop').classList.remove('show');
-      appInstance.handleRouting();
-    });
-  }
 }
 
 export default renderTransactions;

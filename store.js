@@ -552,12 +552,111 @@ class StateStore {
 
     const txn = log.transactions[idx];
     
-    // Rollback stock decrement if product sale is deleted
-    if (txn.type === 'sale' && txn.productId) {
-      this.adjustStock(txn.productId, 1);
+    // Rollback stock and customer credit if sale is deleted
+    if (txn.type === 'sale') {
+      if (txn.productId) {
+        this.adjustStock(txn.productId, 1);
+      }
+      const descLower = (txn.description || '').toLowerCase();
+      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+        if (pvcPouch) {
+          this.adjustStock(pvcPouch.id, 1);
+        }
+      }
+      if (txn.pagesPrinted > 0) {
+        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+        if (a4Paper) {
+          this.adjustStock(a4Paper.id, Math.abs(txn.pagesPrinted));
+        }
+      }
+      if (txn.customerId && txn.paidByCredit > 0) {
+        this.adjustCustomerCredit(txn.customerId, -parseFloat(txn.paidByCredit));
+      }
     }
 
     log.transactions.splice(idx, 1);
+    this.recalculateAllBalances();
+    return true;
+  }
+
+  updateTransaction(dateString, txnId, updatedData) {
+    const log = this.dailyLogs[dateString];
+    if (!log) return false;
+
+    const idx = log.transactions.findIndex(t => t.id === txnId);
+    if (idx === -1) return false;
+
+    const oldTxn = log.transactions[idx];
+
+    // 1. Rollback stock changes and credit from the old transaction state
+    if (oldTxn.type === 'sale') {
+      if (oldTxn.productId) {
+        this.adjustStock(oldTxn.productId, 1);
+      }
+      const descLower = (oldTxn.description || '').toLowerCase();
+      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+        if (pvcPouch) {
+          this.adjustStock(pvcPouch.id, 1);
+        }
+      }
+      if (oldTxn.pagesPrinted > 0) {
+        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+        if (a4Paper) {
+          this.adjustStock(a4Paper.id, Math.abs(oldTxn.pagesPrinted));
+        }
+      }
+      if (oldTxn.customerId && oldTxn.paidByCredit > 0) {
+        this.adjustCustomerCredit(oldTxn.customerId, -parseFloat(oldTxn.paidByCredit));
+      }
+    }
+
+    // 2. Compute variables and apply stock adjustments for the new transaction state
+    let serviceChargeToCash = 0;
+    let serviceChargeToAccount = 0;
+
+    if (updatedData.type === 'sale') {
+      const amount = parseFloat(updatedData.amount || 0);
+      const cost = parseFloat(updatedData.deductedAmount || 0);
+      const profit = amount - cost;
+
+      if (updatedData.paidByCash > 0) {
+        serviceChargeToCash = parseFloat(profit.toFixed(2));
+      } else {
+        serviceChargeToAccount = parseFloat(profit.toFixed(2));
+      }
+
+      if (updatedData.productId) {
+        this.adjustStock(updatedData.productId, -1);
+      }
+
+      const descLower = (updatedData.description || '').toLowerCase();
+      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+        if (pvcPouch) {
+          this.adjustStock(pvcPouch.id, -1);
+        }
+      }
+      if (updatedData.pagesPrinted > 0) {
+        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+        if (a4Paper) {
+          this.adjustStock(a4Paper.id, -Math.abs(updatedData.pagesPrinted));
+        }
+      }
+      if (updatedData.customerId && updatedData.paidByCredit > 0) {
+        this.adjustCustomerCredit(updatedData.customerId, parseFloat(updatedData.paidByCredit));
+      }
+    }
+
+    // 3. Update the transaction in database log
+    log.transactions[idx] = {
+      ...oldTxn,
+      ...updatedData,
+      serviceChargeToCash,
+      serviceChargeToAccount
+    };
+
     this.recalculateAllBalances();
     return true;
   }
