@@ -16,7 +16,6 @@ const INITIAL_BALANCES = {
   cash: 0,
   main_sbi: 17729.76,
   csc: 1606.28,
-  digipay: 0.00,
   ibkart: 11.15,
   airtel_pb: 113.94,
   paynearby: 209.29,
@@ -28,7 +27,6 @@ const INITIAL_BALANCES = {
 // Initial Wallets metadata
 const INITIAL_WALLETS = [
   { id: 'csc', name: 'CSC Wallet', loginId: 'CSC-889920', commissionRate: 0.015, isActive: true, isAEPS: false },
-  { id: 'digipay', name: 'Digipay (AEPS)', loginId: 'DP-882011', commissionRate: 0.002, isActive: true, isAEPS: true },
   { id: 'paynearby', name: 'PayNearby (AEPS)', loginId: 'PNB-9844001', commissionRate: 0.002, isActive: true, isAEPS: true },
   { id: 'airtel_pb', name: 'Airtel Payments Bank', loginId: 'APB-773349', commissionRate: 0.0015, isActive: true, isAEPS: true },
   { id: 'ibkart', name: 'IBKART', loginId: 'IBK-6648', commissionRate: 0.01, isActive: true, isAEPS: false },
@@ -113,6 +111,12 @@ class StateStore {
       this.saveItem('cyberone_v2_wallets', this.wallets);
     }
 
+    // Clean up/remove digipay wallet if it is present in active state database
+    if (this.wallets.some(w => w.id === 'digipay')) {
+      this.wallets = this.wallets.filter(w => w.id !== 'digipay');
+      this.saveItem('cyberone_v2_wallets', this.wallets);
+    }
+
     // Auto-remove Federal Bank (fed_retail) if present in active state database
     if (this.bankAccounts.some(b => b.id === 'fed_retail')) {
       this.bankAccounts = this.bankAccounts.filter(b => b.id !== 'fed_retail');
@@ -133,18 +137,18 @@ class StateStore {
     if (this.dailyLogs) {
       Object.keys(this.dailyLogs).forEach(date => {
         const log = this.dailyLogs[date];
-        // Clean up any transactions referencing edistrict
+        // Clean up any transactions referencing edistrict or digipay
         if (log.transactions) {
           log.transactions.forEach(txn => {
-            if (txn.deductedFrom === 'edistrict') {
+            if (txn.deductedFrom === 'edistrict' || txn.deductedFrom === 'digipay') {
               txn.deductedFrom = 'csc';
               needRecalculate = true;
             }
-            if (txn.targetWallet === 'edistrict') {
+            if (txn.targetWallet === 'edistrict' || txn.targetWallet === 'digipay') {
               txn.targetWallet = 'csc';
               needRecalculate = true;
             }
-            if (txn.source === 'edistrict') {
+            if (txn.source === 'edistrict' || txn.source === 'digipay') {
               txn.source = 'csc';
               needRecalculate = true;
             }
@@ -156,6 +160,14 @@ class StateStore {
         }
         if (log.closingBalances && log.closingBalances.edistrict !== undefined) {
           delete log.closingBalances.edistrict;
+          needRecalculate = true;
+        }
+        if (log.openingBalances && log.openingBalances.digipay !== undefined) {
+          delete log.openingBalances.digipay;
+          needRecalculate = true;
+        }
+        if (log.closingBalances && log.closingBalances.digipay !== undefined) {
+          delete log.closingBalances.digipay;
           needRecalculate = true;
         }
       });
