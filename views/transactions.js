@@ -56,9 +56,10 @@ export function renderTransactions(mountPoint, appInstance) {
     `;
   }).join('');
 
-  // State for pagination
+  // State for pagination & bulk selection
   let currentPage = 1;
   const itemsPerPage = 10;
+  const selectedTxnIds = new Set();
 
   // Render view layout
   mountPoint.innerHTML = `
@@ -69,7 +70,10 @@ export function renderTransactions(mountPoint, appInstance) {
         <input type="text" id="ledger-search" class="form-control" placeholder="Search by description or customer ID...">
       </div>
 
-      <div class="filter-actions">
+      <div class="filter-actions" style="display: flex; gap: 10px; align-items: center;">
+        <button id="btn-delete-selected" class="btn btn-danger" style="display: none;">
+          <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Delete Selected (<span id="delete-selected-count">0</span>)
+        </button>
         <button id="btn-open-txn-modal" class="btn btn-primary">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add Transaction
         </button>
@@ -78,10 +82,11 @@ export function renderTransactions(mountPoint, appInstance) {
 
     <!-- Wide Google Sheet-based Ledger Table -->
     <div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 25px;">
-      <div class="table-responsive">
-        <table class="custom-table" id="ledger-table" style="min-width: 1500px;">
+      <div class="table-responsive ledger-table-container">
+        <table class="custom-table" id="ledger-table" style="min-width: 1600px;">
           <thead>
             <tr>
+              <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-txns" style="cursor: pointer;"></th>
               <th>Type</th>
               <th>Description</th>
               <th>Amount</th>
@@ -244,6 +249,50 @@ export function renderTransactions(mountPoint, appInstance) {
     redrawTable();
   });
 
+  const updateBulkDeleteButton = () => {
+    const btnDelete = document.getElementById('btn-delete-selected');
+    const deleteCount = document.getElementById('delete-selected-count');
+    if (btnDelete && deleteCount) {
+      const count = selectedTxnIds.size;
+      deleteCount.innerText = count;
+      btnDelete.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+  };
+
+  const btnDeleteSelected = document.getElementById('btn-delete-selected');
+  if (btnDeleteSelected) {
+    btnDeleteSelected.onclick = () => {
+      const count = selectedTxnIds.size;
+      if (count === 0) return;
+      if (confirm(`Are you sure you want to delete the ${count} selected transactions? This will revert all associated wallet balances, physical cash, customer credit, and printing/laminating stocks.`)) {
+        let deletedCount = 0;
+        let failedCount = 0;
+
+        selectedTxnIds.forEach(id => {
+          const deleted = store.deleteTransaction(activeDate, id);
+          if (deleted) {
+            deletedCount++;
+          } else {
+            failedCount++;
+          }
+        });
+
+        if (deletedCount > 0) {
+          appInstance.showToast(`${deletedCount} transaction(s) deleted successfully`, 'success');
+        }
+        if (failedCount > 0) {
+          appInstance.showToast(`Failed to delete ${failedCount} transaction(s)`, 'error');
+        }
+
+        selectedTxnIds.clear();
+        const freshLog = store.getOrCreateDailyLog(activeDate);
+        log.transactions = freshLog.transactions;
+        redrawTable();
+        updateBalanceCards();
+      }
+    };
+  }
+
   // Redraw the table rows based on filters, pagination, and sorting
   const redrawTable = () => {
     const query = searchInput.value.toLowerCase();
@@ -286,6 +335,48 @@ export function renderTransactions(mountPoint, appInstance) {
     btnPrevPage.disabled = (currentPage === 1);
     btnNextPage.disabled = (currentPage === totalPages);
 
+    // Bind checkbox event listeners
+    const selectAllCheckbox = document.getElementById('select-all-txns');
+    if (selectAllCheckbox) {
+      const pageTxnIds = pageTxns.map(t => t.id);
+      const allPageItemsSelected = pageTxnIds.length > 0 && pageTxnIds.every(id => selectedTxnIds.has(id));
+      selectAllCheckbox.checked = allPageItemsSelected;
+
+      selectAllCheckbox.onchange = (e) => {
+        const checked = e.target.checked;
+        pageTxnIds.forEach(id => {
+          if (checked) {
+            selectedTxnIds.add(id);
+          } else {
+            selectedTxnIds.delete(id);
+          }
+        });
+        document.querySelectorAll('.select-txn-checkbox').forEach(cb => {
+          const id = cb.getAttribute('data-id');
+          cb.checked = selectedTxnIds.has(id);
+        });
+        updateBulkDeleteButton();
+      };
+    }
+
+    document.querySelectorAll('.select-txn-checkbox').forEach(cb => {
+      const id = cb.getAttribute('data-id');
+      cb.checked = selectedTxnIds.has(id);
+      cb.onchange = (e) => {
+        if (e.target.checked) {
+          selectedTxnIds.add(id);
+        } else {
+          selectedTxnIds.delete(id);
+        }
+        const pageTxnIds = pageTxns.map(t => t.id);
+        const allPageItemsSelected = pageTxnIds.length > 0 && pageTxnIds.every(id => selectedTxnIds.has(id));
+        if (selectAllCheckbox) selectAllCheckbox.checked = allPageItemsSelected;
+        updateBulkDeleteButton();
+      };
+    });
+
+    updateBulkDeleteButton();
+
     // Bind action events on buttons
     bindRowActions();
     lucide.createIcons();
@@ -326,6 +417,7 @@ export function renderTransactions(mountPoint, appInstance) {
         if (confirm(`Are you sure you want to delete this transaction (${txnId})?`)) {
           const deleted = store.deleteTransaction(activeDate, txnId);
           if (deleted) {
+            selectedTxnIds.delete(txnId); // Remove from bulk selection Set if present
             appInstance.showToast('Transaction deleted successfully', 'success');
             // Refresh logic and redraw
             const freshLog = store.getOrCreateDailyLog(activeDate);
@@ -675,7 +767,7 @@ function renderLedgerRows(txns) {
   const fmt = (val) => val !== undefined && val !== 0 ? `₹${parseFloat(val).toFixed(2)}` : '—';
 
   if (txns.length === 0) {
-    return `<tr><td colspan="17" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
+    return `<tr><td colspan="18" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
   }
 
   return txns.map(t => {
@@ -755,6 +847,7 @@ function renderLedgerRows(txns) {
 
     return `
       <tr>
+        <td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="select-txn-checkbox" data-id="${t.id}" style="cursor: pointer;"></td>
         <td>${typeBadge}</td>
         <td><strong>${columns[0]}</strong></td>
         <td>${columns[1]}</td>
