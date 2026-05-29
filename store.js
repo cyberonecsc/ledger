@@ -69,6 +69,11 @@ class StateStore {
   loadState() {
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
+    this.initialBalances = this.getItem('cyberone_v2_initial_balances', INITIAL_BALANCES);
+    if (this.initialBalances.digipay !== undefined) {
+      delete this.initialBalances.digipay;
+      this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
+    }
     this.customers = this.getItem('cyberone_v2_customers', INITIAL_CUSTOMERS);
     this.staff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
     this.products = this.getItem('cyberone_v2_products', INITIAL_PRODUCTS);
@@ -97,9 +102,9 @@ class StateStore {
       const seedDate = getTodayDateString();
       this.dailyLogs[seedDate] = {
         date: seedDate,
-        openingBalances: { ...INITIAL_BALANCES },
+        openingBalances: { ...this.initialBalances },
         transactions: [],
-        closingBalances: { ...INITIAL_BALANCES }
+        closingBalances: { ...this.initialBalances }
       };
       
       this.recalculateAllBalances();
@@ -200,6 +205,7 @@ class StateStore {
   persistAll() {
     this.saveItem('cyberone_v2_wallets', this.wallets);
     this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
+    this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
     this.saveItem('cyberone_v2_customers', this.customers);
     this.saveItem('cyberone_v2_staff', this.staff);
     this.saveItem('cyberone_v2_products', this.products);
@@ -207,6 +213,13 @@ class StateStore {
     this.saveItem('cyberone_v2_invoices', this.invoices);
     this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
     this.saveItem('cyberone_v2_center_profile', this.centerProfile);
+  }
+
+  updateInitialBalances(balances) {
+    this.initialBalances = { ...this.initialBalances, ...balances };
+    this.persistAll();
+    this.recalculateAllBalances();
+    return true;
   }
 
   updateCenterProfile(profileData) {
@@ -231,10 +244,7 @@ class StateStore {
 
       // If it is the first day, its opening balance is either initialized or set manually
       if (idx === 0) {
-        // Keeps its current openingBalances
-        if (!log.openingBalances) {
-          log.openingBalances = { ...INITIAL_BALANCES };
-        }
+        log.openingBalances = { ...this.initialBalances };
       } else {
         // Roll forward from the previous day's closing balances
         log.openingBalances = { ...previousClosingBalances };
@@ -330,7 +340,7 @@ class StateStore {
   // Retrieve current active balances (corresponds to the latest date's closing balances)
   getCurrentBalances() {
     const sortedDates = Object.keys(this.dailyLogs).sort();
-    if (sortedDates.length === 0) return INITIAL_BALANCES;
+    if (sortedDates.length === 0) return this.initialBalances;
     const latestDate = sortedDates[sortedDates.length - 1];
     return this.dailyLogs[latestDate].closingBalances;
   }
@@ -343,7 +353,7 @@ class StateStore {
 
     // Find the latest day prior to this dateString
     const sortedDates = Object.keys(this.dailyLogs).sort();
-    let prevBalances = { ...INITIAL_BALANCES };
+    let prevBalances = { ...this.initialBalances };
 
     for (let i = sortedDates.length - 1; i >= 0; i--) {
       if (sortedDates[i] < dateString) {
