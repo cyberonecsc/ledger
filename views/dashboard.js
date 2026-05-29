@@ -146,12 +146,9 @@ export function renderDashboard(mountPoint, appInstance) {
             const clVal = closing[acc.key] || 0;
             const diff = clVal - opVal;
 
-            // Do not calculate BOB / bank balances with other operational balances (Cash & Wallets)
-            if (acc.type !== 'bank') {
-              totalOpening += opVal;
-              totalClosing += clVal;
-              totalDiff += diff;
-            }
+            totalOpening += opVal;
+            totalClosing += clVal;
+            totalDiff += diff;
 
             let diffColor = 'var(--text-muted)';
             let diffPrefix = '';
@@ -216,7 +213,7 @@ export function renderDashboard(mountPoint, appInstance) {
                    <tr style="border-top: 2px solid var(--panel-border); background: rgba(255, 255, 255, 0.02); height: 42px; font-weight: 700;">
                     <td style="padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
                       <i data-lucide="calculator" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
-                      <span style="font-weight: 700; font-size: 13px; color: #fff;">Total (Cash & Wallets)</span>
+                      <span style="font-weight: 700; font-size: 13px; color: #fff;">Total of All Accounts</span>
                     </td>
                     <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); color: #fff; font-size: 13px; font-weight: 700;">
                       ${fmt(totalOpening)}
