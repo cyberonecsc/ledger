@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - State & Data Layer (store.js)
+   CYBERONE Center Management Platform - State & Data Layer (store.js)
    ========================================================================== */
 
 // Helper to get today's date in YYYY-MM-DD format
@@ -14,7 +14,7 @@ export function getTodayDateString() {
 // Initial configuration for default opening balances (May 28, 2026)
 const INITIAL_BALANCES = {
   cash: 0,
-  main_sbi: 17729.76,
+  main_bob: 17729.76,
   csc: 1606.28,
   ibkart: 11.15,
   airtel_pb: 113.94,
@@ -37,7 +37,7 @@ const INITIAL_WALLETS = [
 
 // Initial Bank accounts
 const INITIAL_BANK_ACCOUNTS = [
-  { id: 'main_sbi', name: 'SBI Main A/C', bankName: 'State Bank of India', accountNumber: '34488299101', ifsc: 'SBIN0007820', upiId: 'cyberone@sbi' }
+  { id: 'main_bob', name: 'BOB A/C', bankName: 'Bank of Baroda', accountNumber: '34488299102', ifsc: 'BARB0ATTING', upiId: 'cyberone@barodampay' }
 ];
 
 // Initial pre-registered customers matching common Kerala CYBER ONE citizen logs
@@ -51,7 +51,7 @@ const INITIAL_STAFF = [
   { id: 'STAFF-04', name: 'Manu (Staff)', role: 'staff', phone: '9048555666', baseSalary: 12000, isActive: true }
 ];
 
-// Initial Products / Inventory items for Akshaya/CSC stores
+// Initial Products / Inventory items for CYBERONE/CSC stores
 const INITIAL_PRODUCTS = [
   { id: 'PROD-A4', name: 'A4 paper', sku: 'A4-PAPER', category: 'Materials', buyPrice: 0.8, sellPrice: 2, stock: 500, minStock: 50, type: 'product' },
   { id: 'PROD-PVC', name: 'PVC Lamination pouch', sku: 'PVC-POUCH', category: 'Materials', buyPrice: 5, sellPrice: 10, stock: 100, minStock: 10, type: 'product' }
@@ -128,15 +128,79 @@ class StateStore {
       this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
     }
 
-    // Reset opening cash balance to 0 if it is not already 0, and ensure edistrict is removed
+    // Migration: Migrate SBI Bank Account (main_sbi) to Bank of Baroda (main_bob)
     let needRecalculate = false;
-    const sortedDates = Object.keys(this.dailyLogs || {}).sort();
-    if (sortedDates.length > 0) {
-      const firstLog = this.dailyLogs[sortedDates[0]];
-      if (firstLog && firstLog.openingBalances && firstLog.openingBalances.cash !== 0) {
-        firstLog.openingBalances.cash = 0;
-        needRecalculate = true;
+    let migratedBank = false;
+
+    this.bankAccounts.forEach(b => {
+      if (b.id === 'main_sbi') {
+        b.id = 'main_bob';
+        b.name = 'BOB A/C';
+        b.bankName = 'Bank of Baroda';
+        b.accountNumber = '34488299102';
+        b.ifsc = 'BARB0ATTING';
+        b.upiId = 'cyberone@barodampay';
+        migratedBank = true;
       }
+    });
+
+    if (migratedBank) {
+      this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
+    }
+
+    if (this.initialBalances && this.initialBalances.main_sbi !== undefined) {
+      this.initialBalances.main_bob = this.initialBalances.main_sbi;
+      delete this.initialBalances.main_sbi;
+      this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
+      needRecalculate = true;
+    }
+
+    if (this.dailyLogs) {
+      Object.keys(this.dailyLogs).forEach(date => {
+        const log = this.dailyLogs[date];
+        
+        // Migrate opening/closing balances keys
+        if (log.openingBalances) {
+          if (log.openingBalances.main_sbi !== undefined) {
+            log.openingBalances.main_bob = log.openingBalances.main_sbi;
+            delete log.openingBalances.main_sbi;
+            needRecalculate = true;
+          }
+        }
+        if (log.closingBalances) {
+          if (log.closingBalances.main_sbi !== undefined) {
+            log.closingBalances.main_bob = log.closingBalances.main_sbi;
+            delete log.closingBalances.main_sbi;
+            needRecalculate = true;
+          }
+        }
+
+        // Migrate transactions referencing main_sbi
+        if (log.transactions) {
+          log.transactions.forEach(txn => {
+            if (txn.bankId === 'main_sbi') {
+              txn.bankId = 'main_bob';
+              needRecalculate = true;
+            }
+            if (txn.deductedFrom === 'main_sbi') {
+              txn.deductedFrom = 'main_bob';
+              needRecalculate = true;
+            }
+            if (txn.targetWallet === 'main_sbi') {
+              txn.targetWallet = 'main_bob';
+              needRecalculate = true;
+            }
+            if (txn.source === 'main_sbi') {
+              txn.source = 'main_bob';
+              needRecalculate = true;
+            }
+            if (txn.sourceId === 'main_sbi') {
+              txn.sourceId = 'main_bob';
+              needRecalculate = true;
+            }
+          });
+        }
+      });
     }
 
     if (this.dailyLogs) {
@@ -272,7 +336,7 @@ class StateStore {
           }
           // UPI/Bank income
           if (txn.paidByUPI) {
-            const bankId = txn.bankId || 'main_sbi';
+            const bankId = txn.bankId || 'main_bob';
             balances[bankId] = parseFloat(((balances[bankId] || 0) + parseFloat(txn.paidByUPI)).toFixed(2));
           }
           // Wallet/Account cost deduction
@@ -280,7 +344,7 @@ class StateStore {
             const walletId = txn.deductedFrom;
             const cost = parseFloat(txn.deductedAmount || 0);
 
-            const targetId = walletId === 'account' ? 'main_sbi' : walletId;
+            const targetId = walletId === 'account' ? 'main_bob' : walletId;
             if (balances[targetId] !== undefined) {
               balances[targetId] = parseFloat((balances[targetId] - cost).toFixed(2));
             } else {
@@ -294,16 +358,16 @@ class StateStore {
           if (txn.source === 'cash') {
             // Cash Deposit to Bank
             balances.cash = parseFloat((balances.cash - amt).toFixed(2));
-            const targetId = walletId === 'account' ? 'main_sbi' : walletId;
+            const targetId = walletId === 'account' ? 'main_bob' : walletId;
             balances[targetId] = parseFloat(((balances[targetId] || 0) + amt).toFixed(2));
           } else {
             // Transfer from Bank Account to Digital Wallet
-            const sourceId = txn.source === 'account' ? 'main_sbi' : txn.source;
+            const sourceId = txn.source === 'account' ? 'main_bob' : txn.source;
             if (balances[sourceId] !== undefined) {
               balances[sourceId] = parseFloat((sourceId === 'cash' ? balances.cash : balances[sourceId] - amt).toFixed(2));
             }
             
-            const targetId = walletId === 'account' ? 'main_sbi' : walletId;
+            const targetId = walletId === 'account' ? 'main_bob' : walletId;
             if (balances[targetId] !== undefined) {
               balances[targetId] = parseFloat((balances[targetId] + amt).toFixed(2));
             } else {
@@ -313,7 +377,7 @@ class StateStore {
         } else if (txn.type === 'expense' || txn.type === 'salary') {
           // Outflow expense
           const amt = parseFloat(txn.amount);
-          const source = txn.source === 'account' ? 'main_sbi' : txn.source; // 'cash' or bank account ID
+          const source = txn.source === 'account' ? 'main_bob' : txn.source; // 'cash' or bank account ID
           
           if (balances[source] !== undefined) {
             balances[source] = parseFloat((balances[source] - amt).toFixed(2));

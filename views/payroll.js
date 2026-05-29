@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - Staff & Payroll View (views/payroll.js)
+   CYBERONE Center Management Platform - Staff & Payroll View (views/payroll.js)
    ========================================================================== */
 
 import { store } from '../store.js';

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - AEPS & Money Transfer (views/aeps.js)
+   CYBERONE Center Management Platform - AEPS & Money Transfer (views/aeps.js)
    ========================================================================== */
 
 import { store } from '../store.js';

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - Auth & Privileges (auth.js)
+   CYBERONE Center Management Platform - Auth & Privileges (auth.js)
    ========================================================================== */
 
 // Default permissions matrix for roles

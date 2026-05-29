@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - Inventory View (views/inventory.js)
+   CYBERONE Center Management Platform - Inventory View (views/inventory.js)
    ========================================================================== */
 
 import { store } from '../store.js';

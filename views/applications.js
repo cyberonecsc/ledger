@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - Applications View (views/applications.js)
+   CYBERONE Center Management Platform - Applications View (views/applications.js)
    ========================================================================== */
 
 import { store } from '../store.js';

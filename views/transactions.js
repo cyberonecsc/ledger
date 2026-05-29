@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - Transactions View (views/transactions.js)
+   CYBERONE Center Management Platform - Transactions View (views/transactions.js)
    ========================================================================== */
 
 import { store } from '../store.js';
@@ -12,6 +12,49 @@ export function renderTransactions(mountPoint, appInstance) {
 
   // Helper to format currency
   const fmt = (val) => val !== undefined && val !== 0 ? `₹${parseFloat(val).toFixed(2)}` : '—';
+
+  const accountsToDisplay = [
+    { key: 'cash', name: 'Cash In Hand', icon: 'wallet', color: 'var(--color-success)', class: 'success' }
+  ];
+
+  store.bankAccounts.forEach(b => {
+    accountsToDisplay.push({
+      key: b.id,
+      name: b.name,
+      icon: 'landmark',
+      color: b.id === 'main_bob' ? 'var(--color-info)' : '#0ea5e9',
+      class: 'info'
+    });
+  });
+
+  store.wallets.filter(w => w.isActive || (log.openingBalances[w.id] || 0) !== 0 || (log.closingBalances[w.id] || 0) !== 0).forEach(w => {
+    let icon = 'globe';
+    if (w.isAEPS) icon = 'smartphone';
+    accountsToDisplay.push({
+      key: w.id,
+      name: w.name,
+      icon: icon,
+      color: '#fff',
+      class: 'primary'
+    });
+  });
+
+  const cardsHtml = accountsToDisplay.map(acc => {
+    const op = (log.openingBalances[acc.key] || 0).toFixed(2);
+    const cl = (log.closingBalances[acc.key] || 0).toFixed(2);
+    return `
+      <div class="glass-card ${acc.class}" style="padding: 16px;">
+        <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight:600; color:var(--text-muted); align-items: center;">
+          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${acc.name}</span>
+          <i data-lucide="${acc.icon}" style="width: 14px; height: 14px; color: ${acc.color}; flex-shrink: 0;"></i>
+        </div>
+        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <span style="font-size: 11px; color: var(--text-dimmed); white-space: nowrap;">Op: ₹${op}</span>
+          <span style="font-family: var(--font-display); font-size: 16px; font-weight: 700; color: ${acc.class === 'success' ? 'var(--color-success)' : acc.class === 'info' ? 'var(--color-info)' : '#fff'}; white-space: nowrap;">Cl: ₹${cl}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 
   // Render view layout
   mountPoint.innerHTML = `
@@ -45,7 +88,6 @@ export function renderTransactions(mountPoint, appInstance) {
               <th>SC Account</th>
               <th>From Bank</th>
               <th>From CSC</th>
-              <th>From Digipay</th>
               <th>From PayNearby</th>
               <th>From APB</th>
               <th>From IBKART</th>
@@ -68,42 +110,8 @@ export function renderTransactions(mountPoint, appInstance) {
       <span style="font-size: 12px; color: var(--text-muted);">Opening $\rightarrow$ Closing reconciliation</span>
     </div>
 
-    <div class="card-grid day-balance-grid" style="gap: 15px;">
-      <!-- Cash In Hand -->
-      <div class="glass-card success" style="padding: 16px;">
-        <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight:600; color:var(--text-muted);">
-          <span>Cash In Hand</span>
-          <i data-lucide="wallet" style="width: 14px; height: 14px; color: var(--color-success);"></i>
-        </div>
-        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline;">
-          <span style="font-size: 12px; color: var(--text-dimmed);">Op: ₹${log.openingBalances.cash.toFixed(2)}</span>
-          <span style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--color-success);">Cl: ₹${log.closingBalances.cash.toFixed(2)}</span>
-        </div>
-      </div>
-
-      <!-- SBI Main Bank -->
-      <div class="glass-card info" style="padding: 16px;">
-        <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight:600; color:var(--text-muted);">
-          <span>SBI Main Account</span>
-          <i data-lucide="landmark" style="width: 14px; height: 14px; color: var(--color-info);"></i>
-        </div>
-        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline;">
-          <span style="font-size: 12px; color: var(--text-dimmed);">Op: ₹${(log.openingBalances.main_sbi || 0).toFixed(2)}</span>
-          <span style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--color-info);">Cl: ₹${(log.closingBalances.main_sbi || 0).toFixed(2)}</span>
-        </div>
-      </div>
-
-      <!-- CSC Wallet -->
-      <div class="glass-card primary" style="padding: 16px;">
-        <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight:600; color:var(--text-muted);">
-          <span>CSC Wallet</span>
-          <i data-lucide="globe" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
-        </div>
-        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline;">
-          <span style="font-size: 12px; color: var(--text-dimmed);">Op: ₹${log.openingBalances.csc.toFixed(2)}</span>
-          <span style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #fff;">Cl: ₹${log.closingBalances.csc.toFixed(2)}</span>
-        </div>
-      </div>
+    <div class="card-grid day-balance-grid" style="gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      ${cardsHtml}
     </div>
 
     <!-- Modals backdrop and containers -->
@@ -190,7 +198,7 @@ export function renderTransactions(mountPoint, appInstance) {
 // Generate rows based on transactions
 function renderLedgerRows(txns, fmt) {
   if (txns.length === 0) {
-    return `<tr><td colspan="18" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
+    return `<tr><td colspan="17" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
   }
 
   return txns.map(t => {
@@ -208,47 +216,45 @@ function renderLedgerRows(txns, fmt) {
       columns[6] = fmt(t.serviceChargeToCash);
 
       // Deduction logic columns
-      const source = t.deductedFrom === 'account' ? 'main_sbi' : t.deductedFrom;
-      if (source === 'main_sbi') columns[7] = fmt(t.deductedAmount);
+      const source = t.deductedFrom === 'account' ? 'main_bob' : t.deductedFrom;
+      if (source === 'main_bob') columns[7] = fmt(t.deductedAmount);
       else if (source === 'csc') columns[8] = fmt(t.deductedAmount);
-      else if (source === 'digipay') columns[9] = fmt(t.deductedAmount);
-      else if (source === 'paynearby') columns[10] = fmt(t.deductedAmount);
-      else if (source === 'airtel_pb') columns[11] = fmt(t.deductedAmount);
-      else if (source === 'ibkart') columns[12] = fmt(t.deductedAmount);
-      else if (source === 'bsnl') columns[13] = fmt(t.deductedAmount);
-      else if (source === 'vi') columns[14] = fmt(t.deductedAmount);
-      else if (source === 'airtel') columns[15] = fmt(t.deductedAmount);
+      else if (source === 'paynearby') columns[9] = fmt(t.deductedAmount);
+      else if (source === 'airtel_pb') columns[10] = fmt(t.deductedAmount);
+      else if (source === 'ibkart') columns[11] = fmt(t.deductedAmount);
+      else if (source === 'bsnl') columns[12] = fmt(t.deductedAmount);
+      else if (source === 'vi') columns[13] = fmt(t.deductedAmount);
+      else if (source === 'airtel') columns[14] = fmt(t.deductedAmount);
 
     } else if (t.type === 'deposit') {
       typeBadge = `<span class="badge deposit">Deposit</span>`;
       columns[0] = t.description;
       columns[1] = fmt(t.amount);
       
-      const source = t.source === 'account' ? 'main_sbi' : t.source;
+      const source = t.source === 'account' ? 'main_bob' : t.source;
       if (source === 'cash') {
         columns[2] = `-${fmt(t.amount)}`; // deducted from cash
-        columns[7] = `+${fmt(t.amount)}`; // credited to SBI bank account
+        columns[7] = `+${fmt(t.amount)}`; // credited to BOB bank account
       } else {
-        if (source === 'main_sbi') columns[7] = fmt(t.amount);
+        if (source === 'main_bob') columns[7] = fmt(t.amount);
         // Credit to target wallet column
-        const target = t.targetWallet === 'account' ? 'main_sbi' : t.targetWallet;
+        const target = t.targetWallet === 'account' ? 'main_bob' : t.targetWallet;
         if (target === 'csc') columns[8] = `+${fmt(t.amount)}`;
-        else if (target === 'digipay') columns[9] = `+${fmt(t.amount)}`;
-        else if (target === 'paynearby') columns[10] = `+${fmt(t.amount)}`;
-        else if (target === 'airtel_pb') columns[11] = `+${fmt(t.amount)}`;
-        else if (target === 'ibkart') columns[12] = `+${fmt(t.amount)}`;
-        else if (target === 'bsnl') columns[13] = `+${fmt(t.amount)}`;
-        else if (target === 'vi') columns[14] = `+${fmt(t.amount)}`;
-        else if (target === 'airtel') columns[15] = `+${fmt(t.amount)}`;
+        else if (target === 'paynearby') columns[9] = `+${fmt(t.amount)}`;
+        else if (target === 'airtel_pb') columns[10] = `+${fmt(t.amount)}`;
+        else if (target === 'ibkart') columns[11] = `+${fmt(t.amount)}`;
+        else if (target === 'bsnl') columns[12] = `+${fmt(t.amount)}`;
+        else if (target === 'vi') columns[13] = `+${fmt(t.amount)}`;
+        else if (target === 'airtel') columns[14] = `+${fmt(t.amount)}`;
       }
     } else if (t.type === 'expense' || t.type === 'salary') {
       typeBadge = `<span class="badge expense">Expense</span>`;
       columns[0] = t.description;
       columns[1] = fmt(t.amount);
-      const source = t.source === 'account' ? 'main_sbi' : t.source;
+      const source = t.source === 'account' ? 'main_bob' : t.source;
       if (source === 'cash') {
         columns[2] = `-${fmt(t.amount)}`;
-      } else if (source === 'main_sbi') {
+      } else if (source === 'main_bob') {
         columns[7] = `-${fmt(t.amount)}`;
       }
     } else if (t.type === 'adjustment') {
@@ -258,15 +264,14 @@ function renderLedgerRows(txns, fmt) {
       const source = t.sourceId;
       const sign = (t.diff || 0) >= 0 ? '+' : '';
       if (source === 'cash') columns[2] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'main_sbi') columns[7] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'main_bob') columns[7] = `${sign}${fmt(t.diff)}`;
       else if (source === 'csc') columns[8] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'digipay') columns[9] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'paynearby') columns[10] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'airtel_pb') columns[11] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'ibkart') columns[12] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'bsnl') columns[13] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'vi') columns[14] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'airtel') columns[15] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'paynearby') columns[9] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'airtel_pb') columns[10] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'ibkart') columns[11] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'bsnl') columns[12] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'vi') columns[13] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'airtel') columns[14] = `${sign}${fmt(t.diff)}`;
     }
 
     return `
@@ -287,7 +292,6 @@ function renderLedgerRows(txns, fmt) {
         <td>${columns[12]}</td>
         <td>${columns[13]}</td>
         <td>${columns[14]}</td>
-        <td>${columns[15]}</td>
         <td style="text-align: center;">
           <button class="btn btn-sm btn-secondary btn-delete-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-danger); border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.02);">
             <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Akshaya Center Management Platform - SPA Router & Layout (app.js)
+   CYBERONE Center Management Platform - SPA Router & Layout (app.js)
    ========================================================================== */
 
 import { auth } from './auth.js';
