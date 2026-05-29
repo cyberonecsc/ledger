@@ -101,7 +101,7 @@ export function renderDashboard(mountPoint, appInstance) {
   mountPoint.innerHTML = `
     <!-- Quick Action Shortcut Buttons -->
     <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px;">
-      <a href="#transactions" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.08); transition: var(--transition-smooth);">
+      <a href="#transactions?action=new-sale" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.08); transition: var(--transition-smooth);">
         <i data-lucide="plus-circle" style="width: 24px; height: 24px; color: var(--color-primary); filter: drop-shadow(0 0 5px var(--color-primary-glow));"></i>
         <div>
           <h4 style="font-family: var(--font-display); font-weight: 700; color: #fff; font-size: 15px;">New Transaction</h4>

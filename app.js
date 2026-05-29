@@ -96,8 +96,24 @@ class Application {
   handleRouting() {
     let hash = window.location.hash || '#dashboard';
 
+    // Parse query params if any
+    let path = hash;
+    let queryParams = {};
+    if (hash.includes('?')) {
+      const parts = hash.split('?');
+      path = parts[0];
+      const queryStr = parts[1];
+      queryStr.split('&').forEach(param => {
+        if (!param) return;
+        const [key, val] = param.split('=');
+        queryParams[key] = decodeURIComponent(val || '');
+      });
+    }
+    
+    this.queryParams = queryParams;
+
     // Route guards
-    const route = ROUTES[hash];
+    const route = ROUTES[path];
 
     if (!route) {
       window.location.hash = '#dashboard';
@@ -112,7 +128,7 @@ class Application {
       return;
     }
 
-    if (isLoggedIn && hash === '#login') {
+    if (isLoggedIn && path === '#login') {
       window.location.hash = '#dashboard';
       return;
     }
@@ -123,7 +139,7 @@ class Application {
       return;
     }
 
-    this.activeRoute = hash;
+    this.activeRoute = path;
     this.renderLayout(route.render);
   }
 

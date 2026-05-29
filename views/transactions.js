@@ -177,6 +177,9 @@ export function renderTransactions(mountPoint, appInstance) {
   const closeModal = () => {
     modalBackdrop.classList.remove('show');
     document.getElementById('txn-form-mount').innerHTML = '';
+    if (window.location.hash.includes('action=new-sale')) {
+      history.replaceState(null, "", "#transactions");
+    }
   };
 
   btnOpenModal.addEventListener('click', openAddModal);
@@ -995,6 +998,11 @@ export function renderTransactions(mountPoint, appInstance) {
 
     lucide.createIcons();
   };
+
+  // Auto-open new sale modal if query parameter action=new-sale is present
+  if (appInstance.queryParams && appInstance.queryParams.action === 'new-sale') {
+    openAddModal();
+  }
 
   // Initial draw of the table when view renders
   redrawTable();
