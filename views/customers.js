@@ -409,6 +409,10 @@ export function renderCustomers(mountPoint, appInstance) {
 }
 
 function renderIDCardModal(customer, container, backdrop, appInstance) {
+  const primaryBank = store.bankAccounts.find(b => b.id === 'main_bob') || store.bankAccounts[0];
+  const upiId = primaryBank ? primaryBank.upiId : 'cyberone@barodampay';
+  const centerName = store.centerProfile.name || 'CYBER ONE CSC';
+
   container.innerHTML = `
     <div class="modal-header">
       <h4>Citizen Digital ID Card</h4>
@@ -417,56 +421,56 @@ function renderIDCardModal(customer, container, backdrop, appInstance) {
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; overflow-y: auto; max-height: 480px; padding: 10px;">
       <!-- Card Container for printing -->
-      <div id="printable-citizen-idcard" class="preview-normal" style="background:#060a13; border: 1px solid var(--panel-border); padding: 25px; display:flex; flex-direction:column; gap:20px; align-items:center; border-radius: var(--border-radius-md); max-width: 380px;">
+      <div id="printable-citizen-idcard" class="preview-normal" style="background:#f8fafc; border: 1px solid #e2e8f0; padding: 25px; display:flex; flex-direction:column; gap:20px; align-items:center; border-radius: var(--border-radius-md); max-width: 380px;">
         
         <!-- Front Side -->
-        <div class="idcard-front" style="width: 330px; height: 200px; background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; position: relative; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.5); overflow:hidden; font-family: 'Outfit', sans-serif;">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1.5px solid rgba(255,255,255,0.15); padding-bottom: 6px; margin-bottom: 12px;">
+        <div class="idcard-front" style="width: 330px; height: 200px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 15px; position: relative; color: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.1); overflow:hidden; font-family: 'Outfit', sans-serif;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">
             <div style="display:flex; align-items:center; gap:6px;">
               <img src="./logo.png" style="width:22px; height:22px; object-fit:contain;" onerror="this.style.display='none';">
-              <span style="font-family: 'Outfit', sans-serif; font-size:12px; font-weight:800; letter-spacing:0.5px; color:#6366f1;">CYBER ONE CSC</span>
+              <span style="font-family: 'Outfit', sans-serif; font-size:12px; font-weight:800; letter-spacing:0.5px; color:#1e40af;">CYBER ONE CSC</span>
             </div>
-            <span style="font-size:9px; color:var(--text-muted); font-weight:800; letter-spacing:0.5px;">ATTINGAL CENTER</span>
+            <span style="font-size:9px; color:#64748b; font-weight:800; letter-spacing:0.5px;">ATTINGAL CENTER</span>
           </div>
           
           <div style="display:flex; gap:12px; align-items:center;">
-            <div style="width:65px; height:65px; border-radius:50%; background:rgba(99, 102, 241, 0.2); border: 2.5px solid #6366f1; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:#fff; box-shadow: 0 0 10px rgba(99,102,241,0.4);">
+            <div style="width:65px; height:65px; border-radius:50%; background:#eff6ff; border: 2.5px solid #3b82f6; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:#1d4ed8; box-shadow: 0 4px 12px rgba(59,130,246,0.15);">
               ${customer.name.charAt(0)}
             </div>
             <div>
-              <h4 style="font-family: 'Outfit', sans-serif; font-size:15px; font-weight:700; margin:0; color:#fff;">${customer.name}</h4>
-              <span style="font-size:11px; color:#06b6d4; font-weight:700; font-family:monospace;">ID: ${customer.uniqueNumber}</span>
-              <div style="font-size: 10px; color:#9ca3af; margin-top:4px;">Mob: ${customer.phone}</div>
-              <div style="font-size: 10px; color:#9ca3af;">Email: ${customer.email || '—'}</div>
+              <h4 style="font-family: 'Outfit', sans-serif; font-size:15px; font-weight:700; margin:0; color:#0f172a;">${customer.name}</h4>
+              <span style="font-size:11px; color:#0284c7; font-weight:700; font-family:monospace;">ID: ${customer.uniqueNumber}</span>
+              <div style="font-size: 10px; color:#475569; margin-top:4px;">Mob: <strong>${customer.phone}</strong></div>
+              <div style="font-size: 10px; color:#475569;">Email: <strong>${customer.email || '—'}</strong></div>
             </div>
           </div>
-          <div style="position:absolute; bottom:12px; left:15px; right:15px; font-size:9px; color:#9ca3af; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px;">
+          <div style="position:absolute; bottom:12px; left:15px; right:15px; font-size:9px; color:#64748b; display:flex; justify-content:space-between; border-top:1px solid #e2e8f0; padding-top:6px;">
             <span style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Address: ${customer.address || 'Attingal'}</span>
-            <span style="font-weight:700; color:#6366f1;">CITIZEN IDENTITY</span>
+            <span style="font-weight:700; color:#1d4ed8;">CITIZEN IDENTITY</span>
           </div>
         </div>
 
         <!-- Back Side -->
-        <div class="idcard-back" style="width: 330px; height: 200px; background: linear-gradient(135deg, #090e17 0%, #1e1b4b 100%); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; position: relative; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display:flex; flex-direction:column; justify-content:space-between; align-items:center; font-family: 'Outfit', sans-serif;">
-          <div style="width: 100%; border-bottom: 1.5px solid rgba(255,255,255,0.05); padding-bottom:5px; font-size: 10px; font-weight:800; color:#9ca3af; text-align:center; letter-spacing:0.8px;">
+        <div class="idcard-back" style="width: 330px; height: 200px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 15px; position: relative; color: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:space-between; align-items:center; font-family: 'Outfit', sans-serif;">
+          <div style="width: 100%; border-bottom: 2px solid #e2e8f0; padding-bottom:5px; font-size: 10px; font-weight:800; color:#475569; text-align:center; letter-spacing:0.8px;">
             SCAN FOR QUICK UPI PAYMENT
           </div>
           
           <div style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-grow:1; padding: 10px 0;">
             <div style="text-align:left; max-width:170px;">
-              <h5 style="font-family: 'Outfit', sans-serif; font-size:11px; font-weight:800; margin:0 0-4px 0; color:#6366f1; text-transform:uppercase;">CYBER ONE Attingal</h5>
-              <p style="font-size:8px; color:#9ca3af; margin:2px 0; line-height:1.2;">Room 4B, Central Arcade, Attingal, Trivandrum</p>
-              <p style="font-size:8px; color:#9ca3af; margin:2px 0;">Mob: 9048123456</p>
-              <p style="font-size:8px; color:#9ca3af; margin:2px 0;">UPI: cyberone@sbi</p>
+              <h5 style="font-family: 'Outfit', sans-serif; font-size:11px; font-weight:800; margin:0 0 4px 0; color:#1d4ed8; text-transform:uppercase;">${centerName}</h5>
+              <p style="font-size:8px; color:#475569; margin:2px 0; line-height:1.2;">${store.centerProfile.address || 'Attingal'}</p>
+              <p style="font-size:8px; color:#475569; margin:2px 0;">Mob: ${store.centerProfile.mobile || '—'}</p>
+              <p style="font-size:8px; color:#475569; margin:2px 0;">UPI ID: <strong>${upiId}</strong></p>
             </div>
             
             <!-- UPI QR Code -->
-            <div style="background:#fff; padding:5px; border-radius:6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=upi://pay?pa=cyberone@sbi%26pn=CYBERONE%20Attingal" style="width:80px; height:80px; display:block;">
+            <div style="background:#fff; padding:5px; border-radius:6px; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=upi://pay?pa=${encodeURIComponent(upiId)}%26pn=${encodeURIComponent(centerName)}" style="width:80px; height:80px; display:block;">
             </div>
           </div>
           
-          <div style="width:100%; font-size:8px; color:#6b7280; border-top:1px solid rgba(255,255,255,0.05); padding-top:5px; text-align:center; font-weight:500;">
+          <div style="width:100%; font-size:8px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:5px; text-align:center; font-weight:500;">
             Common Service Center (CSC) | Attingal Branch
           </div>
         </div>
