@@ -678,8 +678,6 @@ function renderPLData(monthString) {
   }
 }
 
-export default renderReports;
-
 function renderWalletChart() {
   const mount = document.getElementById('wallet-chart-mount');
   if (!mount) return;
