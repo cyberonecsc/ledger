@@ -261,7 +261,7 @@ class Application {
                     <a href="#users" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="shield-check" style="width: 14px; height: 14px;"></i><span>User Management</span></a>
                   </li>
                   <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
-                    <a href="#accounts" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 14px; height: 14px;"></i><span>Account Menu</span></a>
+                    <a href="#accounts" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 14px; height: 14px;"></i><span>Account Management</span></a>
                   </li>
                   <li class="sidebar-item ${this.activeRoute === '#audit-log' ? 'active' : ''}">
                     <a href="#audit-log" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="history" style="width: 14px; height: 14px;"></i><span>Audit Log</span></a>
