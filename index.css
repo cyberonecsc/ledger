@@ -1282,7 +1282,7 @@ select.form-control option {
   }
 
   .sidebar {
-    left: -var(--sidebar-width);
+    left: -260px !important; /* Always hide completely off-screen on mobile */
     box-shadow: none;
     z-index: 1005; /* Overlay everything including modal headers */
     width: 260px !important; /* Fixed width when sliding out on mobile */
@@ -1291,6 +1291,7 @@ select.form-control option {
   /* Force elements to show when sidebar slides out even if it was collapsed on desktop */
   body.sidebar-collapsed .sidebar {
     width: 260px !important;
+    left: -260px !important; /* Keep hidden on mobile even if collapsed on desktop */
   }
   body.sidebar-collapsed .sidebar-logo h1,
   body.sidebar-collapsed .sidebar-menu span,
@@ -1317,7 +1318,7 @@ select.form-control option {
   }
 
   .sidebar.open {
-    left: 0;
+    left: 0 !important;
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
   }
 
