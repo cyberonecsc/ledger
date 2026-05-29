@@ -394,24 +394,6 @@ export function renderDashboard(mountPoint, appInstance) {
         </div>
       </div>
     </div>
-              <i data-lucide="check" style="width: 24px; height: 24px; color: var(--color-success); margin-bottom: 5px; display: inline-block;"></i>
-              <div style="margin-top: 5px;">All items fully stocked!</div>
-            </div>
-          ` : lowStockProducts.map(p => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: var(--border-radius-sm);">
-              <div>
-                <div style="font-size: 13px; font-weight: 600;">${p.name}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">SKU: ${p.sku}</div>
-              </div>
-              <div style="text-align: right;">
-                <span style="font-size: 13px; font-weight: 700; color: var(--color-danger);">${p.stock} left</span>
-                <div style="font-size: 10px; color: var(--text-dimmed);">Min: ${p.minStock}</div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </div>
 
     <!-- Daily Summary KPI Grid Row (Moved from Top to Bottom) -->
     <div class="section-header">
