@@ -18,16 +18,37 @@ export function renderDashboard(mountPoint, appInstance) {
   const opening = dailyLog.openingBalances;
   const closing = dailyLog.closingBalances;
   
-  // Define account list metadata
+  // Define account list metadata dynamically from store
   const accountMeta = [
     { key: 'cash', name: 'Cash In Hand', type: 'cash', icon: 'wallet', color: 'var(--color-success)' },
-    { key: 'account', name: 'Bank Accounts', type: 'bank', icon: 'landmark', color: 'var(--color-info)' },
-    { key: 'csc', name: 'CSC Wallet', type: 'wallet', icon: 'globe', color: 'var(--color-primary)' },
-    { key: 'ibkart', name: 'IBKART Wallet', type: 'wallet', icon: 'shopping-bag', color: '#8b5cf6' },
-    { key: 'bsnl', name: 'BSNL Top-up', type: 'wallet', icon: 'rss', color: '#3b82f6' },
-    { key: 'vi', name: 'VI Top-up', type: 'wallet', icon: 'zap', color: '#e11d48' },
-    { key: 'airtel', name: 'Airtel Retail', type: 'wallet', icon: 'phone-call', color: '#f43f5e' }
+    { key: 'account', name: 'Bank Accounts', type: 'bank', icon: 'landmark', color: 'var(--color-info)' }
   ];
+
+  // Dynamically append all active wallets from the database
+  store.wallets.filter(w => w.isActive).forEach(w => {
+    let icon = 'globe';
+    let color = 'var(--color-primary)';
+    
+    if (w.isAEPS) {
+      icon = 'smartphone';
+      color = '#06b6d4';
+      if (w.id === 'paynearby') color = '#10b981';
+      if (w.id === 'airtel_pb') color = '#ef4444';
+    } else {
+      if (w.id === 'ibkart') { icon = 'shopping-bag'; color = '#8b5cf6'; }
+      else if (w.id === 'bsnl') { icon = 'rss'; color = '#3b82f6'; }
+      else if (w.id === 'vi') { icon = 'zap'; color = '#e11d48'; }
+      else if (w.id === 'airtel') { icon = 'phone-call'; color = '#f43f5e'; }
+    }
+
+    accountMeta.push({
+      key: w.id,
+      name: w.name,
+      type: 'wallet',
+      icon: icon,
+      color: color
+    });
+  });
   
   // Guard balance visibility
   const canViewBalances = auth.hasPermission('view_balances');
