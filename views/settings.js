@@ -140,7 +140,7 @@ export function renderSettings(mountPoint, appInstance) {
           <input type="file" id="input-import-backup" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;">
         </div>
         <button id="btn-github-sync" class="btn btn-sm btn-info" style="display: inline-flex; align-items: center; gap: 8px; background: #8b5cf6; border-color: #8b5cf6;">
-          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sync from GitHub Pages
+          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sync Database
         </button>
       </div>
     </div>
@@ -290,76 +290,11 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
     reader.readAsText(file);
   });
 
-  // Automatic GitHub Sync handler
+  // Sync Database handler delegating to application instance
   const btnSync = document.getElementById('btn-github-sync');
-  
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    if (btnSync) btnSync.style.display = 'none';
-  }
-
   if (btnSync) {
     btnSync.addEventListener('click', () => {
-      btnSync.disabled = true;
-      btnSync.innerHTML = '<i data-lucide="loader" class="spinner" style="width: 14px; height: 14px; display: inline-block;"></i> Syncing...';
-      lucide.createIcons();
-
-      const iframe = document.createElement('iframe');
-      iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-
-      const cleanup = () => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-        window.removeEventListener('message', handleMessage);
-      };
-
-      const timeoutId = setTimeout(() => {
-        cleanup();
-        btnSync.disabled = false;
-        btnSync.innerHTML = '<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sync from GitHub Pages';
-        lucide.createIcons();
-        appInstance.showToast('Sync timed out. Make sure your GitHub Pages site is deployed and has data.', 'error');
-      }, 10000);
-
-      function handleMessage(event) {
-        if (event.origin === 'https://cyberonecsc.github.io') {
-          if (event.data && event.data.type === 'sync_data_response') {
-            clearTimeout(timeoutId);
-            const backup = event.data.data;
-            const keys = Object.keys(backup);
-            
-            if (keys.length > 0) {
-              keys.forEach(key => {
-                if (key.startsWith('cyberone_v2_')) {
-                  localStorage.setItem(key, backup[key]);
-                }
-              });
-              appInstance.showToast(`Successfully synced ${keys.length} keys from GitHub Pages! Reloading...`, 'success');
-              setTimeout(() => {
-                window.location.reload();
-              }, 1500);
-            } else {
-              appInstance.showToast('No ledger data found on GitHub to sync.', 'warning');
-              btnSync.disabled = false;
-              btnSync.innerHTML = '<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sync from GitHub Pages';
-              lucide.createIcons();
-            }
-            cleanup();
-          }
-        }
-      }
-
-      window.addEventListener('message', handleMessage);
-
-      iframe.onload = () => {
-        setTimeout(() => {
-          if (iframe.contentWindow) {
-            iframe.contentWindow.postMessage('request_sync_data', 'https://cyberonecsc.github.io');
-          }
-        }, 800);
-      };
+      appInstance.syncDatabase();
     });
   }
 }
