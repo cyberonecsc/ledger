@@ -120,6 +120,28 @@ export function renderSettings(mountPoint, appInstance) {
       </form>
     </div>
 
+    <!-- Database Backup & Sync Config -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Database Backup & Sync</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Synchronize ledger data between GitHub Pages and your local server</span>
+      </div>
+      <p style="font-size: 13px; line-height: 1.5; color: var(--text-muted); margin-bottom: 20px;">
+        As browsers isolate local storage by site address, data entered on your GitHub live website is separate from your local server. Use this tool to export a backup file from GitHub and import it here to make your daily balance sheets match perfectly.
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+        <button id="btn-export-backup" class="btn btn-sm btn-success" style="display: inline-flex; align-items: center; gap: 8px;">
+          <i data-lucide="download" style="width: 14px; height: 14px;"></i> Export Data Backup
+        </button>
+        <div style="position: relative; overflow: hidden; display: inline-block;">
+          <button class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Import Data Backup
+          </button>
+          <input type="file" id="input-import-backup" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;">
+        </div>
+      </div>
+    </div>
+
     <!-- Database Diagnostics Config -->
     <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
       <div class="section-header" style="margin-bottom:15px;">
@@ -197,6 +219,72 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
 
     store.updateInitialBalances(newBalances);
     appInstance.showToast('Initial opening balances saved and all ledger history recalculated!', 'success');
+  });
+
+  // Export backup event handler
+  document.getElementById('btn-export-backup').addEventListener('click', () => {
+    try {
+      const backup = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cyberone_v2_')) {
+          backup[key] = localStorage.getItem(key);
+        }
+      }
+      
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadAnchor.setAttribute("href",     dataStr);
+      downloadAnchor.setAttribute("download", `cyberone_ledger_backup_${dateStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      
+      appInstance.showToast('Backup file downloaded successfully!', 'success');
+    } catch (e) {
+      console.error(e);
+      appInstance.showToast('Export failed: ' + e.message, 'error');
+    }
+  });
+
+  // Import backup event handler
+  document.getElementById('input-import-backup').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const backup = JSON.parse(evt.target.result);
+        let importedCount = 0;
+        
+        // Basic validation: ensure it's a JSON object with keys starting with cyberone_v2_
+        const keys = Object.keys(backup);
+        if (keys.length === 0 || !keys.some(k => k.startsWith('cyberone_v2_'))) {
+          throw new Error('Invalid backup file. Missing Cyberone ledger keys.');
+        }
+
+        // Write keys to local storage
+        keys.forEach(key => {
+          if (key.startsWith('cyberone_v2_')) {
+            localStorage.setItem(key, backup[key]);
+            importedCount++;
+          }
+        });
+
+        appInstance.showToast(`Imported ${importedCount} keys successfully! Reloading...`, 'success');
+        
+        // Wait 1.5s then reload to let store load the new state
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        console.error(err);
+        appInstance.showToast('Failed to import backup: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
   });
 }
 
