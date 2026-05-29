@@ -40,7 +40,7 @@ export function renderAEPS(mountPoint, appInstance) {
                 <span style="font-size:11px; color:var(--text-muted);">ID: <code>${w.loginId}</code></span>
               </div>
               <button class="btn btn-sm btn-secondary btn-edit-aeps" data-id="${w.id}" style="padding: 4px;">
-                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+                <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
               </button>
             </div>
 

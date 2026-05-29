@@ -1783,3 +1783,57 @@ body.sidebar-collapsed .btn-logout {
   box-shadow: 0 0 12px var(--color-primary-glow) !important;
 }
 
+/* Sidebar Submenu expanding styling */
+.sidebar-menu .has-submenu {
+  display: block;
+}
+
+.sidebar-menu .has-submenu .submenu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sidebar-menu .has-submenu .submenu-arrow {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-menu .has-submenu.expanded .submenu-arrow {
+  transform: rotate(180deg);
+}
+
+.submenu-list {
+  margin-top: 4px;
+  border-left: 1.5px solid var(--panel-border);
+  margin-left: 20px;
+  padding-left: 4px;
+}
+
+.submenu-list .sidebar-item {
+  margin-bottom: 2px;
+}
+
+.submenu-list .sidebar-item a {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  box-shadow: none;
+}
+
+.submenu-list .sidebar-item a:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.submenu-list .sidebar-item.active a {
+  color: var(--color-primary) !important;
+  background: rgba(99, 102, 241, 0.05);
+  font-weight: 600;
+}
+
+body.sidebar-collapsed .submenu-list {
+  display: none !important;
+}
+

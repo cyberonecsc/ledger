@@ -143,14 +143,8 @@ export function renderTransactions(mountPoint, appInstance) {
     <div id="txn-modal-backdrop" class="modal-backdrop">
       <div class="modal-container" style="max-width: 600px;">
         <div class="modal-header" style="position: relative;">
-          <h4>Record New Log</h4>
+          <h4>Record Daily Sale</h4>
           <button id="txn-modal-close" class="modal-close" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; outline: none; transition: var(--transition-smooth);">&times;</button>
-        </div>
-
-        <!-- Form tabs selector -->
-        <div class="tab-row" style="margin-bottom:15px; display: flex; gap: 10px; padding: 0 4px;">
-          <button class="btn btn-sm btn-primary tab-btn" data-tab="sale" style="flex: 1;">Service Sale</button>
-          <button class="btn btn-sm btn-secondary tab-btn" data-tab="expense" style="flex: 1;">Log Expense</button>
         </div>
 
         <!-- Dynamic Form Body mount -->
@@ -167,7 +161,6 @@ export function renderTransactions(mountPoint, appInstance) {
   const modalBackdrop = document.getElementById('txn-modal-backdrop');
   const btnOpenModal = document.getElementById('btn-open-txn-modal');
   const btnCloseModalX = document.getElementById('txn-modal-close');
-  const tabButtons = document.querySelectorAll('.tab-btn');
   const searchInput = document.getElementById('ledger-search');
   const btnPrevPage = document.getElementById('btn-prev-page');
   const btnNextPage = document.getElementById('btn-next-page');
@@ -175,20 +168,7 @@ export function renderTransactions(mountPoint, appInstance) {
   // Unified modal handlers
   const openAddModal = () => {
     const headerTitle = modalBackdrop.querySelector('.modal-header h4');
-    const tabRow = modalBackdrop.querySelector('.tab-row');
-    if (headerTitle) headerTitle.innerText = 'Record New Log';
-    if (tabRow) tabRow.style.display = 'flex';
-
-    // Highlight Service Sale tab by default
-    tabButtons.forEach(b => {
-      if (b.getAttribute('data-tab') === 'sale') {
-        b.classList.add('btn-primary');
-        b.classList.remove('btn-secondary');
-      } else {
-        b.classList.remove('btn-primary');
-        b.classList.add('btn-secondary');
-      }
-    });
+    if (headerTitle) headerTitle.innerText = 'Record Daily Sale';
 
     modalBackdrop.classList.add('show');
     loadTabForm('sale');
@@ -196,12 +176,10 @@ export function renderTransactions(mountPoint, appInstance) {
 
   const openEditModal = (txn) => {
     const headerTitle = modalBackdrop.querySelector('.modal-header h4');
-    const tabRow = modalBackdrop.querySelector('.tab-row');
-    if (headerTitle) headerTitle.innerText = `Edit Transaction (${txn.id})`;
-    if (tabRow) tabRow.style.display = 'none'; // Hide switching tabs when editing
+    if (headerTitle) headerTitle.innerText = `Edit Daily Sale (${txn.id})`;
 
     modalBackdrop.classList.add('show');
-    loadTabForm(txn.type, txn);
+    loadTabForm('sale', txn);
   };
 
   const closeModal = () => {
@@ -213,21 +191,6 @@ export function renderTransactions(mountPoint, appInstance) {
   btnCloseModalX.addEventListener('click', closeModal);
   modalBackdrop.addEventListener('click', (e) => {
     if (e.target === modalBackdrop) closeModal();
-  });
-
-  // Tab switching inside modal
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      tabButtons.forEach(b => {
-        b.classList.remove('btn-primary');
-        b.classList.add('btn-secondary');
-      });
-      e.target.classList.add('btn-primary');
-      e.target.classList.remove('btn-secondary');
-      
-      const selectedTab = e.target.getAttribute('data-tab');
-      loadTabForm(selectedTab);
-    });
   });
 
   // Search input handler
@@ -842,8 +805,8 @@ function renderLedgerRows(txns) {
       else if (source === 'airtel') columns[14] = `${sign}${fmt(t.diff)}`;
     }
 
-    // Only allow editing for sales and expenses (the ones loggable via this screen)
-    const isEditable = (t.type === 'sale' || t.type === 'expense');
+    // Only allow editing for sales (the ones loggable via this screen)
+    const isEditable = (t.type === 'sale');
 
     return `
       <tr>
@@ -867,7 +830,7 @@ function renderLedgerRows(txns) {
         <td style="text-align: center; white-space: nowrap;">
           ${isEditable ? `
             <button class="btn btn-sm btn-secondary btn-edit-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-info); border: 1px solid rgba(14,165,233,0.15); background: rgba(14,165,233,0.02); margin-right: 4px;">
-              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+              <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
             </button>
           ` : ''}
           <button class="btn btn-sm btn-secondary btn-delete-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-danger); border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.02);">

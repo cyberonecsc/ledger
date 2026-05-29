@@ -37,7 +37,7 @@ export function renderAccounts(mountPoint, appInstance) {
             <div class="wallet-meta">Physical cash drawer</div>
           </div>
           <button class="btn btn-sm btn-secondary btn-edit-cash" style="padding: 4px;">
-            <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+            <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
           </button>
         </div>
         <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">
@@ -61,7 +61,7 @@ export function renderAccounts(mountPoint, appInstance) {
                 <div class="wallet-meta">${bank.bankName}</div>
               </div>
               <button class="btn btn-sm btn-secondary btn-edit-bank" data-id="${bank.id}" style="padding: 4px;">
-                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+                <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
               </button>
             </div>
             <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">
@@ -109,7 +109,7 @@ export function renderAccounts(mountPoint, appInstance) {
                 <div class="wallet-meta">Login: <code>${w.loginId}</code>${w.isAEPS ? ' <span style="font-size: 10px; font-weight: 500; color: var(--color-info); background: rgba(0, 180, 216, 0.1); padding: 1px 4px; border-radius: 3px; margin-left: 4px;">AEPS</span>' : ''}</div>
               </div>
               <button class="btn btn-sm btn-secondary btn-edit-wallet" data-id="${w.id}" style="padding: 4px;">
-                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+                <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
               </button>
             </div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">

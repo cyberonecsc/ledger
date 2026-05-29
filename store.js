@@ -2,6 +2,8 @@
    CYBERONE Center Management Platform - State & Data Layer (store.js)
    ========================================================================== */
 
+import { auth } from './auth.js';
+
 // Helper to get today's date in YYYY-MM-DD format
 export function getTodayDateString() {
   const d = new Date();
@@ -95,6 +97,7 @@ class StateStore {
       gstin: "32AAAAA1111A1Z1"
     };
     this.centerProfile = { ...defaultProfile, ...this.getItem('cyberone_v2_center_profile', {}) };
+    this.activityLogs = this.getItem('cyberone_v2_activity_logs', []);
     
     // If dailyLogs doesn't exist, we seed an empty ledger sheet for today's date
     if (!this.dailyLogs) {
@@ -293,6 +296,27 @@ class StateStore {
     };
     this.persistAll();
     return true;
+  }
+
+  logActivity(action, details) {
+    const username = (auth && auth.currentUser) ? auth.currentUser.name : 'System';
+    const logEntry = {
+      id: 'ACT-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      timestamp: new Date().toISOString(),
+      user: username,
+      action: action,
+      details: details
+    };
+    if (!this.activityLogs) {
+      this.activityLogs = [];
+    }
+    this.activityLogs.unshift(logEntry);
+    this.saveItem('cyberone_v2_activity_logs', this.activityLogs);
+    return logEntry;
+  }
+
+  getActivityLogs() {
+    return this.activityLogs || [];
   }
 
   // Double-entry automation calculations for the whole chain
@@ -513,6 +537,7 @@ class StateStore {
     };
 
     log.transactions.push(newTxn);
+    this.logActivity('Create ' + newTxn.type.toUpperCase(), `Created transaction ${newTxn.id}: "${newTxn.description}" for ₹${newTxn.amount.toFixed(2)} on date ${dateString}`);
     this.recalculateAllBalances();
     return newTxn;
   }
@@ -575,6 +600,7 @@ class StateStore {
       }
     }
 
+    this.logActivity('Delete ' + txn.type.toUpperCase(), `Deleted transaction ${txn.id}: "${txn.description}" for ₹${txn.amount.toFixed(2)} on date ${dateString}`);
     log.transactions.splice(idx, 1);
     this.recalculateAllBalances();
     return true;
@@ -657,6 +683,7 @@ class StateStore {
       serviceChargeToAccount
     };
 
+    this.logActivity('Edit ' + oldTxn.type.toUpperCase(), `Updated transaction ${txnId} on date ${dateString}: "${oldTxn.description}" (₹${oldTxn.amount}) changed to "${updatedData.description}" (₹${updatedData.amount})`);
     this.recalculateAllBalances();
     return true;
   }

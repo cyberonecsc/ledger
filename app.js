@@ -19,6 +19,7 @@ import { renderInvoices } from './views/invoices.js';
 import { renderReports } from './views/reports.js';
 import { renderUserManagement } from './views/users.js';
 import { renderAEPS } from './views/aeps.js';
+import { renderAuditLog } from './views/audit.js';
 
 
 // Route configurations and permission keys
@@ -35,7 +36,8 @@ const ROUTES = {
   '#reports': { render: renderReports, permission: 'manage_ledger' },
   '#users': { render: renderUserManagement, permission: 'manage_settings' },
   '#settings': { render: renderSettings, permission: 'manage_settings' },
-  '#aeps': { render: renderAEPS, permission: 'manage_accounts' }
+  '#aeps': { render: renderAEPS, permission: 'manage_accounts' },
+  '#audit-log': { render: renderAuditLog, permission: 'manage_settings' }
 };
 
 class Application {
@@ -172,6 +174,29 @@ class Application {
             <li class="sidebar-item ${this.activeRoute === '#reports' ? 'active' : ''}">
               <a href="#reports"><i data-lucide="bar-chart-3" style="width: 18px; height: 18px;"></i><span>Reports</span></a>
             </li>
+            <li class="sidebar-item ${this.activeRoute === '#audit-log' ? 'active' : ''}">
+              <a href="#audit-log"><i data-lucide="history" style="width: 18px; height: 18px;"></i><span>Audit Log</span></a>
+            </li>
+            <li class="sidebar-item has-submenu ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts') ? 'active expanded' : ''}">
+              <a href="javascript:void(0);" class="submenu-toggle" style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+                  <span>Settings</span>
+                </span>
+                <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts') ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
+              </a>
+              <ul class="submenu-list" style="display: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts') ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
+                <li class="sidebar-item ${this.activeRoute === '#settings' ? 'active' : ''}">
+                  <a href="#settings" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="sliders" style="width: 14px; height: 14px;"></i><span>General</span></a>
+                </li>
+                <li class="sidebar-item ${this.activeRoute === '#users' ? 'active' : ''}">
+                  <a href="#users" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="shield-check" style="width: 14px; height: 14px;"></i><span>User Management</span></a>
+                </li>
+                <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
+                  <a href="#accounts" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 14px; height: 14px;"></i><span>Account Menu</span></a>
+                </li>
+              </ul>
+            </li>
           </ul>
           <div class="sidebar-footer">
             <div class="user-profile">
@@ -185,20 +210,8 @@ class Application {
                 <span class="user-role">${auth.currentUser.role}</span>
               </div>
             </div>
-            
-            <ul class="sidebar-menu sidebar-footer-menu" style="padding: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; border-top: 1px solid var(--panel-border); padding-top: 8px; flex-grow: 0; overflow-y: visible;">
-              <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
-                <a href="#accounts" style="padding: 8px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 16px; height: 16px;"></i><span>Accounts</span></a>
-              </li>
-              <li class="sidebar-item ${this.activeRoute === '#users' ? 'active' : ''}">
-                <a href="#users" style="padding: 8px 12px; font-size: 13px;"><i data-lucide="shield-check" style="width: 16px; height: 16px;"></i><span>User Management</span></a>
-              </li>
-              <li class="sidebar-item ${this.activeRoute === '#settings' ? 'active' : ''}">
-                <a href="#settings" style="padding: 8px 12px; font-size: 13px;"><i data-lucide="settings" style="width: 16px; height: 16px;"></i><span>Settings</span></a>
-              </li>
-            </ul>
 
-            <button id="sidebar-logout" class="btn-logout">
+            <button id="sidebar-logout" class="btn-logout" style="margin-top: 15px;">
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
           </div>
@@ -253,6 +266,25 @@ class Application {
           icon.setAttribute('data-lucide', isCollapsedNow ? 'chevron-right' : 'chevron-left');
         }
         lucide.createIcons();
+      });
+    }
+
+    // Submenu expanding toggle
+    const submenuToggle = this.root.querySelector('.submenu-toggle');
+    if (submenuToggle) {
+      submenuToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        const parent = submenuToggle.parentElement;
+        const submenuList = parent.querySelector('.submenu-list');
+        const arrow = submenuToggle.querySelector('.submenu-arrow');
+        const isExpanded = parent.classList.toggle('expanded');
+        
+        if (submenuList) {
+          submenuList.style.display = isExpanded ? 'block' : 'none';
+        }
+        if (arrow) {
+          arrow.style.transform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
       });
     }
 
