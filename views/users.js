@@ -459,8 +459,12 @@ function renderStaffIDCardModal(user, container, backdrop, appInstance) {
             </div>
             
             <!-- UPI QR Code -->
-            <div style="background:#fff; padding:5px; border-radius:6px; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=upi://pay?pa=${encodeURIComponent(upiId)}%26pn=${encodeURIComponent(centerName)}" style="width:80px; height:80px; display:block;">
+            <div style="background:#fff; padding:5px; border-radius:6px; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.06); width: 90px; height: 90px; display: flex; align-items: center; justify-content: center;">
+              ${store.centerProfile.qrCode ? `
+                <img src="${store.centerProfile.qrCode}" style="width:80px; height:80px; object-fit:contain; display:block;">
+              ` : `
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=upi://pay?pa=${encodeURIComponent(upiId)}%26pn=${encodeURIComponent(centerName)}" style="width:80px; height:80px; display:block;">
+              `}
             </div>
           </div>
           

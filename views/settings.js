@@ -10,6 +10,7 @@ export function renderSettings(mountPoint, appInstance) {
   const bankAccounts = store.bankAccounts;
   const wallets = store.wallets;
   const initialBalances = store.initialBalances;
+  let qrCodeBase64 = profile.qrCode || '';
 
   mountPoint.innerHTML = `
     <!-- Global Store Profile Settings Config -->
@@ -67,12 +68,19 @@ export function renderSettings(mountPoint, appInstance) {
           </div>
         </div>
 
-        <div class="form-row" style="margin-bottom:20px;">
+        <div class="form-row" style="margin-bottom:20px; grid-template-columns: 1fr 1fr;">
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" style="font-size:11px;">GSTIN (GST Number)</label>
             <input type="text" id="store-gstin" class="form-control" value="${profile.gstin || ''}" style="font-size:12px;" placeholder="e.g. 32AAAAA1111A1Z1">
           </div>
-          <div style="margin-bottom:0;"></div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Custom Payment QR Code Image</label>
+            <input type="file" id="store-qr-upload" class="form-control" accept="image/*" style="font-size:12px; padding:6px 12px;">
+            <div id="store-qr-preview-container" style="display:${profile.qrCode ? 'flex' : 'none'}; align-items:center; gap:10px; margin-top:8px;">
+              <img id="store-qr-preview" src="${profile.qrCode || ''}" alt="QR Preview" style="width:50px; height:50px; object-fit:contain; border:1px solid var(--panel-border); border-radius:4px; padding:2px; background:#fff;">
+              <span style="font-size:10px; color:var(--text-muted);">Custom QR loaded</span>
+            </div>
+          </div>
         </div>
 
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Center Details</button>
@@ -131,11 +139,33 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
       landPhone,
       mobile,
       email,
-      gstin
+      gstin,
+      qrCode: qrCodeBase64
     });
 
     appInstance.showToast('Center profile updated successfully!', 'success');
   });
+
+  // Bind QR Upload change listener
+  const qrUploadInput = document.getElementById('store-qr-upload');
+  if (qrUploadInput) {
+    qrUploadInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          qrCodeBase64 = event.target.result;
+          const preview = document.getElementById('store-qr-preview');
+          const container = document.getElementById('store-qr-preview-container');
+          if (preview && container) {
+            preview.src = qrCodeBase64;
+            container.style.display = 'flex';
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
 
 
 }
