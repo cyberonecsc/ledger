@@ -287,12 +287,6 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
-              <!-- Sync Database Button -->
-              <button id="header-sync-btn" class="btn btn-secondary" style="display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px; height:36px; border-radius:var(--border-radius-sm); border:1px solid rgba(56, 189, 248, 0.3); background:rgba(56, 189, 248, 0.1); color:#38bdf8; cursor:pointer;">
-                <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>
-                <span>Sync Database</span>
-              </button>
-              
               <!-- Universal Date Picker Badge -->
               <div class="date-badge">
                 <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
@@ -366,13 +360,7 @@ class Application {
       });
     }
 
-    // Sync database handler
-    const syncBtn = document.getElementById('header-sync-btn');
-    if (syncBtn) {
-      syncBtn.addEventListener('click', () => {
-        this.syncDatabase();
-      });
-    }
+
 
     // Date picker handler
     const datePicker = document.getElementById('global-date-picker');
