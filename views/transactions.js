@@ -503,6 +503,46 @@ export function renderTransactions(mountPoint, appInstance) {
 
           <!-- Common Core Financial Fields -->
           <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px; margin-top: 10px;">
+            <!-- GST Options Row -->
+            <div class="form-row" style="margin-bottom: 12px; align-items: center;">
+              <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="sale-has-gst" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary);">
+                <label for="sale-has-gst" style="font-size: 11px; font-weight: 600; color: #fff; margin: 0; cursor: pointer; user-select: none;">Apply GST (Optional)</label>
+              </div>
+              <div id="gst-config-container" style="display: none; width: 100%; gap: 10px; grid-template-columns: 1fr 1fr;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <select id="sale-gst-rate" class="form-control" style="font-size:11px; padding: 4px 8px; height: 32px;">
+                    <option value="0.18" selected>18% GST (Standard)</option>
+                    <option value="0.12">12% GST</option>
+                    <option value="0.05">5% GST</option>
+                    <option value="0.28">28% GST</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <select id="sale-gst-type" class="form-control" style="font-size:11px; padding: 4px 8px; height: 32px;">
+                    <option value="inclusive" selected>Inclusive (Tax in Bill)</option>
+                    <option value="exclusive">Exclusive (Add Tax on Top)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- GST Breakdown Summary Card -->
+            <div id="gst-breakdown-container" style="display: none; margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px dashed var(--panel-border); border-radius: var(--border-radius-sm); font-size: 11px; color: var(--text-muted);">
+              <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+                <span>Base Taxable Value:</span>
+                <span id="gst-lbl-base" style="color:#fff; font-weight:600;">₹0.00</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+                <span>CGST (Central Tax):</span>
+                <span id="gst-lbl-cgst" style="color:var(--color-info); font-weight:600;">₹0.00</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>SGST (State / UT Tax):</span>
+                <span id="gst-lbl-sgst" style="color:var(--color-info); font-weight:600;">₹0.00</span>
+              </div>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Total Customer Bill Amount (₹)</label>
@@ -569,11 +609,12 @@ export function renderTransactions(mountPoint, appInstance) {
       const selectProduct = document.getElementById('sale-product-link');
       const inputProductQty = document.getElementById('sale-product-qty');
 
-      const updateProfitMath = () => {
-        const amt = parseFloat(inputAmount.value || 0);
-        const cash = parseFloat(inputCash.value || 0);
-        const upi = parseFloat(inputUPI.value || 0);
-        const credit = parseFloat(inputCredit.value || 0);
+      const getGstDetails = () => {
+        const hasGst = document.getElementById('sale-has-gst').checked;
+        const gstConfigContainer = document.getElementById('gst-config-container');
+        const gstBreakdownContainer = document.getElementById('gst-breakdown-container');
+        
+        const enteredAmount = parseFloat(inputAmount.value || 0);
         
         let cost = 0;
         if (currentSaleType === 'service') {
@@ -589,7 +630,55 @@ export function renderTransactions(mountPoint, appInstance) {
           }
         }
         
-        const profit = (cash + upi + credit) - cost;
+        if (hasGst) {
+          gstConfigContainer.style.display = 'grid';
+          gstBreakdownContainer.style.display = 'block';
+          
+          const rate = parseFloat(document.getElementById('sale-gst-rate').value);
+          const type = document.getElementById('sale-gst-type').value;
+          
+          let billAmount = enteredAmount;
+          let taxableAmount = 0;
+          let gstAmount = 0;
+          
+          if (type === 'inclusive') {
+            billAmount = enteredAmount;
+            taxableAmount = billAmount / (1 + rate);
+            gstAmount = billAmount - taxableAmount;
+          } else {
+            // Exclusive
+            taxableAmount = enteredAmount;
+            gstAmount = taxableAmount * rate;
+            billAmount = taxableAmount + gstAmount;
+          }
+          
+          const cgst = gstAmount / 2;
+          const sgst = gstAmount / 2;
+          
+          document.getElementById('gst-lbl-base').innerText = `₹${taxableAmount.toFixed(2)}`;
+          document.getElementById('gst-lbl-cgst').innerText = `₹${cgst.toFixed(2)}`;
+          document.getElementById('gst-lbl-sgst').innerText = `₹${sgst.toFixed(2)}`;
+          
+          return { billAmount, costAmount: cost, gstAmount, taxableAmount, cgst, sgst, hasGst, rate, type };
+        } else {
+          gstConfigContainer.style.display = 'none';
+          gstBreakdownContainer.style.display = 'none';
+          
+          const billAmount = enteredAmount;
+          return { billAmount, costAmount: cost, gstAmount: 0, taxableAmount: billAmount, cgst: 0, sgst: 0, hasGst: false, rate: 0, type: 'inclusive' };
+        }
+      };
+
+      const updateProfitMath = () => {
+        const gstDetails = getGstDetails();
+        
+        const cash = parseFloat(inputCash.value || 0);
+        const upi = parseFloat(inputUPI.value || 0);
+        const credit = parseFloat(inputCredit.value || 0);
+        
+        const totalReceived = cash + upi + credit;
+        const profit = totalReceived - gstDetails.costAmount - gstDetails.gstAmount;
+        
         profitDiv.innerText = `₹${profit.toFixed(2)}`;
         
         if (profit < 0) {
@@ -660,6 +749,21 @@ export function renderTransactions(mountPoint, appInstance) {
         inputDeductService.addEventListener('input', updateProfitMath);
       }
 
+      // GST Event Listeners
+      const hasGstCheckbox = document.getElementById('sale-has-gst');
+      const selectGstRate = document.getElementById('sale-gst-rate');
+      const selectGstType = document.getElementById('sale-gst-type');
+
+      hasGstCheckbox.addEventListener('change', () => {
+        adjustPayments();
+      });
+      selectGstRate.addEventListener('change', () => {
+        adjustPayments();
+      });
+      selectGstType.addEventListener('change', () => {
+        adjustPayments();
+      });
+
       // Pre-fill values if editing
       if (editTxn) {
         if (editTxn.productId) {
@@ -671,7 +775,17 @@ export function renderTransactions(mountPoint, appInstance) {
           document.getElementById('sale-deduct-source').value = editTxn.deductedFrom || 'none';
           document.getElementById('sale-deduct-amount-service').value = editTxn.deductedAmount || 0;
         }
-        inputAmount.value = editTxn.amount || 0;
+
+        // Initialize GST fields
+        if (editTxn.hasGst) {
+          hasGstCheckbox.checked = true;
+          selectGstRate.value = editTxn.gstRate;
+          selectGstType.value = editTxn.gstType;
+        } else {
+          hasGstCheckbox.checked = false;
+        }
+
+        inputAmount.value = editTxn.taxableAmount || editTxn.amount || 0;
         inputCash.value = editTxn.paidByCash || 0;
         inputUPI.value = editTxn.paidByUPI || 0;
         inputCredit.value = editTxn.paidByCredit || 0;
@@ -681,14 +795,16 @@ export function renderTransactions(mountPoint, appInstance) {
 
       // Automatically fill payment distributions based on total amount
       inputAmount.addEventListener('input', (e) => {
-        inputCash.value = e.target.value;
+        const gstDetails = getGstDetails();
+        inputCash.value = gstDetails.billAmount.toFixed(2);
         inputUPI.value = '0.00';
         inputCredit.value = '0.00';
         updateProfitMath();
       });
 
       const adjustPayments = () => {
-        const amt = parseFloat(inputAmount.value || 0);
+        const gstDetails = getGstDetails();
+        const amt = gstDetails.billAmount;
         const cash = parseFloat(inputCash.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
         inputUPI.value = Math.max(0, amt - cash - credit).toFixed(2);
@@ -698,7 +814,8 @@ export function renderTransactions(mountPoint, appInstance) {
       inputCash.addEventListener('input', adjustPayments);
       inputCredit.addEventListener('input', adjustPayments);
       inputUPI.addEventListener('input', () => {
-        const amt = parseFloat(inputAmount.value || 0);
+        const gstDetails = getGstDetails();
+        const amt = gstDetails.billAmount;
         const upi = parseFloat(inputUPI.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
         inputCash.value = Math.max(0, amt - upi - credit).toFixed(2);
@@ -709,14 +826,15 @@ export function renderTransactions(mountPoint, appInstance) {
       document.getElementById('form-add-sale').addEventListener('submit', (e) => {
         e.preventDefault();
         
-        const amount = parseFloat(inputAmount.value);
+        const gstDetails = getGstDetails();
+        const amount = gstDetails.billAmount;
         const cash = parseFloat(inputCash.value || 0);
         const upi = parseFloat(inputUPI.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
         const customerId = document.getElementById('sale-customer').value;
 
-        if (Math.abs((cash + upi + credit) - amount) > 0.02) {
-          alert('Total of Cash + UPI + Credit payments must match the total bill amount!');
+        if (Math.abs((cash + upi + credit) - amount) > 0.05) {
+          alert(`Total of Cash + UPI + Credit payments must match the total bill amount of ₹${amount.toFixed(2)}!`);
           return;
         }
 
@@ -756,6 +874,10 @@ export function renderTransactions(mountPoint, appInstance) {
           deductedAmount = parseFloat(document.getElementById('sale-deduct-amount-service').value || 0);
         }
 
+        if (gstDetails.hasGst) {
+          description += ` (+${(gstDetails.rate * 100).toFixed(0)}% GST)`;
+        }
+
         const txnData = {
           type: 'sale',
           description,
@@ -769,6 +891,13 @@ export function renderTransactions(mountPoint, appInstance) {
           customerId,
           productId,
           quantity,
+          hasGst: gstDetails.hasGst,
+          gstRate: gstDetails.rate,
+          gstType: gstDetails.type,
+          gstAmount: gstDetails.gstAmount,
+          cgst: gstDetails.cgst,
+          sgst: gstDetails.sgst,
+          taxableAmount: gstDetails.taxableAmount,
           staffId: editTxn ? editTxn.staffId : 'STAFF-04'
         };
 

@@ -499,7 +499,8 @@ class StateStore {
     if (txnData.type === 'sale') {
       const amount = parseFloat(txnData.amount || 0);
       const cost = parseFloat(txnData.deductedAmount || 0);
-      const profit = amount - cost;
+      const gst = parseFloat(txnData.gstAmount || 0);
+      const profit = amount - cost - gst;
 
       if (txnData.paidByCash > 0) {
         // If paid by cash, the profit is recognized as Service Charge to Cash
@@ -669,7 +670,8 @@ class StateStore {
     if (updatedData.type === 'sale') {
       const amount = parseFloat(updatedData.amount || 0);
       const cost = parseFloat(updatedData.deductedAmount || 0);
-      const profit = amount - cost;
+      const gst = parseFloat(updatedData.gstAmount || 0);
+      const profit = amount - cost - gst;
 
       if (updatedData.paidByCash > 0) {
         serviceChargeToCash = parseFloat(profit.toFixed(2));
