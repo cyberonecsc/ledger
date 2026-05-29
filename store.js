@@ -1044,6 +1044,112 @@ class StateStore {
       };
     }
   }
+
+  getLocalSnapshots() {
+    const data = localStorage.getItem('cyberone_v2_local_snapshots');
+    if (!data) return [];
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  createLocalSnapshot(label = 'Manual Checkpoint') {
+    try {
+      const backup = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cyberone_v2_') && key !== 'cyberone_v2_local_snapshots' && key !== 'cyberone_v2_last_sync_date' && key !== 'cyberone_v2_auto_backup_config') {
+          backup[key] = localStorage.getItem(key);
+        }
+      }
+      
+      const users = localStorage.getItem('cyberone_v2_users');
+      if (users) {
+        backup['cyberone_v2_users'] = users;
+      }
+
+      const snapshots = this.getLocalSnapshots();
+      const timestamp = new Date().toISOString();
+      snapshots.unshift({
+        timestamp,
+        label,
+        data: backup
+      });
+
+      if (snapshots.length > 10) {
+        snapshots.pop();
+      }
+
+      localStorage.setItem('cyberone_v2_local_snapshots', JSON.stringify(snapshots));
+      this.logActivity('Create Backup Snapshot', `Created local checkpoint: "${label}"`);
+      return true;
+    } catch (e) {
+      console.error("Failed to create local snapshot", e);
+      return false;
+    }
+  }
+
+  restoreFromSnapshot(timestamp) {
+    try {
+      const snapshots = this.getLocalSnapshots();
+      const snap = snapshots.find(s => s.timestamp === timestamp);
+      if (!snap) return false;
+
+      const keys = Object.keys(snap.data);
+      // Remove existing keys to prevent leftover data
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cyberone_v2_') && key !== 'cyberone_v2_local_snapshots' && key !== 'cyberone_v2_auto_backup_config') {
+          localStorage.removeItem(key);
+        }
+      }
+
+      // Restore snapshot keys
+      keys.forEach(key => {
+        localStorage.setItem(key, snap.data[key]);
+      });
+      
+      this.logActivity('Restore Backup Snapshot', `Restored database to checkpoint from ${new Date(timestamp).toLocaleString()}`);
+      return true;
+    } catch (e) {
+      console.error("Failed to restore from snapshot", e);
+      return false;
+    }
+  }
+
+  deleteSnapshot(timestamp) {
+    try {
+      let snapshots = this.getLocalSnapshots();
+      snapshots = snapshots.filter(s => s.timestamp !== timestamp);
+      localStorage.setItem('cyberone_v2_local_snapshots', JSON.stringify(snapshots));
+      return true;
+    } catch (e) {
+      console.error("Failed to delete snapshot", e);
+      return false;
+    }
+  }
+
+  getAutoBackupConfig() {
+    const defaultVal = {
+      enabled: false,
+      frequency: 'daily',
+      type: 'local',
+      lastBackup: 0
+    };
+    const data = localStorage.getItem('cyberone_v2_auto_backup_config');
+    if (!data) return defaultVal;
+    try {
+      return { ...defaultVal, ...JSON.parse(data) };
+    } catch (e) {
+      return defaultVal;
+    }
+  }
+
+  saveAutoBackupConfig(config) {
+    localStorage.setItem('cyberone_v2_auto_backup_config', JSON.stringify(config));
+  }
 }
 
 // Export a single global instance of the store

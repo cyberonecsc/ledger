@@ -3,7 +3,7 @@
    ========================================================================== */
 
 import { auth } from './auth.js';
-import { getTodayDateString } from './store.js';
+import { store, getTodayDateString } from './store.js';
 
 // Import View Modules
 import { renderLogin } from './views/login.js';
@@ -67,6 +67,10 @@ class Application {
 
     // Trigger background auto-sync from GitHub Pages if running locally
     this.checkAutoSync();
+
+    // Trigger scheduled backup check
+    this.checkScheduledBackup();
+    setInterval(() => this.checkScheduledBackup(), 60000);
 
     // Bind hash change listener
     window.addEventListener('hashchange', () => this.handleRouting());
@@ -720,6 +724,75 @@ class Application {
         }
       }, 800);
     };
+  }
+
+  triggerBackupDownload(backupData) {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const timestampStr = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadAnchor.setAttribute("href",     dataStr);
+    downloadAnchor.setAttribute("download", `cyberone_auto_backup_${timestampStr}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }
+
+  checkScheduledBackup() {
+    const config = store.getAutoBackupConfig();
+    if (!config.enabled) return;
+
+    const now = Date.now();
+    const lastBackup = config.lastBackup || 0;
+    let shouldBackup = false;
+
+    if (config.frequency === 'session') {
+      const sessionKey = sessionStorage.getItem('cyberone_v2_session_backup_done');
+      if (!sessionKey) {
+        shouldBackup = true;
+        sessionStorage.setItem('cyberone_v2_session_backup_done', 'true');
+      }
+    } else if (config.frequency === 'hourly') {
+      if (now - lastBackup >= 3600000) {
+        shouldBackup = true;
+      }
+    } else if (config.frequency === '4hours') {
+      if (now - lastBackup >= 14400000) {
+        shouldBackup = true;
+      }
+    } else if (config.frequency === 'daily') {
+      const lastBackupDate = new Date(lastBackup).toDateString();
+      const currentDate = new Date(now).toDateString();
+      if (lastBackupDate !== currentDate) {
+        shouldBackup = true;
+      }
+    }
+
+    if (shouldBackup) {
+      config.lastBackup = now;
+      store.saveAutoBackupConfig(config);
+
+      if (config.type === 'local') {
+        const success = store.createLocalSnapshot(`Auto-Snapshot (${config.frequency})`);
+        if (success) {
+          this.showToast('Automatic background restore point created!', 'info');
+        }
+      } else if (config.type === 'file') {
+        const backup = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('cyberone_v2_') && key !== 'cyberone_v2_local_snapshots' && key !== 'cyberone_v2_last_sync_date' && key !== 'cyberone_v2_auto_backup_config') {
+            backup[key] = localStorage.getItem(key);
+          }
+        }
+        const users = localStorage.getItem('cyberone_v2_users');
+        if (users) {
+          backup['cyberone_v2_users'] = users;
+        }
+
+        this.triggerBackupDownload(backup);
+        this.showToast('Scheduled auto-backup file downloaded!', 'success');
+      }
+    }
   }
 }
 
