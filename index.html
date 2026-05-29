@@ -52,5 +52,55 @@
 
   <!-- Entry Script as ES Module -->
   <script type="module" src="./app.js"></script>
+
+  <!-- Local File & Startup Diagnostics Check -->
+  <script>
+    setTimeout(function() {
+      if (!window.AppInstance) {
+        var loadingEl = document.getElementById('app-loading');
+        if (loadingEl) {
+          if (window.location.protocol === 'file:') {
+            loadingEl.innerHTML = `
+              <div style="background: rgba(30, 27, 75, 0.85); border: 2px solid #6366f1; border-radius: 16px; padding: 30px; color: #e2e8f0; max-width: 600px; margin: 40px auto; text-align: left; font-family: 'Plus Jakarta Sans', sans-serif; backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.6); border-top: 5px solid #ef4444;">
+                <h4 style="margin: 0 0 15px 0; font-size: 20px; font-weight:700; color:#ef4444; display:flex; align-items:center; gap:8px;">
+                  ⚠️ Local CORS Restriction Blocked
+                </h4>
+                <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px;">
+                  You opened <strong>index.html</strong> directly via the <code>file://</code> protocol. Modern web browsers block ES modules from loading locally due to security and CORS policies.
+                </p>
+                <h5 style="margin: 0 0 8px 0; font-size: 15px; font-weight:600; color:#818cf8;">How to run locally:</h5>
+                <ol style="font-size: 13.5px; line-height: 1.8; color: #cbd5e1; margin-left: 20px; margin-bottom: 20px; padding-left:0;">
+                  <li>Go to the project folder: <code>C:\\Users\\shibu\\.gemini\\antigravity\\scratch\\accounting-platform</code></li>
+                  <li>Double-click the <strong><code>run.bat</code></strong> file to start the server.</li>
+                  <li>This starts a local web server and automatically opens <strong><code>http://localhost:8080/</code></strong> in your browser.</li>
+                </ol>
+                <h5 style="margin: 20px 0 8px 0; font-size: 15px; font-weight:600; color:#34d399;">View Live Version:</h5>
+                <p style="font-size: 13.5px; line-height: 1.6; color: #cbd5e1; margin-bottom: 0;">
+                  You can also access the live production version immediately at:<br>
+                  <a href="https://cyberonecsc.github.io/ledger/" target="_blank" style="color: #34d399; font-weight: 600; text-decoration: underline;">https://cyberonecsc.github.io/ledger/</a>
+                </p>
+              </div>
+            `;
+          } else {
+            // Check if there was some uncaught error already showing, if not show generic troubleshoot
+            if (!loadingEl.querySelector('pre')) {
+              loadingEl.innerHTML = `
+                <div style="background: rgba(30, 27, 75, 0.85); border: 2px solid #ef4444; border-radius: 16px; padding: 30px; color: #e2e8f0; max-width: 550px; margin: 40px auto; text-align: left; font-family: 'Plus Jakarta Sans', sans-serif; backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+                  <h4 style="margin: 0 0 15px 0; font-size: 18px; font-weight:700; color:#ef4444;">⚠️ Initialization Timeout</h4>
+                  <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px;">
+                    The application is taking too long to load. This might be caused by corrupt local storage data or a network failure.
+                  </p>
+                  <div style="display:flex; gap:12px;">
+                    <button onclick="localStorage.clear(); window.location.reload();" style="padding: 10px 20px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight:600; font-size: 13px;">Clear App Cache & Reload</button>
+                    <button onclick="window.location.reload()" style="padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight:600; font-size: 13px;">Retry Load</button>
+                  </div>
+                </div>
+              `;
+            }
+          }
+        }
+      }
+    }, 2500);
+  </script>
 </body>
 </html>

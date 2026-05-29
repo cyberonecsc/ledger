@@ -158,6 +158,7 @@ class StateStore {
     if (this.dailyLogs) {
       Object.keys(this.dailyLogs).forEach(date => {
         const log = this.dailyLogs[date];
+        if (!log) return;
         
         // Migrate opening/closing balances keys
         if (log.openingBalances) {
@@ -328,8 +329,9 @@ class StateStore {
         }
       });
 
-      log.transactions.forEach(txn => {
-        if (txn.type === 'sale') {
+      if (log.transactions) {
+        log.transactions.forEach(txn => {
+          if (txn.type === 'sale') {
           // Cash income
           if (txn.paidByCash) {
             balances.cash = parseFloat((balances.cash + parseFloat(txn.paidByCash)).toFixed(2));
@@ -392,6 +394,7 @@ class StateStore {
           }
         }
       });
+      }
 
       log.closingBalances = balances;
       previousClosingBalances = balances;
@@ -778,13 +781,15 @@ class StateStore {
     Object.keys(this.dailyLogs).forEach(date => {
       if (date.startsWith(monthString)) {
         const log = this.dailyLogs[date];
-        log.transactions.forEach(txn => {
-          if (txn.type === 'sale') {
-            monthlyIncome += (txn.serviceChargeToCash || 0) + (txn.serviceChargeToAccount || 0);
-          } else if (txn.type === 'expense' || txn.type === 'salary') {
-            monthlyExpense += txn.amount;
-          }
-        });
+        if (log && log.transactions) {
+          log.transactions.forEach(txn => {
+            if (txn.type === 'sale') {
+              monthlyIncome += (txn.serviceChargeToCash || 0) + (txn.serviceChargeToAccount || 0);
+            } else if (txn.type === 'expense' || txn.type === 'salary') {
+              monthlyExpense += txn.amount;
+            }
+          });
+        }
       }
     });
 
@@ -800,7 +805,7 @@ class StateStore {
     let dailyExpense = 0;
     const log = this.dailyLogs[dateString];
 
-    if (log) {
+    if (log && log.transactions) {
       log.transactions.forEach(txn => {
         if (txn.type === 'sale') {
           dailyIncome += (txn.serviceChargeToCash || 0) + (txn.serviceChargeToAccount || 0);
@@ -820,10 +825,10 @@ class StateStore {
   // Get Daily Turnover (Gross Traffic)
   getDailyTurnover(dateString) {
     const log = this.dailyLogs[dateString];
-    if (!log) return 0;
+    if (!log || !log.transactions) return 0;
     
     return log.transactions
-      .filter(t => t.type === 'sale')
+      .filter(t => t && t.type === 'sale')
       .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
   }
 
@@ -833,11 +838,13 @@ class StateStore {
     Object.keys(this.dailyLogs).forEach(date => {
       if (date.startsWith(monthString)) {
         const log = this.dailyLogs[date];
-        log.transactions.forEach(txn => {
-          if (txn.type === 'sale') {
-            monthlyTurnover += parseFloat(txn.amount || 0);
-          }
-        });
+        if (log && log.transactions) {
+          log.transactions.forEach(txn => {
+            if (txn.type === 'sale') {
+              monthlyTurnover += parseFloat(txn.amount || 0);
+            }
+          });
+        }
       }
     });
     return parseFloat(monthlyTurnover.toFixed(2));
