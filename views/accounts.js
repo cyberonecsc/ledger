@@ -200,6 +200,7 @@ export function renderAccounts(mountPoint, appInstance) {
   const btnAddBank = document.getElementById('btn-add-bank');
   if (btnAddBank) {
     btnAddBank.addEventListener('click', () => {
+      let bankQrCodeBase64 = '';
       document.getElementById('account-modal-title').innerText = 'Register New Bank Account';
       formMount.innerHTML = `
         <form id="form-add-bank">
@@ -226,6 +227,14 @@ export function renderAccounts(mountPoint, appInstance) {
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Custom Payment QR Code Image (Optional)</label>
+            <input type="file" id="bank-qr-upload" class="form-control" accept="image/*" style="font-size:12px; padding:6px 12px;">
+            <div id="bank-qr-preview-container" style="display:none; align-items:center; gap:10px; margin-top:8px;">
+              <img id="bank-qr-preview" src="" alt="QR Preview" style="width:50px; height:50px; object-fit:contain; border:1px solid var(--panel-border); border-radius:4px; padding:2px; background:#fff;">
+              <span style="font-size:10px; color:var(--text-muted);">Custom QR loaded</span>
+            </div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Initial Opening Balance (₹)</label>
             <input type="number" step="0.01" id="bank-balance" class="form-control" value="0.00" required>
           </div>
@@ -239,6 +248,27 @@ export function renderAccounts(mountPoint, appInstance) {
       `;
       lucide.createIcons();
       bindCancelBtn();
+
+      const bankQrUpload = document.getElementById('bank-qr-upload');
+      if (bankQrUpload) {
+        bankQrUpload.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              bankQrCodeBase64 = evt.target.result;
+              const preview = document.getElementById('bank-qr-preview');
+              const container = document.getElementById('bank-qr-preview-container');
+              if (preview && container) {
+                preview.src = bankQrCodeBase64;
+                container.style.display = 'flex';
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
       backdrop.classList.add('show');
 
       document.getElementById('form-add-bank').addEventListener('submit', (ev) => {
@@ -253,7 +283,8 @@ export function renderAccounts(mountPoint, appInstance) {
           bankName: document.getElementById('bank-name').value,
           accountNumber: document.getElementById('bank-acc-no').value,
           ifsc: document.getElementById('bank-ifsc').value,
-          upiId: document.getElementById('bank-upi').value
+          upiId: document.getElementById('bank-upi').value,
+          qrCode: bankQrCodeBase64
         });
         store.persistAll();
 
@@ -394,6 +425,7 @@ export function renderAccounts(mountPoint, appInstance) {
       if (!bank) return;
 
       const bankBal = currentBalances[bankId] !== undefined ? currentBalances[bankId] : 0.00;
+      let bankQrCodeBase64 = bank.qrCode || '';
 
       document.getElementById('account-modal-title').innerText = `Edit ${bank.name}`;
       formMount.innerHTML = `
@@ -421,6 +453,14 @@ export function renderAccounts(mountPoint, appInstance) {
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Custom Payment QR Code Image (Optional)</label>
+            <input type="file" id="bank-qr-upload" class="form-control" accept="image/*" style="font-size:12px; padding:6px 12px;">
+            <div id="bank-qr-preview-container" style="display:${bank.qrCode ? 'flex' : 'none'}; align-items:center; gap:10px; margin-top:8px;">
+              <img id="bank-qr-preview" src="${bank.qrCode || ''}" alt="QR Preview" style="width:50px; height:50px; object-fit:contain; border:1px solid var(--panel-border); border-radius:4px; padding:2px; background:#fff;">
+              <span style="font-size:10px; color:var(--text-muted);">Custom QR loaded</span>
+            </div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Current Balance (₹)</label>
             <input type="number" step="0.01" id="bank-balance" class="form-control" value="${bankBal.toFixed(2)}" required>
           </div>
@@ -435,6 +475,27 @@ export function renderAccounts(mountPoint, appInstance) {
 
       lucide.createIcons();
       bindCancelBtn();
+
+      const bankQrUpload = document.getElementById('bank-qr-upload');
+      if (bankQrUpload) {
+        bankQrUpload.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              bankQrCodeBase64 = evt.target.result;
+              const preview = document.getElementById('bank-qr-preview');
+              const container = document.getElementById('bank-qr-preview-container');
+              if (preview && container) {
+                preview.src = bankQrCodeBase64;
+                container.style.display = 'flex';
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
       backdrop.classList.add('show');
 
       document.getElementById('form-edit-bank').addEventListener('submit', (ev) => {
@@ -444,7 +505,8 @@ export function renderAccounts(mountPoint, appInstance) {
           bankName: document.getElementById('bank-name').value,
           accountNumber: document.getElementById('bank-acc-no').value,
           ifsc: document.getElementById('bank-ifsc').value,
-          upiId: document.getElementById('bank-upi').value
+          upiId: document.getElementById('bank-upi').value,
+          qrCode: bankQrCodeBase64
         });
 
         const newBal = parseFloat(document.getElementById('bank-balance').value || 0);
