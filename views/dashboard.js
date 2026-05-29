@@ -20,9 +20,19 @@ export function renderDashboard(mountPoint, appInstance) {
   
   // Define account list metadata dynamically from store
   const accountMeta = [
-    { key: 'cash', name: 'Cash In Hand', type: 'cash', icon: 'wallet', color: 'var(--color-success)' },
-    { key: 'account', name: 'Bank Accounts', type: 'bank', icon: 'landmark', color: 'var(--color-info)' }
+    { key: 'cash', name: 'Cash In Hand', type: 'cash', icon: 'wallet', color: 'var(--color-success)' }
   ];
+
+  // Dynamically append all bank accounts individually
+  store.bankAccounts.forEach(b => {
+    accountMeta.push({
+      key: b.id,
+      name: b.name,
+      type: 'bank',
+      icon: 'landmark',
+      color: b.id === 'main_sbi' ? 'var(--color-info)' : '#0ea5e9'
+    });
+  });
 
   // Dynamically append all active wallets from the database
   store.wallets.filter(w => w.isActive).forEach(w => {
@@ -132,17 +142,8 @@ export function renderDashboard(mountPoint, appInstance) {
           let totalDiff = 0;
 
           const rowsHtml = accountMeta.map(acc => {
-            let opVal = 0;
-            let clVal = 0;
-            if (acc.key === 'account') {
-              store.bankAccounts.forEach(b => {
-                opVal += opening[b.id] || 0;
-                clVal += closing[b.id] || 0;
-              });
-            } else {
-              opVal = opening[acc.key] || 0;
-              clVal = closing[acc.key] || 0;
-            }
+            const opVal = opening[acc.key] || 0;
+            const clVal = closing[acc.key] || 0;
             const diff = clVal - opVal;
 
             totalOpening += opVal;
