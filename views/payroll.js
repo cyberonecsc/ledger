@@ -126,6 +126,23 @@ export function renderPayroll(mountPoint, appInstance) {
                 const deductions = 0;
                 const netPay = basePay + bonus - deductions;
 
+                // Check if salary has already been issued for this employee in the current month
+                let isPaid = false;
+                let paidTxn = null;
+                Object.keys(store.dailyLogs).forEach(date => {
+                  if (date.startsWith(currentMonth)) {
+                    const log = store.dailyLogs[date];
+                    const found = log.transactions.find(t => 
+                      (t.type === 'expense' || t.type === 'salary') && 
+                      t.description === `Salary payout: ${s.name}`
+                    );
+                    if (found) {
+                      isPaid = true;
+                      paidTxn = found;
+                    }
+                  }
+                });
+
                 return `
                   <tr>
                     <td><strong>${s.name}</strong></td>
@@ -135,9 +152,16 @@ export function renderPayroll(mountPoint, appInstance) {
                     <td style="color: var(--color-danger);">-₹${deductions}</td>
                     <td style="font-weight: 700; color: var(--color-info);">₹${netPay.toLocaleString('en-IN')}</td>
                     <td style="text-align: center;">
-                      <button class="btn btn-sm btn-primary btn-pay-salary" data-id="${s.id}" data-net="${netPay}" data-name="${s.name}">
-                        <i data-lucide="dollar-sign" style="width: 12px; height: 12px; margin-right: 4px;"></i> Issue Pay
-                      </button>
+                      <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                        <button class="btn btn-sm btn-primary btn-pay-salary" data-id="${s.id}" data-net="${netPay}" data-name="${s.name}">
+                          <i data-lucide="dollar-sign" style="width: 12px; height: 12px; margin-right: 4px;"></i> Issue Pay
+                        </button>
+                        ${isPaid ? `
+                          <button class="btn btn-sm btn-view-issued-slip" data-id="${s.id}" data-net="${paidTxn.amount}" data-date="${paidTxn.date || activeDate}" data-details='${JSON.stringify(paidTxn.salaryDetails || { days, proRata: basePay, bonus, deductions })}' style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.25); color: var(--color-success); display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px;">
+                            <i data-lucide="file-text" style="width: 12px; height: 12px;"></i> View Slip
+                          </button>
+                        ` : ''}
+                      </div>
                     </td>
                   </tr>
                 `;
@@ -355,34 +379,26 @@ export function renderPayroll(mountPoint, appInstance) {
   document.getElementById('edit-salary-bonus').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-deductions').addEventListener('input', updateNetPayable);
 
-  // Handle editor form submission
-  document.getElementById('form-edit-salary').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!activeStaffId) return;
+  // Bind click on view slip buttons
+  document.querySelectorAll('.btn-view-issued-slip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const staffId = e.currentTarget.getAttribute('data-id');
+      const employee = staff.find(s => s.id === staffId);
+      if (!employee) return;
 
-    const employee = staff.find(s => s.id === activeStaffId);
-    if (!employee) return;
+      const dateVal = e.currentTarget.getAttribute('data-date');
+      const details = JSON.parse(e.currentTarget.getAttribute('data-details'));
+      const netPay = parseFloat(e.currentTarget.getAttribute('data-net'));
 
-    const staffName = employee.name;
-    const daysVal = parseInt(document.getElementById('edit-salary-days').value || 0);
-    const proRataVal = parseFloat(document.getElementById('edit-salary-prorata').value || 0);
-    const bonusVal = parseFloat(document.getElementById('edit-salary-bonus').value || 0);
-    const deductionsVal = parseFloat(document.getElementById('edit-salary-deductions').value || 0);
-    const netPayVal = parseFloat(document.getElementById('edit-salary-net').value || 0);
-
-    // Save transaction to store
-    store.addTransaction(activeDate, {
-      type: 'expense',
-      description: `Salary payout: ${staffName}`,
-      amount: netPayVal,
-      category: 'Salary',
-      source: 'account' // Default to Bank Account (UPI transfer)
+      showPayslip(employee, dateVal, details.days, details.proRata, details.bonus, details.deductions, netPay);
     });
+  });
 
-    appInstance.showToast(`Salary payment logged for ${staffName}`, 'success');
-
-    // Close editor
-    editorBackdrop.classList.remove('show');
+  const showPayslip = (employee, dateString, daysVal, proRataVal, bonusVal, deductionsVal, netPayVal) => {
+    const staffName = employee.name;
+    const staffId = employee.id;
+    const monthLabel = new Date(dateString).toLocaleString('default', { month: 'long', year: 'numeric' });
+    const currentMonthStr = dateString.substring(0, 7);
 
     // Render physical slip layout inside modal
     printSlipDiv.innerHTML = `
@@ -401,7 +417,7 @@ export function renderPayroll(mountPoint, appInstance) {
           <table class="meta-details-table">
             <tr>
               <td>Voucher No:</td>
-              <td><code>SAL-${activeStaffId}-${currentMonth.replace('-', '')}</code></td>
+              <td><code>SAL-${staffId}-${currentMonthStr.replace('-', '')}</code></td>
             </tr>
             <tr>
               <td>Employee:</td>
@@ -413,7 +429,7 @@ export function renderPayroll(mountPoint, appInstance) {
             </tr>
             <tr>
               <td>Salary Month:</td>
-              <td>${new Date(activeDate).toLocaleString('default', { month: 'long', year: 'numeric' })}</td>
+              <td>${monthLabel}</td>
             </tr>
             <tr>
               <td>Attendance:</td>
@@ -481,12 +497,11 @@ export function renderPayroll(mountPoint, appInstance) {
 
     // Download Payslip
     document.getElementById('btn-download-slip').onclick = () => {
-      appInstance.downloadElementAsPDF('payroll-slip-print', `Payslip_${staffName}_${currentMonth}.pdf`, slipPrintFormat === 'thermal');
+      appInstance.downloadElementAsPDF('payroll-slip-print', `Payslip_${staffName}_${currentMonthStr}.pdf`, slipPrintFormat === 'thermal');
     };
 
     // Send Payslip to WhatsApp
     document.getElementById('btn-whatsapp-slip').onclick = () => {
-      const monthLabel = new Date(activeDate).toLocaleString('default', { month: 'long', year: 'numeric' });
       const rawPhone = employee.phone || '';
       const phoneDigits = rawPhone.replace(/[^0-9]/g, '');
       const formattedPhone = phoneDigits.length === 10 ? '91' + phoneDigits : phoneDigits;
@@ -502,11 +517,53 @@ export function renderPayroll(mountPoint, appInstance) {
                       `---------------------------------\n` +
                       `*Net Salary Paid: ₹${netPayVal.toFixed(2)}*\n` +
                       `---------------------------------\n` +
-                      `Voucher No: SAL-${activeStaffId}-${currentMonth.replace('-', '')}\n` +
+                      `Voucher No: SAL-${staffId}-${currentMonthStr.replace('-', '')}\n` +
                       `Thank you for your dedicated service!`;
                       
       window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(slipMsg)}`, '_blank');
     };
+  };
+
+  // Handle editor form submission
+  document.getElementById('form-edit-salary').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!activeStaffId) return;
+
+    const employee = staff.find(s => s.id === activeStaffId);
+    if (!employee) return;
+
+    const staffName = employee.name;
+    const daysVal = parseInt(document.getElementById('edit-salary-days').value || 0);
+    const proRataVal = parseFloat(document.getElementById('edit-salary-prorata').value || 0);
+    const bonusVal = parseFloat(document.getElementById('edit-salary-bonus').value || 0);
+    const deductionsVal = parseFloat(document.getElementById('edit-salary-deductions').value || 0);
+    const netPayVal = parseFloat(document.getElementById('edit-salary-net').value || 0);
+
+    // Save transaction to store
+    store.addTransaction(activeDate, {
+      type: 'expense',
+      description: `Salary payout: ${staffName}`,
+      amount: netPayVal,
+      category: 'Salary',
+      source: 'account', // Default to Bank Account (UPI transfer)
+      salaryDetails: {
+        days: daysVal,
+        proRata: proRataVal,
+        bonus: bonusVal,
+        deductions: deductionsVal
+      }
+    });
+
+    appInstance.showToast(`Salary payment logged for ${staffName}`, 'success');
+
+    // Close editor
+    editorBackdrop.classList.remove('show');
+
+    // Render physical slip layout inside modal
+    showPayslip(employee, activeDate, daysVal, proRataVal, bonusVal, deductionsVal, netPayVal);
+    
+    // Refresh page details to draw the View Slip button immediately
+    appInstance.handleRouting();
   });
 }
 
