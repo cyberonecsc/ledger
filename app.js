@@ -206,6 +206,9 @@ class Application {
           <!-- Main Top Header -->
           <header class="main-header">
             <div style="display:flex; align-items:center; gap:12px;">
+              <button id="mobile-menu-toggle" class="mobile-only-flex" style="display: none; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); color: #fff; width: 34px; height: 34px; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: var(--transition-smooth); margin-right: 4px;">
+                <i data-lucide="menu" style="width: 18px; height: 18px;"></i>
+              </button>
               <img src="./logo.png" alt="logo" style="width:38px; height:38px; object-fit:contain;" onerror="this.style.display='none';">
               <div class="page-title">
                 <h2 id="page-heading-title">CYBERONE CSC</h2>
@@ -247,6 +250,23 @@ class Application {
           icon.setAttribute('data-lucide', isCollapsedNow ? 'chevron-right' : 'chevron-left');
         }
         lucide.createIcons();
+      });
+    }
+
+    // Mobile sidebar toggle click
+    const mobileToggleBtn = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (mobileToggleBtn && sidebar) {
+      mobileToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.add('open');
+      });
+      
+      // Close sidebar if user clicks outside of it
+      document.addEventListener('click', (e) => {
+        if (!sidebar.contains(e.target) && sidebar.classList.contains('open')) {
+          sidebar.classList.remove('open');
+        }
       });
     }
 

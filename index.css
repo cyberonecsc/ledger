@@ -1277,15 +1277,52 @@ select.form-control option {
 
 /* Media Queries for Viewports */
 @media (max-width: 992px) {
+  .mobile-only-flex {
+    display: flex !important;
+  }
 
   .sidebar {
     left: -var(--sidebar-width);
     box-shadow: none;
+    z-index: 1005; /* Overlay everything including modal headers */
+    width: 260px !important; /* Fixed width when sliding out on mobile */
+  }
+
+  /* Force elements to show when sidebar slides out even if it was collapsed on desktop */
+  body.sidebar-collapsed .sidebar {
+    width: 260px !important;
+  }
+  body.sidebar-collapsed .sidebar-logo h1,
+  body.sidebar-collapsed .sidebar-menu span,
+  body.sidebar-collapsed .user-details {
+    display: block !important;
+  }
+  body.sidebar-collapsed .sidebar-logo {
+    justify-content: flex-start !important;
+    padding: 24px !important;
+  }
+  body.sidebar-collapsed .sidebar-item a {
+    justify-content: flex-start !important;
+    padding: 12px 24px !important;
+  }
+  body.sidebar-collapsed .user-profile {
+    justify-content: flex-start !important;
+    padding: 8px 16px !important;
+  }
+  body.sidebar-collapsed .sidebar-footer-menu {
+    align-items: stretch !important;
+  }
+  body.sidebar-collapsed .btn-logout {
+    padding: 12px 24px !important;
   }
 
   .sidebar.open {
     left: 0;
-    box-shadow: var(--shadow-premium);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+  }
+
+  #sidebar-toggle {
+    display: none !important; /* Hide collapsed toggle on mobile */
   }
 
   .main-content {
@@ -1316,8 +1353,8 @@ select.form-control option {
   }
 
   .form-row, .form-row-3 {
-    grid-template-columns: 1fr;
-    gap: 0;
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
   }
   
   .search-filter-row {
@@ -1334,10 +1371,33 @@ select.form-control option {
   .filter-actions {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   
   .modal-container {
     padding: 20px 15px;
+    margin: 10px;
+    width: calc(100% - 20px);
+  }
+
+  .wallet-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Make tab lists scroll horizontally on phone screens if too many tabs */
+  .tab-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-row::-webkit-scrollbar {
+    height: 4px;
+  }
+  .tab-btn {
+    white-space: nowrap !important;
+    flex-shrink: 0;
   }
 }
 
