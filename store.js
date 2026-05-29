@@ -77,7 +77,28 @@ class StateStore {
       this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
     }
     this.customers = this.getItem('cyberone_v2_customers', INITIAL_CUSTOMERS);
-    this.staff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
+    
+    // Reconstruct staff list dynamically from active credentials
+    const storedStaff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
+    const rawUsers = localStorage.getItem('cyberone_v2_users');
+    const activeUsers = rawUsers ? JSON.parse(rawUsers) : [{ username: 'owner', name: 'CYBER ONE Owner', role: 'owner', password: '123' }];
+    this.staff = activeUsers.map(user => {
+      const existing = storedStaff.find(s => s.id === user.username || s.id === `STAFF-${user.username}` || s.name === user.name);
+      let baseSal = user.role === 'owner' ? 35000 : (user.role === 'admin' ? 20000 : (user.role === 'accountant' ? 18000 : 12000));
+      if (existing) {
+        baseSal = existing.baseSalary;
+      }
+      return {
+        id: user.username,
+        name: user.name,
+        role: user.role,
+        phone: user.mobile || (existing ? existing.phone : ''),
+        baseSalary: baseSal,
+        isActive: true
+      };
+    });
+    this.saveItem('cyberone_v2_staff', this.staff);
+
     this.products = this.getItem('cyberone_v2_products', INITIAL_PRODUCTS);
     this.applications = this.getItem('cyberone_v2_applications', INITIAL_APPLICATIONS);
     this.invoices = this.getItem('cyberone_v2_invoices', this.getSeededInvoices());
@@ -280,6 +301,9 @@ class StateStore {
     this.saveItem('cyberone_v2_invoices', this.invoices);
     this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
     this.saveItem('cyberone_v2_center_profile', this.centerProfile);
+    
+    // Background sync localhost changes to GitHub Pages
+    this.syncToGitHubPages();
   }
 
   updateInitialBalances(balances) {
@@ -974,6 +998,51 @@ class StateStore {
       }
     });
     return parseFloat(monthlyTurnover.toFixed(2));
+  }
+
+  isLocalhost() {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  }
+
+  syncToGitHubPages() {
+    if (!this.isLocalhost()) return;
+    if (!document.body) {
+      window.addEventListener('DOMContentLoaded', () => this.syncToGitHubPages());
+      return;
+    }
+    let iframe = document.getElementById('cyberone-sync-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'cyberone-sync-iframe';
+      iframe.style.display = 'none';
+      iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
+      document.body.appendChild(iframe);
+    }
+    
+    const sendData = () => {
+      const payload = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cyberone_v2_')) {
+          payload[key] = localStorage.getItem(key);
+        }
+      }
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'write_sync_data',
+          data: payload
+        }, 'https://cyberonecsc.github.io');
+      }
+    };
+
+    if (iframe.dataset.loaded === 'true') {
+      sendData();
+    } else {
+      iframe.onload = () => {
+        iframe.dataset.loaded = 'true';
+        sendData();
+      };
+    }
   }
 }
 

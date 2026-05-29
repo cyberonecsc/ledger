@@ -180,6 +180,62 @@ export function renderPayroll(mountPoint, appInstance) {
         </div>
       </div>
     </div>
+
+    <!-- Salary Bill Editor Modal -->
+    <div id="payout-editor-modal-backdrop" class="modal-backdrop">
+      <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header" style="border-bottom: 1px solid var(--panel-border); padding-bottom:10px;">
+          <h4 style="font-family:var(--font-display);">Edit Salary Bill</h4>
+          <button id="payout-editor-close" class="modal-close">&times;</button>
+        </div>
+        <form id="form-edit-salary">
+          <div class="form-group">
+            <label class="form-label">Employee Name</label>
+            <input type="text" id="edit-salary-name" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #fff;">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Working Days Present</label>
+              <input type="number" id="edit-salary-days" class="form-control" min="0" max="31">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Base Salary (Full Month) (₹)</label>
+              <input type="number" id="edit-salary-base" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #fff;">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Calculated Pro-rata Salary (₹)</label>
+              <input type="number" id="edit-salary-prorata" class="form-control" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Service Incentive Bonus (₹)</label>
+              <input type="number" id="edit-salary-bonus" class="form-control" step="0.01">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tax / Deductions (₹)</label>
+              <input type="number" id="edit-salary-deductions" class="form-control" step="0.01" value="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Net Salary Payable (₹)</label>
+              <input type="number" id="edit-salary-net" class="form-control" readonly style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-weight: 700;">
+            </div>
+          </div>
+          
+          <div style="display:flex; gap:10px; margin-top: 20px;">
+            <button type="submit" class="btn btn-primary" style="flex-grow:1;">
+              <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> Approve & Issue
+            </button>
+            <button type="button" class="btn btn-secondary btn-editor-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
   `;
 
   // Set titles in header
@@ -223,141 +279,207 @@ export function renderPayroll(mountPoint, appInstance) {
     appInstance.handleRouting();
   });
 
-  // Issue Salary payout buttons binding
-  const backdrop = document.getElementById('payroll-modal-backdrop');
+  // Modals backdrop and selectors
+  const slipBackdrop = document.getElementById('payroll-modal-backdrop');
+  const editorBackdrop = document.getElementById('payout-editor-modal-backdrop');
   const printSlipDiv = document.getElementById('payroll-slip-print');
   const payButtons = document.querySelectorAll('.btn-pay-salary');
 
-  const closeModal = () => backdrop.classList.remove('show');
-  document.getElementById('payroll-modal-close').addEventListener('click', closeModal);
-  document.getElementById('btn-close-slip').addEventListener('click', closeModal);
+  // Close helper
+  const closeAllModals = () => {
+    slipBackdrop.classList.remove('show');
+    editorBackdrop.classList.remove('show');
+  };
+  
+  document.getElementById('payroll-modal-close').addEventListener('click', closeAllModals);
+  document.getElementById('btn-close-slip').addEventListener('click', closeAllModals);
+  document.getElementById('payout-editor-close').addEventListener('click', closeAllModals);
+  
+  const btnEditorCancel = document.querySelector('#payout-editor-modal-backdrop .btn-editor-cancel');
+  if (btnEditorCancel) {
+    btnEditorCancel.addEventListener('click', closeAllModals);
+  }
+
+  // Active payout parameters
+  let activeStaffId = null;
 
   payButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       const staffId = e.currentTarget.getAttribute('data-id');
-      const netPay = parseFloat(e.currentTarget.getAttribute('data-net'));
       const staffName = e.currentTarget.getAttribute('data-name');
       const employee = staff.find(s => s.id === staffId);
+      if (!employee) return;
+
+      activeStaffId = staffId;
 
       const days = attendance[staffId] || 26;
       const basePay = parseFloat(((employee.baseSalary / 30) * days).toFixed(2));
       const processedApps = store.applications.filter(a => a.assignedStaffId === staffId).length;
       const bonus = processedApps * 10;
+      const deductions = 0;
 
-      // Render physical slip layout inside modal
-      printSlipDiv.innerHTML = `
-        <div class="receipt-header">
-          <div class="header-left">
-            <img class="receipt-logo" src="./logo.png" alt="logo" onerror="this.style.display='none';">
-            <div class="company-info">
-              <h3>${store.centerProfile.name}</h3>
-              <p>Center Code: ${store.centerProfile.code}</p>
-              <p>${store.centerProfile.address}, ${store.centerProfile.city}, ${store.centerProfile.state} - ${store.centerProfile.pin}</p>
-              <p>Mob: ${store.centerProfile.mobile}</p>
-            </div>
-          </div>
-          <div class="header-right">
-            <h2 class="doc-type-title">Payslip & Voucher</h2>
-            <table class="meta-details-table">
-              <tr>
-                <td>Voucher No:</td>
-                <td><code>SAL-${staffId}-${currentMonth.replace('-', '')}</code></td>
-              </tr>
-              <tr>
-                <td>Employee:</td>
-                <td>${staffName}</td>
-              </tr>
-              <tr>
-                <td>Designation:</td>
-                <td style="text-transform:capitalize;">${employee.role}</td>
-              </tr>
-              <tr>
-                <td>Salary Month:</td>
-                <td>${new Date(activeDate).toLocaleString('default', { month: 'long', year: 'numeric' })}</td>
-              </tr>
-              <tr>
-                <td>Attendance:</td>
-                <td>${days} / 30 days</td>
-              </tr>
-            </table>
+      // Populate editor form inputs
+      document.getElementById('edit-salary-name').value = staffName;
+      document.getElementById('edit-salary-days').value = days;
+      document.getElementById('edit-salary-base').value = employee.baseSalary;
+      document.getElementById('edit-salary-prorata').value = basePay;
+      document.getElementById('edit-salary-bonus').value = bonus;
+      document.getElementById('edit-salary-deductions').value = deductions.toFixed(2);
+      document.getElementById('edit-salary-net').value = (basePay + bonus - deductions).toFixed(2);
+
+      editorBackdrop.classList.add('show');
+    });
+  });
+
+  // Editor form inputs listeners for live updates
+  const updateNetPayable = () => {
+    const proRata = parseFloat(document.getElementById('edit-salary-prorata').value || 0);
+    const bonus = parseFloat(document.getElementById('edit-salary-bonus').value || 0);
+    const deductions = parseFloat(document.getElementById('edit-salary-deductions').value || 0);
+    const net = proRata + bonus - deductions;
+    document.getElementById('edit-salary-net').value = net.toFixed(2);
+  };
+
+  document.getElementById('edit-salary-days').addEventListener('input', (e) => {
+    const days = parseInt(e.target.value || 0);
+    const base = parseFloat(document.getElementById('edit-salary-base').value || 0);
+    const proRataVal = parseFloat(((base / 30) * days).toFixed(2));
+    document.getElementById('edit-salary-prorata').value = proRataVal;
+    updateNetPayable();
+  });
+
+  document.getElementById('edit-salary-prorata').addEventListener('input', updateNetPayable);
+  document.getElementById('edit-salary-bonus').addEventListener('input', updateNetPayable);
+  document.getElementById('edit-salary-deductions').addEventListener('input', updateNetPayable);
+
+  // Handle editor form submission
+  document.getElementById('form-edit-salary').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!activeStaffId) return;
+
+    const employee = staff.find(s => s.id === activeStaffId);
+    if (!employee) return;
+
+    const staffName = employee.name;
+    const daysVal = parseInt(document.getElementById('edit-salary-days').value || 0);
+    const proRataVal = parseFloat(document.getElementById('edit-salary-prorata').value || 0);
+    const bonusVal = parseFloat(document.getElementById('edit-salary-bonus').value || 0);
+    const deductionsVal = parseFloat(document.getElementById('edit-salary-deductions').value || 0);
+    const netPayVal = parseFloat(document.getElementById('edit-salary-net').value || 0);
+
+    // Save transaction to store
+    store.addTransaction(activeDate, {
+      type: 'expense',
+      description: `Salary payout: ${staffName}`,
+      amount: netPayVal,
+      category: 'Salary',
+      source: 'account' // Default to Bank Account (UPI transfer)
+    });
+
+    appInstance.showToast(`Salary payment logged for ${staffName}`, 'success');
+
+    // Close editor
+    editorBackdrop.classList.remove('show');
+
+    // Render physical slip layout inside modal
+    printSlipDiv.innerHTML = `
+      <div class="receipt-header">
+        <div class="header-left">
+          <img class="receipt-logo" src="./logo.png" alt="logo" onerror="this.style.display='none';">
+          <div class="company-info">
+            <h3>${store.centerProfile.name}</h3>
+            <p>Center Code: ${store.centerProfile.code}</p>
+            <p>${store.centerProfile.address}, ${store.centerProfile.city}, ${store.centerProfile.state} - ${store.centerProfile.pin}</p>
+            <p>Mob: ${store.centerProfile.mobile}</p>
           </div>
         </div>
-
-        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin-bottom: 25px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <div class="header-right">
+          <h2 class="doc-type-title">Payslip & Voucher</h2>
+          <table class="meta-details-table">
             <tr>
-              <td style="padding: 5px 0;">Basic Pro-rata Salary (30d base)</td>
-              <td style="padding: 5px 0; text-align:right;">₹${basePay.toFixed(2)}</td>
+              <td>Voucher No:</td>
+              <td><code>SAL-${activeStaffId}-${currentMonth.replace('-', '')}</code></td>
             </tr>
             <tr>
-              <td style="padding: 5px 0; color:green;">Service Incentive Bonus (${processedApps} apps)</td>
-              <td style="padding: 5px 0; text-align:right; color:green;">+₹${bonus.toFixed(2)}</td>
+              <td>Employee:</td>
+              <td>${staffName}</td>
             </tr>
             <tr>
-              <td style="padding: 5px 0; color:red;">Tax/ESI Deductions</td>
-              <td style="padding: 5px 0; text-align:right; color:red;">-₹0.00</td>
+              <td>Designation:</td>
+              <td style="text-transform:capitalize;">${employee.role}</td>
             </tr>
-            <tr style="font-weight:700; font-size: 14px; border-top: 1px solid #ddd;">
-              <td style="padding: 8px 0; padding-top:10px;">Net Cash Payout</td>
-              <td style="padding: 8px 0; padding-top:10px; text-align:right; color:#06b6d4;">₹${netPay.toFixed(2)}</td>
+            <tr>
+              <td>Salary Month:</td>
+              <td>${new Date(activeDate).toLocaleString('default', { month: 'long', year: 'numeric' })}</td>
+            </tr>
+            <tr>
+              <td>Attendance:</td>
+              <td>${daysVal} / 30 days</td>
             </tr>
           </table>
         </div>
+      </div>
 
-        <div style="display:flex; justify-content:space-between; font-size: 10px; margin-top:40px;">
-          <div style="border-top:1px solid #666; width: 120px; text-align:center; padding-top:4px;">Receiver's Signature</div>
-          <div style="border-top:1px solid #666; width: 120px; text-align:center; padding-top:4px;">Center Manager</div>
-        </div>
-      `;
+      <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin-bottom: 25px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <tr>
+            <td style="padding: 5px 0;">Basic Pro-rata Salary (30d base)</td>
+            <td style="padding: 5px 0; text-align:right;">₹${proRataVal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color:green;">Service Incentive Bonus</td>
+            <td style="padding: 5px 0; text-align:right; color:green;">+₹${bonusVal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color:red;">Tax/Deductions</td>
+            <td style="padding: 5px 0; text-align:right; color:red;">-₹${deductionsVal.toFixed(2)}</td>
+          </tr>
+          <tr style="font-weight:700; font-size: 14px; border-top: 1px solid #ddd;">
+            <td style="padding: 8px 0; padding-top:10px;">Net Cash Payout</td>
+            <td style="padding: 8px 0; padding-top:10px; text-align:right; color:#06b6d4;">₹${netPayVal.toFixed(2)}</td>
+          </tr>
+        </table>
+      </div>
 
-      lucide.createIcons();
-      backdrop.classList.add('show');
+      <div style="display:flex; justify-content:space-between; font-size: 10px; margin-top:40px;">
+        <div style="border-top:1px solid #666; width: 120px; text-align:center; padding-top:4px;">Receiver's Signature</div>
+        <div style="border-top:1px solid #666; width: 120px; text-align:center; padding-top:4px;">Center Manager</div>
+      </div>
+    `;
 
-      // Layout togglers and printer triggers for slips
-      let slipPrintFormat = 'normal';
-      const btnSlipNormal = document.getElementById('btn-slip-format-normal');
-      const btnSlipThermal = document.getElementById('btn-slip-format-thermal');
-      const slipContainer = document.getElementById('payroll-slip-print');
+    // Show slip preview
+    slipBackdrop.classList.add('show');
+    lucide.createIcons();
 
-      btnSlipNormal.onclick = () => {
-        slipPrintFormat = 'normal';
-        slipContainer.className = 'preview-normal';
-        btnSlipNormal.classList.replace('btn-secondary', 'btn-primary');
-        btnSlipThermal.classList.replace('btn-primary', 'btn-secondary');
-      };
+    // Bind layout togglers and printer triggers for slips
+    let slipPrintFormat = 'normal';
+    const btnSlipNormal = document.getElementById('btn-slip-format-normal');
+    const btnSlipThermal = document.getElementById('btn-slip-format-thermal');
+    const slipContainer = document.getElementById('payroll-slip-print');
 
-      btnSlipThermal.onclick = () => {
-        slipPrintFormat = 'thermal';
-        slipContainer.className = 'preview-thermal';
-        btnSlipThermal.classList.replace('btn-secondary', 'btn-primary');
-        btnSlipNormal.classList.replace('btn-primary', 'btn-secondary');
-      };
+    btnSlipNormal.onclick = () => {
+      slipPrintFormat = 'normal';
+      slipContainer.className = 'preview-normal';
+      btnSlipNormal.classList.replace('btn-secondary', 'btn-primary');
+      btnSlipThermal.classList.replace('btn-primary', 'btn-secondary');
+    };
 
-      // Print Payslip
-      document.getElementById('btn-print-slip').onclick = () => {
-        appInstance.printElement(slipPrintFormat);
-      };
+    btnSlipThermal.onclick = () => {
+      slipPrintFormat = 'thermal';
+      slipContainer.className = 'preview-thermal';
+      btnSlipThermal.classList.replace('btn-secondary', 'btn-primary');
+      btnSlipNormal.classList.replace('btn-primary', 'btn-secondary');
+    };
 
-      // Download Payslip
-      document.getElementById('btn-download-slip').onclick = () => {
-        appInstance.downloadElementAsPDF('payroll-slip-print', `Payslip_${staffName}_${currentMonth}.pdf`, slipPrintFormat === 'thermal');
-      };
+    // Print Payslip
+    document.getElementById('btn-print-slip').onclick = () => {
+      appInstance.printElement(slipPrintFormat);
+    };
 
-      // Automatically post payout to daily ledger expense!
-      if (confirm(`Approve salary payout of ₹${netPay} for ${staffName}?\nThis will automatically log a Store Expense.`)) {
-        store.addTransaction(activeDate, {
-          type: 'expense',
-          description: `Salary payout: ${staffName}`,
-          amount: netPay,
-          category: 'Salary',
-          source: 'account' // Default to Bank Account (UPI transfer)
-        });
-
-        appInstance.showToast(`Salary payment logged for ${staffName}`, 'success');
-        closeModal();
-        appInstance.handleRouting();
-      }
-    });
+    // Download Payslip
+    document.getElementById('btn-download-slip').onclick = () => {
+      appInstance.downloadElementAsPDF('payroll-slip-print', `Payslip_${staffName}_${currentMonth}.pdf`, slipPrintFormat === 'thermal');
+    };
   });
 }
 

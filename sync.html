@@ -35,6 +35,20 @@
             type: 'sync_data_response', 
             data: backup 
           }, event.origin);
+        } else if (event.data && event.data.type === 'write_sync_data') {
+          var payload = event.data.data;
+          if (payload) {
+            for (var key in payload) {
+              if (payload.hasOwnProperty(key) && key.startsWith('cyberone_v2_')) {
+                localStorage.setItem(key, payload[key]);
+              }
+            }
+            // Send back confirmation acknowledgment
+            event.source.postMessage({ 
+              type: 'sync_write_response', 
+              success: true 
+            }, event.origin);
+          }
         }
       }
     });

@@ -130,11 +130,62 @@ class Application {
       return;
     }
 
-    const currentYear = new Date().getFullYear();
     const activeDate = this.getActiveDate();
     const isCollapsed = localStorage.getItem('cyberone_v2_sidebar_collapsed') === 'true';
 
-    // Core layout container
+    // 1. Page Mount Guard - only render layout frame if not already present
+    const appContainer = document.getElementById('app-container');
+    if (appContainer) {
+      // Update active highlight classes on sidebar items
+      const items = appContainer.querySelectorAll('.sidebar-item');
+      items.forEach(item => {
+        item.classList.remove('active');
+      });
+
+      // Update Settings submenu visibility based on active route
+      const isSettingsRoute = (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log');
+      const settingsSubmenu = appContainer.querySelector('.sidebar-item.has-submenu');
+      if (settingsSubmenu) {
+        if (isSettingsRoute) {
+          settingsSubmenu.classList.add('active', 'expanded');
+          const list = settingsSubmenu.querySelector('.submenu-list');
+          if (list) list.style.display = 'block';
+          const arrow = settingsSubmenu.querySelector('.submenu-arrow');
+          if (arrow) arrow.style.transform = 'rotate(180deg)';
+        } else {
+          settingsSubmenu.classList.remove('active', 'expanded');
+          const list = settingsSubmenu.querySelector('.submenu-list');
+          if (list) list.style.display = 'none';
+          const arrow = settingsSubmenu.querySelector('.submenu-arrow');
+          if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+      }
+
+      // Find the specific item matching activeRoute and set active
+      const matchingLink = appContainer.querySelector(`.sidebar-item a[href="${this.activeRoute}"]`);
+      if (matchingLink) {
+        const li = matchingLink.closest('.sidebar-item');
+        if (li) li.classList.add('active');
+      }
+
+      // Update date picker value
+      const datePicker = document.getElementById('global-date-picker');
+      if (datePicker) {
+        datePicker.value = activeDate;
+      }
+
+      // Mount view inside mount point
+      const mountPoint = document.getElementById('page-mount');
+      if (mountPoint) {
+        mountPoint.innerHTML = '';
+        contentRenderer(mountPoint, this);
+      }
+
+      lucide.createIcons();
+      return;
+    }
+
+    // Core layout container (first load only)
     this.root.innerHTML = `
       <div id="app-container">
         <!-- Sidebar Navigation -->
@@ -174,30 +225,8 @@ class Application {
             <li class="sidebar-item ${this.activeRoute === '#reports' ? 'active' : ''}">
               <a href="#reports"><i data-lucide="bar-chart-3" style="width: 18px; height: 18px;"></i><span>Reports</span></a>
             </li>
-            <li class="sidebar-item ${this.activeRoute === '#audit-log' ? 'active' : ''}">
-              <a href="#audit-log"><i data-lucide="history" style="width: 18px; height: 18px;"></i><span>Audit Log</span></a>
-            </li>
-            <li class="sidebar-item has-submenu ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts') ? 'active expanded' : ''}">
-              <a href="javascript:void(0);" class="submenu-toggle" style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="display: flex; align-items: center; gap: 8px;">
-                  <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
-                  <span>Settings</span>
-                </span>
-                <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts') ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
-              </a>
-              <ul class="submenu-list" style="display: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts') ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
-                <li class="sidebar-item ${this.activeRoute === '#settings' ? 'active' : ''}">
-                  <a href="#settings" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="sliders" style="width: 14px; height: 14px;"></i><span>General</span></a>
-                </li>
-                <li class="sidebar-item ${this.activeRoute === '#users' ? 'active' : ''}">
-                  <a href="#users" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="shield-check" style="width: 14px; height: 14px;"></i><span>User Management</span></a>
-                </li>
-                <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
-                  <a href="#accounts" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 14px; height: 14px;"></i><span>Account Menu</span></a>
-                </li>
-              </ul>
-            </li>
           </ul>
+          
           <div class="sidebar-footer">
             <div class="user-profile">
               ${auth.currentUser.photo ? `
@@ -210,6 +239,32 @@ class Application {
                 <span class="user-role">${auth.currentUser.role}</span>
               </div>
             </div>
+            
+            <ul class="sidebar-menu" style="margin: 10px 0 0 0; padding: 0;">
+              <li class="sidebar-item has-submenu ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log') ? 'active expanded' : ''}">
+                <a href="javascript:void(0);" class="submenu-toggle" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+                    <span>Settings</span>
+                  </span>
+                  <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log') ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
+                </a>
+                <ul class="submenu-list" style="display: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log') ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
+                  <li class="sidebar-item ${this.activeRoute === '#settings' ? 'active' : ''}">
+                    <a href="#settings" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="sliders" style="width: 14px; height: 14px;"></i><span>General</span></a>
+                  </li>
+                  <li class="sidebar-item ${this.activeRoute === '#users' ? 'active' : ''}">
+                    <a href="#users" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="shield-check" style="width: 14px; height: 14px;"></i><span>User Management</span></a>
+                  </li>
+                  <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
+                    <a href="#accounts" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="wallet" style="width: 14px; height: 14px;"></i><span>Account Menu</span></a>
+                  </li>
+                  <li class="sidebar-item ${this.activeRoute === '#audit-log' ? 'active' : ''}">
+                    <a href="#audit-log" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="history" style="width: 14px; height: 14px;"></i><span>Audit Log</span></a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
 
             <button id="sidebar-logout" class="btn-logout" style="margin-top: 15px;">
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
@@ -231,7 +286,13 @@ class Application {
                 <p id="page-heading-sub">Operations & Ledger Management</p>
               </div>
             </div>
-            <div class="header-actions">
+            <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
+              <!-- Sync Database Button -->
+              <button id="header-sync-btn" class="btn btn-secondary" style="display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px; height:36px; border-radius:var(--border-radius-sm); border:1px solid rgba(56, 189, 248, 0.3); background:rgba(56, 189, 248, 0.1); color:#38bdf8; cursor:pointer;">
+                <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>
+                <span>Sync Database</span>
+              </button>
+              
               <!-- Universal Date Picker Badge -->
               <div class="date-badge">
                 <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
@@ -302,6 +363,14 @@ class Application {
         if (!sidebar.contains(e.target) && sidebar.classList.contains('open')) {
           sidebar.classList.remove('open');
         }
+      });
+    }
+
+    // Sync database handler
+    const syncBtn = document.getElementById('header-sync-btn');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', () => {
+        this.syncDatabase();
       });
     }
 
@@ -449,6 +518,139 @@ class Application {
     
     // Fallback cleanup
     setTimeout(cleanUp, 1000);
+  }
+
+  syncDatabase() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocal) {
+      alert("You are on the online GitHub Pages version. Active database sync can only be initiated from your local server version (e.g. running on http://localhost:8080) to bypass browser cross-origin policy restrictions.\n\nPlease open your local server in a new tab to sync database between local and GitHub versions.");
+      return;
+    }
+
+    this.showToast('Initiating two-way database synchronization...', 'info');
+    
+    let iframe = document.getElementById('cyberone-manual-sync-iframe');
+    if (iframe) iframe.remove();
+    
+    iframe = document.createElement('iframe');
+    iframe.id = 'cyberone-manual-sync-iframe';
+    iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const self = this;
+    const cleanup = () => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+      window.removeEventListener('message', handleManualSync);
+    };
+
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      self.showToast('Sync failed: Connection timed out.', 'error');
+    }, 10000);
+
+    function handleManualSync(event) {
+      if (event.origin === 'https://cyberonecsc.github.io') {
+        if (event.data && event.data.type === 'sync_data_response') {
+          clearTimeout(timeoutId);
+          const remoteBackup = event.data.data;
+          const keys = Object.keys(remoteBackup);
+          
+          if (keys.length > 0) {
+            keys.forEach(key => {
+              if (key.startsWith('cyberone_v2_')) {
+                if (key === 'cyberone_v2_daily_logs') {
+                  try {
+                    const localLogs = JSON.parse(localStorage.getItem('cyberone_v2_daily_logs') || '{}');
+                    const remoteLogs = JSON.parse(remoteBackup[key] || '{}');
+                    const mergedLogs = { ...remoteLogs, ...localLogs };
+                    
+                    Object.keys(mergedLogs).forEach(date => {
+                      if (localLogs[date] && remoteLogs[date]) {
+                        const localTxns = localLogs[date].transactions || [];
+                        const remoteTxns = remoteLogs[date].transactions || [];
+                        const txnMap = new Map();
+                        
+                        remoteTxns.forEach(t => txnMap.set(t.id, t));
+                        localTxns.forEach(t => txnMap.set(t.id, t));
+                        
+                        mergedLogs[date].transactions = Array.from(txnMap.values());
+                      }
+                    });
+                    
+                    localStorage.setItem('cyberone_v2_daily_logs', JSON.stringify(mergedLogs));
+                  } catch (e) {
+                    console.error("Failed to merge daily logs, overwriting", e);
+                    localStorage.setItem(key, remoteBackup[key]);
+                  }
+                } else if (key === 'cyberone_v2_activity_logs') {
+                  try {
+                    const localAct = JSON.parse(localStorage.getItem('cyberone_v2_activity_logs') || '[]');
+                    const remoteAct = JSON.parse(remoteBackup[key] || '[]');
+                    const actMap = new Map();
+                    remoteAct.forEach(a => actMap.set(a.id, a));
+                    localAct.forEach(a => actMap.set(a.id, a));
+                    const mergedAct = Array.from(actMap.values()).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    localStorage.setItem('cyberone_v2_activity_logs', JSON.stringify(mergedAct));
+                  } catch(e) {
+                    localStorage.setItem(key, remoteBackup[key]);
+                  }
+                } else {
+                  const localVal = localStorage.getItem(key);
+                  if (!localVal || localVal === '[]' || localVal === '{}') {
+                    localStorage.setItem(key, remoteBackup[key]);
+                  }
+                }
+              }
+            });
+            
+            const localPayload = {};
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && k.startsWith('cyberone_v2_')) {
+                localPayload[k] = localStorage.getItem(k);
+              }
+            }
+            
+            iframe.contentWindow.postMessage({
+              type: 'write_sync_data',
+              data: localPayload
+            }, 'https://cyberonecsc.github.io');
+          } else {
+            const localPayload = {};
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && k.startsWith('cyberone_v2_')) {
+                localPayload[k] = localStorage.getItem(k);
+              }
+            }
+            iframe.contentWindow.postMessage({
+              type: 'write_sync_data',
+              data: localPayload
+            }, 'https://cyberonecsc.github.io');
+          }
+        } else if (event.data && event.data.type === 'sync_write_response') {
+          clearTimeout(timeoutId);
+          self.showToast('Two-way database sync completed successfully!', 'success');
+          cleanup();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
+      }
+    }
+
+    window.addEventListener('message', handleManualSync);
+
+    iframe.onload = () => {
+      setTimeout(() => {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage('request_sync_data', 'https://cyberonecsc.github.io');
+        }
+      }, 800);
+    };
   }
 
   // Automatic Background Data Synchronization from GitHub Pages

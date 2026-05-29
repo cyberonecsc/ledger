@@ -124,6 +124,8 @@ export function renderApplications(mountPoint, appInstance) {
                 <option value="draft">Draft</option>
                 <option value="submitted" selected>Submitted</option>
                 <option value="pending_docs">Pending Documents</option>
+                <option value="approved">Approved</option>
+                <option value="ready_to_print">Ready to Print</option>
               </select>
             </div>
           </div>
@@ -236,7 +238,7 @@ export function renderApplications(mountPoint, appInstance) {
       const app = store.applications.find(a => a.id === appId);
       if (!app) return;
 
-      const statuses = ['draft', 'submitted', 'pending_docs', 'approved', 'delivered'];
+      const statuses = ['draft', 'submitted', 'pending_docs', 'approved', 'ready_to_print', 'delivered'];
       const currentIdx = statuses.indexOf(app.status);
       const nextStatus = statuses[currentIdx + 1];
 
@@ -288,7 +290,8 @@ function renderKanbanBoard(apps, customers) {
     draft: { title: 'Draft Files', count: 0, items: [] },
     submitted: { title: 'Submitted to Portal', count: 0, items: [] },
     pending_docs: { title: 'Pending Documents', count: 0, items: [] },
-    approved: { title: 'Ready to Print', count: 0, items: [] },
+    approved: { title: 'Approved', count: 0, items: [] },
+    ready_to_print: { title: 'Ready to Print', count: 0, items: [] },
     delivered: { title: 'Completed & Delivered', count: 0, items: [] }
   };
 
@@ -306,6 +309,7 @@ function renderKanbanBoard(apps, customers) {
     if (statusKey === 'submitted') statusHeaderColor = 'var(--color-info)';
     if (statusKey === 'pending_docs') statusHeaderColor = 'var(--color-warning)';
     if (statusKey === 'approved') statusHeaderColor = 'var(--color-success)';
+    if (statusKey === 'ready_to_print') statusHeaderColor = '#a855f7';
     if (statusKey === 'delivered') statusHeaderColor = 'var(--text-dimmed)';
 
     const cardsHtml = col.items.map(app => {
@@ -361,7 +365,8 @@ function renderAppTableRows(apps, customers, staff) {
             <option value="draft" ${app.status === 'draft' ? 'selected' : ''}>Draft</option>
             <option value="submitted" ${app.status === 'submitted' ? 'selected' : ''}>Submitted</option>
             <option value="pending_docs" ${app.status === 'pending_docs' ? 'selected' : ''}>Pending Docs</option>
-            <option value="approved" ${app.status === 'approved' ? 'selected' : ''}>Ready to Print</option>
+            <option value="approved" ${app.status === 'approved' ? 'selected' : ''}>Approved</option>
+            <option value="ready_to_print" ${app.status === 'ready_to_print' ? 'selected' : ''}>Ready to Print</option>
             <option value="delivered" ${app.status === 'delivered' ? 'selected' : ''}>Delivered</option>
           </select>
         </td>

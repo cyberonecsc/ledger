@@ -69,6 +69,26 @@ export function renderDashboard(mountPoint, appInstance) {
   // Find active government applications (not delivered)
   const activeApps = store.applications.filter(a => a.status !== 'delivered');
 
+  // Calculate today's transaction types breakdown for Donut Chart
+  const txnGroups = {
+    sale: { label: 'Sales', count: 0, amount: 0, color: 'var(--color-success)' },
+    expense: { label: 'Expenses', count: 0, amount: 0, color: 'var(--color-danger)' },
+    deposit: { label: 'Deposits', count: 0, amount: 0, color: 'var(--color-info)' },
+    adjustment: { label: 'Adjustments', count: 0, amount: 0, color: 'var(--color-warning)' }
+  };
+
+  if (dailyLog && dailyLog.transactions) {
+    dailyLog.transactions.forEach(t => {
+      const type = (t.type === 'salary') ? 'expense' : t.type;
+      if (txnGroups[type]) {
+        txnGroups[type].count++;
+        txnGroups[type].amount += parseFloat(t.amount || 0);
+      }
+    });
+  }
+
+  const totalTxnVolume = Object.values(txnGroups).reduce((sum, g) => sum + g.amount, 0);
+
   // Format currency helper
   const fmt = (val) => {
     return new Intl.NumberFormat('en-IN', {
@@ -104,8 +124,71 @@ export function renderDashboard(mountPoint, appInstance) {
       </a>
     </div>
 
+    <!-- Alerts & File Status Grid (Moved above Balance Sheet) -->
+    <div class="dashboard-bottom-grid" style="margin-bottom: 25px;">
+      <!-- G2C Applications Status Summary -->
+      <div class="glass-card" style="padding: 24px;">
+        <div class="section-header">
+          <h3>Pending Applications (${activeApps.length})</h3>
+          <a href="#applications" style="font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 600;">View Tracker</a>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
+          ${activeApps.length === 0 ? `
+            <div style="text-align: center; color: var(--text-dimmed); font-size: 13px; padding: 20px;">
+              All certificate applications delivered!
+            </div>
+          ` : activeApps.map(app => {
+            const customer = store.customers.find(c => c.id === app.customerId);
+            let statusColor = 'var(--text-muted)';
+            if (app.status === 'submitted') statusColor = 'var(--color-info)';
+            if (app.status === 'pending_docs') statusColor = 'var(--color-warning)';
+            if (app.status === 'approved') statusColor = 'var(--color-success)';
+            if (app.status === 'ready_to_print') statusColor = '#a855f7';
+            if (app.status === 'delivered') statusColor = 'var(--color-success)';
+
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm);">
+                <div>
+                  <div style="font-size: 13px; font-weight: 600;">${customer ? customer.name : 'Unknown'}</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">${app.serviceType}</div>
+                </div>
+                <span class="badge" style="background: none; border: 1px solid ${statusColor}; color: ${statusColor};">${app.status.replace('_', ' ')}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Low Stock Inventory Alerts -->
+      <div class="glass-card" style="padding: 24px;">
+        <div class="section-header">
+          <h3>Low Stock Alerts (${lowStockProducts.length})</h3>
+          <a href="#inventory" style="font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 600;">Manage Inventory</a>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
+          ${lowStockProducts.length === 0 ? `
+            <div style="text-align: center; color: var(--text-dimmed); font-size: 13px; padding: 30px 10px;">
+              <i data-lucide="check" style="width: 24px; height: 24px; color: var(--color-success); margin-bottom: 5px; display: inline-block;"></i>
+              <div style="margin-top: 5px;">All items fully stocked!</div>
+            </div>
+          ` : lowStockProducts.map(p => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: var(--border-radius-sm);">
+              <div>
+                <div style="font-size: 13px; font-weight: 600;">${p.name}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">SKU: ${p.sku}</div>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--color-danger);">${p.stock} left</span>
+                <div style="font-size: 10px; color: var(--text-dimmed);">Min: ${p.minStock}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
     <!-- Daily Balance Sheet (Full Width & Centralized Block) -->
-    <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 30px;">
+    <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 25px;">
       <div class="section-header" style="width: 100%; max-width: 900px; margin-bottom: 0px;">
         <div>
           <h3 style="font-size: 16px; margin-bottom: 4px;">Daily Balance Sheet</h3>
@@ -121,14 +204,11 @@ export function renderDashboard(mountPoint, appInstance) {
         ${(() => {
           if (!canViewBalances) {
             return `
-              <!-- Low stock alert widgets for staff -->
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%;">
                 <div style="padding: 16px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: var(--border-radius-md);">
                   <span style="font-size: 11px; font-weight: 700; color: var(--color-warning); text-transform: uppercase;">Low Stock Warning</span>
                   <div style="font-size: 14px; margin-top: 4px; font-weight: 600;">${lowStockProducts.length} items need restock.</div>
                 </div>
-
-                <!-- Active G2C files tracker summary -->
                 <div style="padding: 16px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: var(--border-radius-md);">
                   <span style="font-size: 11px; font-weight: 700; color: var(--color-primary); text-transform: uppercase;">G2C Applications</span>
                   <div style="font-size: 14px; margin-top: 4px; font-weight: 600;">${activeApps.length} active files are pending delivery.</div>
@@ -233,71 +313,87 @@ export function renderDashboard(mountPoint, appInstance) {
       </div>
     </div>
 
-    <!-- Visual Analytics Chart (Full Width Block) -->
-    <div class="glass-card" style="padding: 24px; margin-bottom: 25px; display: flex; flex-direction: column; gap: 15px;">
-      <div class="section-header">
-        <h3>Daily Earnings vs Expenses (Last 7 Days)</h3>
-        <span style="font-size: 12px; color: var(--text-muted);">Reconciliation Timeline</span>
-      </div>
-      
-      <div class="chart-container" id="dashboard-bar-chart">
-        <!-- SVG chart will render dynamically -->
-      </div>
-      
-      <div class="chart-legend">
-        <div class="legend-item">
-          <span class="legend-color income"></span>
-          <span>Earnings (Service Charge/Commission)</span>
+    <!-- Graphical Analytics Row (Breakdown Chart + Bar Chart side-by-side) -->
+    <div class="dashboard-bottom-grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-bottom: 25px;">
+      <!-- Daily Transactions Breakdown (Pie/Donut Chart) -->
+      <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; gap: 15px;">
+        <div class="section-header">
+          <div>
+            <h3 style="font-size: 15px; margin-bottom: 4px;">Today's Transactions breakdown</h3>
+            <span style="font-size: 12px; color: var(--text-muted);">Total volume: <strong style="color:#fff; font-family:var(--font-display); font-weight:600;">${fmt(totalTxnVolume)}</strong></span>
+          </div>
+          <i data-lucide="pie-chart" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
         </div>
-        <div class="legend-item">
-          <span class="legend-color expense"></span>
-          <span>Store Expenses</span>
+        
+        <div style="display: flex; align-items: center; justify-content: space-around; gap: 15px; flex-wrap: wrap; height: 100%;">
+          <!-- Donut SVG -->
+          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 130px; height: 130px;">
+            <svg viewBox="0 0 100 100" style="width: 130px; height: 130px; transform: rotate(-90deg);">
+              ${(() => {
+                let cumulativePercent = 0;
+                return totalTxnVolume > 0 ? Object.values(txnGroups).map(g => {
+                  if (g.amount === 0 || totalTxnVolume === 0) return '';
+                  const percentage = g.amount / totalTxnVolume;
+                  const segmentLength = percentage * 251.3;
+                  const offset = 251.3 - (cumulativePercent * 251.3);
+                  cumulativePercent += percentage;
+                  return `<circle cx="50" cy="50" r="40" fill="transparent" stroke="${g.color}" stroke-width="12" stroke-dasharray="${segmentLength} 251.3" stroke-dashoffset="${offset}" style="transition: stroke-dashoffset 0.5s ease;"></circle>`;
+                }).join('') : `<circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="12"></circle>`;
+              })()}
+            </svg>
+            <div style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+              <span style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; line-height: 1;">${dailyLog.transactions ? dailyLog.transactions.length : 0}</span>
+              <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Txns</span>
+            </div>
+          </div>
+          
+          <!-- Legend -->
+          <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 8px;">
+            ${Object.values(txnGroups).map(g => {
+              const pct = totalTxnVolume > 0 ? ((g.amount / totalTxnVolume) * 100).toFixed(0) : 0;
+              return `
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
+                    <span style="font-weight: 500; color: var(--text-dimmed);">${g.label}</span>
+                  </div>
+                  <div style="text-align: right;">
+                    <span style="font-weight: 600; color: #fff; font-family: var(--font-display);">${fmt(g.amount)}</span>
+                    <span style="font-size: 10px; color: var(--text-muted); margin-left: 4px;">(${g.count})</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Analytics Bar Chart -->
+      <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; gap: 15px;">
+        <div class="section-header">
+          <div>
+            <h3 style="font-size: 15px; margin-bottom: 4px;">Daily Earnings vs Expenses</h3>
+            <span style="font-size: 12px; color: var(--text-muted);">Reconciliation Timeline (Last 7 Days)</span>
+          </div>
+          <i data-lucide="bar-chart-2" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
+        </div>
+        
+        <div class="chart-container" id="dashboard-bar-chart" style="height: 140px; margin-top: 5px;">
+          <!-- SVG chart will render dynamically -->
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px; font-size: 11px; margin-top: 5px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 8px; height: 8px; background: var(--color-success); border-radius: 2px;"></span>
+            <span style="color: var(--text-dimmed);">Earnings</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 8px; height: 8px; background: var(--color-danger); border-radius: 2px;"></span>
+            <span style="color: var(--text-dimmed);">Expenses</span>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- Bottom Row: Alerts and File Status trackers -->
-    <div class="dashboard-bottom-grid" style="margin-bottom: 30px;">
-      <!-- G2C Applications Status Summary -->
-      <div class="glass-card" style="padding: 24px;">
-        <div class="section-header">
-          <h3>Pending Applications (${activeApps.length})</h3>
-          <a href="#applications" style="font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 600;">View Tracker</a>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
-          ${activeApps.length === 0 ? `
-            <div style="text-align: center; color: var(--text-dimmed); font-size: 13px; padding: 20px;">
-              All certificate applications delivered!
-            </div>
-          ` : activeApps.map(app => {
-            const customer = store.customers.find(c => c.id === app.customerId);
-            let statusColor = 'var(--text-muted)';
-            if (app.status === 'submitted') statusColor = 'var(--color-info)';
-            if (app.status === 'pending_docs') statusColor = 'var(--color-warning)';
-            if (app.status === 'approved') statusColor = 'var(--color-success)';
-
-            return `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm);">
-                <div>
-                  <div style="font-size: 13px; font-weight: 600;">${customer ? customer.name : 'Unknown'}</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">${app.serviceType}</div>
-                </div>
-                <span class="badge" style="background: none; border: 1px solid ${statusColor}; color: ${statusColor};">${app.status.replace('_', ' ')}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-
-      <!-- Low Stock Inventory Alerts -->
-      <div class="glass-card" style="padding: 24px;">
-        <div class="section-header">
-          <h3>Low Stock Alerts (${lowStockProducts.length})</h3>
-          <a href="#inventory" style="font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 600;">Manage Inventory</a>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
-          ${lowStockProducts.length === 0 ? `
-            <div style="text-align: center; color: var(--text-dimmed); font-size: 13px; padding: 20px;">
               <i data-lucide="check" style="width: 24px; height: 24px; color: var(--color-success); margin-bottom: 5px; display: inline-block;"></i>
               <div style="margin-top: 5px;">All items fully stocked!</div>
             </div>
@@ -513,7 +609,7 @@ function drawDashboardChart(activeDate) {
 
   // SVG parameters
   const width = container.clientWidth || 550;
-  const height = 250;
+  const height = container.clientHeight || 150;
   const paddingLeft = 45;
   const paddingRight = 15;
   const paddingTop = 20;

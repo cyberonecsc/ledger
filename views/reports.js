@@ -153,16 +153,50 @@ export function renderReports(mountPoint, appInstance) {
     <!-- PANE 5: Custom Date Range Report -->
     <div id="custom-range-pane" class="reports-pane" style="display:none;">
       <div class="glass-card no-print" style="padding: 20px; margin-bottom: 25px;">
-        <h4 style="font-family: var(--font-display); font-weight:700; margin-bottom:15px;">Select Date Range</h4>
-        <div class="form-row-3" style="align-items: flex-end;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Start Date</label>
-            <input type="date" id="custom-start-date" class="form-control" required>
+        <h4 style="font-family: var(--font-display); font-weight:700; margin-bottom:15px;">Select Report Period</h4>
+        <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+          <div class="form-group" style="margin-bottom:0; flex: 1; min-width: 150px;">
+            <label class="form-label">Period Type</label>
+            <select id="report-period-type" class="form-control">
+              <option value="custom" selected>Custom Range</option>
+              <option value="daily">Daily</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
           </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">End Date</label>
-            <input type="date" id="custom-end-date" class="form-control" required>
+          
+          <!-- Custom Range Inputs -->
+          <div id="wrapper-custom-range" style="display: flex; gap: 10px; flex: 2; min-width: 280px; margin: 0;">
+            <div class="form-group" style="margin-bottom:0; flex: 1;">
+              <label class="form-label">Start Date</label>
+              <input type="date" id="custom-start-date" class="form-control">
+            </div>
+            <div class="form-group" style="margin-bottom:0; flex: 1;">
+              <label class="form-label">End Date</label>
+              <input type="date" id="custom-end-date" class="form-control">
+            </div>
           </div>
+          
+          <!-- Daily Input -->
+          <div id="wrapper-daily" class="form-group" style="margin-bottom:0; display: none; flex: 1.5; min-width: 180px;">
+            <label class="form-label">Select Date</label>
+            <input type="date" id="report-date-input" class="form-control">
+          </div>
+          
+          <!-- Monthly Input -->
+          <div id="wrapper-monthly" class="form-group" style="margin-bottom:0; display: none; flex: 1.5; min-width: 180px;">
+            <label class="form-label">Select Month</label>
+            <input type="month" id="report-month-input" class="form-control">
+          </div>
+          
+          <!-- Yearly Input -->
+          <div id="wrapper-yearly" class="form-group" style="margin-bottom:0; display: none; flex: 1.5; min-width: 180px;">
+            <label class="form-label">Select Year</label>
+            <select id="report-year-input" class="form-control">
+              <!-- Years dynamically populated -->
+            </select>
+          </div>
+          
           <button id="btn-update-custom-report" class="btn btn-primary" style="height: 38px;">
             <i data-lucide="refresh-cw" style="width:16px; height:16px;"></i> Update Report
           </button>
@@ -272,17 +306,53 @@ export function renderReports(mountPoint, appInstance) {
   const endDateInput = document.getElementById('custom-end-date');
   
   if (startDateInput && endDateInput) {
+    // Populate dynamic year selection dropdown
+    const yearSelect = document.getElementById('report-year-input');
+    if (yearSelect) {
+      const currentYear = new Date().getFullYear();
+      let yearsHtml = '';
+      for (let y = currentYear; y >= currentYear - 5; y--) {
+        yearsHtml += `<option value="${y}" ${y === new Date(activeDate).getFullYear() ? 'selected' : ''}>${y}</option>`;
+      }
+      yearSelect.innerHTML = yearsHtml;
+    }
+
     // Default to first day of current month
     const defaultStart = activeDate.substring(0, 8) + '01';
     startDateInput.value = defaultStart;
     endDateInput.value = activeDate;
+    document.getElementById('report-date-input').value = activeDate;
+    document.getElementById('report-month-input').value = activeDate.substring(0, 7);
 
     const updateCustomReport = () => {
-      const startVal = startDateInput.value;
-      const endVal = endDateInput.value;
-      if (!startVal || !endVal) return;
+      const periodType = document.getElementById('report-period-type').value;
+      let filterFn = (date) => false;
+      let labelText = '';
 
-      document.getElementById('custom-report-range-text').innerText = `Range: ${startVal} to ${endVal}`;
+      if (periodType === 'custom') {
+        const startVal = startDateInput.value;
+        const endVal = endDateInput.value;
+        if (!startVal || !endVal) return;
+        filterFn = (date) => (date >= startVal && date <= endVal);
+        labelText = `Range: ${startVal} to ${endVal}`;
+      } else if (periodType === 'daily') {
+        const dateVal = document.getElementById('report-date-input').value;
+        if (!dateVal) return;
+        filterFn = (date) => (date === dateVal);
+        labelText = `Daily Report: ${dateVal}`;
+      } else if (periodType === 'monthly') {
+        const monthVal = document.getElementById('report-month-input').value;
+        if (!monthVal) return;
+        filterFn = (date) => date.startsWith(monthVal);
+        labelText = `Monthly Report: ${monthVal}`;
+      } else if (periodType === 'yearly') {
+        const yearVal = document.getElementById('report-year-input').value;
+        if (!yearVal) return;
+        filterFn = (date) => date.startsWith(yearVal);
+        labelText = `Yearly Report: ${yearVal}`;
+      }
+
+      document.getElementById('custom-report-range-text').innerText = labelText;
 
       let grossTurnover = 0;
       let netIncome = 0;
@@ -290,7 +360,7 @@ export function renderReports(mountPoint, appInstance) {
       const monthlySummary = {};
 
       Object.keys(store.dailyLogs).forEach(date => {
-        if (date >= startVal && date <= endVal) {
+        if (filterFn(date)) {
           const log = store.dailyLogs[date];
           log.transactions.forEach(t => {
             const monthKey = date.substring(0, 7); // YYYY-MM
@@ -344,10 +414,29 @@ export function renderReports(mountPoint, appInstance) {
       }
     };
 
+    // Toggle input sections based on period selection
+    const periodSelect = document.getElementById('report-period-type');
+    const customWrapper = document.getElementById('wrapper-custom-range');
+    const dailyWrapper = document.getElementById('wrapper-daily');
+    const monthlyWrapper = document.getElementById('wrapper-monthly');
+    const yearlyWrapper = document.getElementById('wrapper-yearly');
+
+    periodSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      customWrapper.style.display = val === 'custom' ? 'flex' : 'none';
+      dailyWrapper.style.display = val === 'daily' ? 'block' : 'none';
+      monthlyWrapper.style.display = val === 'monthly' ? 'block' : 'none';
+      yearlyWrapper.style.display = val === 'yearly' ? 'block' : 'none';
+      updateCustomReport();
+    });
+
     // Trigger update on click or change
     document.getElementById('btn-update-custom-report').addEventListener('click', updateCustomReport);
     startDateInput.addEventListener('change', updateCustomReport);
     endDateInput.addEventListener('change', updateCustomReport);
+    document.getElementById('report-date-input').addEventListener('change', updateCustomReport);
+    document.getElementById('report-month-input').addEventListener('change', updateCustomReport);
+    document.getElementById('report-year-input').addEventListener('change', updateCustomReport);
 
     // Initial render
     updateCustomReport();
