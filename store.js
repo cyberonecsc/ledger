@@ -511,7 +511,7 @@ class StateStore {
 
       // Decrement Inventory stock if a product was sold
       if (txnData.productId) {
-        this.adjustStock(txnData.productId, -1);
+        this.adjustStock(txnData.productId, -Math.abs(txnData.quantity || 1));
       }
 
       // Auto-deductions for PVC Lamination pouch and A4 paper
@@ -604,7 +604,7 @@ class StateStore {
     // Rollback stock and customer credit if sale is deleted
     if (txn.type === 'sale') {
       if (txn.productId) {
-        this.adjustStock(txn.productId, 1);
+        this.adjustStock(txn.productId, Math.abs(txn.quantity || 1));
       }
       const descLower = (txn.description || '').toLowerCase();
       if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
@@ -642,7 +642,7 @@ class StateStore {
     // 1. Rollback stock changes and credit from the old transaction state
     if (oldTxn.type === 'sale') {
       if (oldTxn.productId) {
-        this.adjustStock(oldTxn.productId, 1);
+        this.adjustStock(oldTxn.productId, Math.abs(oldTxn.quantity || 1));
       }
       const descLower = (oldTxn.description || '').toLowerCase();
       if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
@@ -678,7 +678,7 @@ class StateStore {
       }
 
       if (updatedData.productId) {
-        this.adjustStock(updatedData.productId, -1);
+        this.adjustStock(updatedData.productId, -Math.abs(updatedData.quantity || 1));
       }
 
       const descLower = (updatedData.description || '').toLowerCase();

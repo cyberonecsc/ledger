@@ -425,93 +425,122 @@ export function renderTransactions(mountPoint, appInstance) {
         .map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || 'N/A'}, Price: ₹${p.sellPrice})</option>`)
         .join('');
 
+      // Determine initial sale type based on edit state
+      const initialType = (editTxn && editTxn.productId) ? 'product' : 'service';
+
       mount.innerHTML = `
         <form id="form-add-sale">
-          <div class="form-group" style="margin-bottom: 15px;">
-            <label class="form-label" style="font-size: 11px;">Link to Inventory Product (Optional)</label>
-            <select id="sale-product-link" class="form-control" style="font-size:12px;">
-              <option value="">-- No linked physical product --</option>
-              ${productOptions}
-            </select>
-            <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">Selecting a product will automatically fill its details and deduct 1 unit from inventory stock on save.</span>
+          <!-- Sale Type Toggle Segmented Buttons -->
+          <div class="sale-type-toggle" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 15px;">
+            <button type="button" id="btn-sale-type-service" class="btn btn-sm ${initialType === 'service' ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; font-weight: 600;">
+              <i data-lucide="wrench" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i>Service Sale
+            </button>
+            <button type="button" id="btn-sale-type-product" class="btn btn-sm ${initialType === 'product' ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; font-weight: 600;">
+              <i data-lucide="shopping-bag" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i>Product Sale
+            </button>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Service Type / Description</label>
-              <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" required list="service-presets">
-              <datalist id="service-presets">
-                <option value="e-District Application">
-                <option value="PAN Card Application">
-                <option value="Passport Registration">
-                <option value="Aadhaar Update">
-                <option value="Print / Copy Service">
-                <option value="Mobile Recharge">
-                <option value="KSEB Bill Payout">
-                <option value="AEPS Cash Withdrawal">
-                <option value="PVC Card Service">
-                <option value="PVC Lamination">
-              </datalist>
+
+          <!-- Section 1: Service Fields (Conditional) -->
+          <div id="service-fields-container" style="display: ${initialType === 'service' ? 'block' : 'none'};">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Service Type / Description</label>
+                <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" list="service-presets">
+                <datalist id="service-presets">
+                  <option value="e-District Application">
+                  <option value="PAN Card Application">
+                  <option value="Passport Registration">
+                  <option value="Aadhaar Update">
+                  <option value="Print / Copy Service">
+                  <option value="Mobile Recharge">
+                  <option value="KSEB Bill Payout">
+                  <option value="AEPS Cash Withdrawal">
+                  <option value="PVC Card Service">
+                  <option value="PVC Lamination">
+                </datalist>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Pages Printed (Deducts A4 paper)</label>
+                <input type="number" id="sale-pages-printed" class="form-control" value="0" min="0">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Total Customer Bill Amount (₹)</label>
-              <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Deducted Cost Source</label>
+                <select id="sale-deduct-source" class="form-control">
+                  <option value="none">None (DTP/Print - 100% Service Charge)</option>
+                  <option value="account">Direct Bank Account</option>
+                  ${walletOptions}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
+                <input type="number" step="0.01" id="sale-deduct-amount-service" class="form-control" value="0.00">
+              </div>
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Paid By Cash (₹)</label>
-              <input type="number" step="0.01" id="sale-cash" class="form-control" value="0.00">
+          <!-- Section 2: Product Fields (Conditional) -->
+          <div id="product-fields-container" style="display: ${initialType === 'product' ? 'block' : 'none'};">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Select Inventory Product</label>
+                <select id="sale-product-link" class="form-control">
+                  <option value="">-- Choose Product --</option>
+                  ${productOptions}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quantity Sold</label>
+                <input type="number" id="sale-product-qty" class="form-control" value="1" min="1">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Paid By UPI / Bank (₹)</label>
-              <input type="number" step="0.01" id="sale-upi" class="form-control" value="0.00">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Add to Citizen Credit (₹)</label>
-              <input type="number" step="0.01" id="sale-credit" class="form-control" value="0.00">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Pages Printed (Deducts A4 paper)</label>
-              <input type="number" id="sale-pages-printed" class="form-control" value="0" min="0">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px; margin-top: -5px; padding-left: 2px;">
+              Stock details and wholesale cost will auto-fill from the inventory catalog upon product selection.
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Deducted Cost Source</label>
-              <select id="sale-deduct-source" class="form-control">
-                <option value="none">None (DTP/Print - 100% Service Charge)</option>
-                <option value="account">Direct Bank Account</option>
-                ${walletOptions}
-              </select>
+          <!-- Common Core Financial Fields -->
+          <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px; margin-top: 10px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Total Customer Bill Amount (₹)</label>
+                <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Customer Link (Optional)</label>
+                <select id="sale-customer" class="form-control">
+                  <option value="">-- Unregistered Walk-in --</option>
+                  ${customerOptions}
+                </select>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
-              <input type="number" step="0.01" id="sale-deduct-amount" class="form-control" value="0.00">
-            </div>
-          </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Customer Link (Required for Credit/App)</label>
-              <select id="sale-customer" class="form-control">
-                <option value="">-- Unregistered Walk-in --</option>
-                ${customerOptions}
-              </select>
+            <div class="form-row-3" style="margin-top: 10px;">
+              <div class="form-group">
+                <label class="form-label">Paid By Cash (₹)</label>
+                <input type="number" step="0.01" id="sale-cash" class="form-control" value="0.00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Paid By UPI / Bank (₹)</label>
+                <input type="number" step="0.01" id="sale-upi" class="form-control" value="0.00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Add to Credit (₹)</label>
+                <input type="number" step="0.01" id="sale-credit" class="form-control" value="0.00">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Calculated Service Charge (Profit)</label>
+
+            <div class="form-group" style="margin-top: 15px; margin-bottom: 0;">
+              <label class="form-label">Calculated Service Charge (Net Profit)</label>
               <div id="sale-profit-preview" style="padding: 10px 14px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: var(--border-radius-sm); color: var(--color-success); font-family: var(--font-display); font-weight:700;">
                 ₹0.00
               </div>
             </div>
           </div>
 
-          <div style="display:flex; gap:10px; margin-top:15px;">
+          <div style="display:flex; gap:10px; margin-top:20px;">
             <button type="submit" class="btn btn-success" style="flex-grow:1;">
               <i data-lucide="${editTxn ? 'check-circle' : 'plus-circle'}" style="width: 16px; height: 16px;"></i> ${editTxn ? 'Update Sale' : 'Log Sale'}
             </button>
@@ -528,15 +557,37 @@ export function renderTransactions(mountPoint, appInstance) {
       const inputCash = document.getElementById('sale-cash');
       const inputUPI = document.getElementById('sale-upi');
       const inputCredit = document.getElementById('sale-credit');
-      const inputDeduct = document.getElementById('sale-deduct-amount');
       const profitDiv = document.getElementById('sale-profit-preview');
+
+      // Sale Type state variables and buttons
+      let currentSaleType = initialType;
+      const btnServiceType = document.getElementById('btn-sale-type-service');
+      const btnProductType = document.getElementById('btn-sale-type-product');
+      const containerService = document.getElementById('service-fields-container');
+      const containerProduct = document.getElementById('product-fields-container');
+
+      const selectProduct = document.getElementById('sale-product-link');
+      const inputProductQty = document.getElementById('sale-product-qty');
 
       const updateProfitMath = () => {
         const amt = parseFloat(inputAmount.value || 0);
         const cash = parseFloat(inputCash.value || 0);
         const upi = parseFloat(inputUPI.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
-        const cost = parseFloat(inputDeduct.value || 0);
+        
+        let cost = 0;
+        if (currentSaleType === 'service') {
+          cost = parseFloat(document.getElementById('sale-deduct-amount-service').value || 0);
+        } else if (currentSaleType === 'product') {
+          const prodId = selectProduct.value;
+          const qty = parseInt(inputProductQty.value || 1);
+          if (prodId) {
+            const product = store.products.find(p => p.id === prodId);
+            if (product) {
+              cost = product.buyPrice * qty;
+            }
+          }
+        }
         
         const profit = (cash + upi + credit) - cost;
         profitDiv.innerText = `₹${profit.toFixed(2)}`;
@@ -552,17 +603,78 @@ export function renderTransactions(mountPoint, appInstance) {
         }
       };
 
-      // Fill values if editing
+      const setSaleType = (type) => {
+        currentSaleType = type;
+        if (type === 'service') {
+          btnServiceType.className = 'btn btn-sm btn-primary';
+          btnProductType.className = 'btn btn-sm btn-secondary';
+          containerService.style.display = 'block';
+          containerProduct.style.display = 'none';
+
+          // Reset product selector to prevent stock deduction
+          selectProduct.value = '';
+          inputProductQty.value = '1';
+        } else {
+          btnServiceType.className = 'btn btn-sm btn-secondary';
+          btnProductType.className = 'btn btn-sm btn-primary';
+          containerService.style.display = 'none';
+          containerProduct.style.display = 'block';
+
+          // Reset service fields
+          document.getElementById('sale-desc').value = '';
+          document.getElementById('sale-pages-printed').value = '0';
+          document.getElementById('sale-deduct-source').value = 'none';
+          document.getElementById('sale-deduct-amount-service').value = '0.00';
+
+          // Trigger initial product calculation
+          updateProductDetails();
+        }
+        updateProfitMath();
+      };
+
+      btnServiceType.addEventListener('click', () => setSaleType('service'));
+      btnProductType.addEventListener('click', () => setSaleType('product'));
+
+      // Product link helper to populate pricing
+      const updateProductDetails = () => {
+        const prodId = selectProduct.value;
+        const qty = parseInt(inputProductQty.value || 1);
+        if (prodId) {
+          const product = store.products.find(p => p.id === prodId);
+          if (product) {
+            const totalPrice = product.sellPrice * qty;
+            inputAmount.value = totalPrice.toFixed(2);
+            inputCash.value = totalPrice.toFixed(2);
+            inputUPI.value = '0.00';
+            inputCredit.value = '0.00';
+            updateProfitMath();
+          }
+        }
+      };
+
+      selectProduct.addEventListener('change', updateProductDetails);
+      inputProductQty.addEventListener('input', updateProductDetails);
+
+      const inputDeductService = document.getElementById('sale-deduct-amount-service');
+      if (inputDeductService) {
+        inputDeductService.addEventListener('input', updateProfitMath);
+      }
+
+      // Pre-fill values if editing
       if (editTxn) {
-        document.getElementById('sale-product-link').value = editTxn.productId || '';
-        document.getElementById('sale-desc').value = editTxn.description || '';
+        if (editTxn.productId) {
+          selectProduct.value = editTxn.productId;
+          inputProductQty.value = editTxn.quantity || 1;
+        } else {
+          document.getElementById('sale-desc').value = editTxn.description || '';
+          document.getElementById('sale-pages-printed').value = editTxn.pagesPrinted || 0;
+          document.getElementById('sale-deduct-source').value = editTxn.deductedFrom || 'none';
+          document.getElementById('sale-deduct-amount-service').value = editTxn.deductedAmount || 0;
+        }
         inputAmount.value = editTxn.amount || 0;
         inputCash.value = editTxn.paidByCash || 0;
         inputUPI.value = editTxn.paidByUPI || 0;
         inputCredit.value = editTxn.paidByCredit || 0;
-        document.getElementById('sale-pages-printed').value = editTxn.pagesPrinted || 0;
-        document.getElementById('sale-deduct-source').value = editTxn.deductedFrom || 'none';
-        inputDeduct.value = editTxn.deductedAmount || 0;
         document.getElementById('sale-customer').value = editTxn.customerId || '';
         updateProfitMath();
       }
@@ -593,29 +705,6 @@ export function renderTransactions(mountPoint, appInstance) {
         updateProfitMath();
       });
 
-      inputDeduct.addEventListener('input', updateProfitMath);
-
-      // Link product selection listener to auto-populate transaction fields
-      const selectProduct = document.getElementById('sale-product-link');
-      if (selectProduct) {
-        selectProduct.addEventListener('change', (e) => {
-          const prodId = e.target.value;
-          if (prodId) {
-            const product = store.products.find(p => p.id === prodId);
-            if (product) {
-              document.getElementById('sale-desc').value = product.name;
-              inputAmount.value = product.sellPrice.toFixed(2);
-              inputCash.value = product.sellPrice.toFixed(2);
-              inputUPI.value = '0.00';
-              inputCredit.value = '0.00';
-              document.getElementById('sale-deduct-source').value = 'none';
-              document.getElementById('sale-deduct-amount').value = product.buyPrice.toFixed(2);
-              updateProfitMath();
-            }
-          }
-        });
-      }
-
       // Submit handler
       document.getElementById('form-add-sale').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -624,9 +713,7 @@ export function renderTransactions(mountPoint, appInstance) {
         const cash = parseFloat(inputCash.value || 0);
         const upi = parseFloat(inputUPI.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
-        const deductCost = parseFloat(inputDeduct.value || 0);
         const customerId = document.getElementById('sale-customer').value;
-        const productId = document.getElementById('sale-product-link').value || null;
 
         if (Math.abs((cash + upi + credit) - amount) > 0.02) {
           alert('Total of Cash + UPI + Credit payments must match the total bill amount!');
@@ -638,18 +725,50 @@ export function renderTransactions(mountPoint, appInstance) {
           return;
         }
 
+        // Validate based on active tab
+        if (currentSaleType === 'service' && !document.getElementById('sale-desc').value.trim()) {
+          alert('Please enter a service type or description!');
+          return;
+        }
+        if (currentSaleType === 'product' && !selectProduct.value) {
+          alert('Please select a product from your inventory!');
+          return;
+        }
+
+        // Assemble variables based on type
+        const isProd = (currentSaleType === 'product');
+        const productId = isProd ? selectProduct.value : null;
+        const quantity = isProd ? parseInt(inputProductQty.value || 1) : 0;
+        
+        let description = '';
+        let pagesPrinted = 0;
+        let deductedFrom = 'none';
+        let deductedAmount = 0;
+
+        if (isProd) {
+          const selectedProduct = store.products.find(p => p.id === productId);
+          description = `${selectedProduct.name} (x${quantity})`;
+          deductedAmount = selectedProduct.buyPrice * quantity;
+        } else {
+          description = document.getElementById('sale-desc').value.trim();
+          pagesPrinted = parseInt(document.getElementById('sale-pages-printed').value || 0);
+          deductedFrom = document.getElementById('sale-deduct-source').value;
+          deductedAmount = parseFloat(document.getElementById('sale-deduct-amount-service').value || 0);
+        }
+
         const txnData = {
           type: 'sale',
-          description: document.getElementById('sale-desc').value,
+          description,
           amount,
           paidByCash: cash,
           paidByUPI: upi,
           paidByCredit: credit,
-          pagesPrinted: parseInt(document.getElementById('sale-pages-printed').value || 0),
-          deductedFrom: document.getElementById('sale-deduct-source').value,
-          deductedAmount: deductCost,
-          customerId: customerId,
+          pagesPrinted,
+          deductedFrom,
+          deductedAmount,
+          customerId,
           productId,
+          quantity,
           staffId: editTxn ? editTxn.staffId : 'STAFF-04'
         };
 
@@ -658,7 +777,7 @@ export function renderTransactions(mountPoint, appInstance) {
           appInstance.showToast('Transaction updated successfully', 'success');
         } else {
           store.addTransaction(activeDate, txnData);
-          appInstance.showToast('Service Sale registered successfully', 'success');
+          appInstance.showToast('Sale transaction recorded successfully!', 'success');
         }
 
         closeModal();
