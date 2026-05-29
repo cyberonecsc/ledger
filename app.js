@@ -63,6 +63,9 @@ class Application {
       localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
     }
 
+    // Trigger background auto-sync from GitHub Pages if running locally
+    this.checkAutoSync();
+
     // Bind hash change listener
     window.addEventListener('hashchange', () => this.handleRouting());
 
@@ -414,6 +417,87 @@ class Application {
     
     // Fallback cleanup
     setTimeout(cleanUp, 1000);
+  }
+
+  // Automatic Background Data Synchronization from GitHub Pages
+  checkAutoSync() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocal) return;
+
+    const todayStr = getTodayDateString();
+    const lastSyncDate = localStorage.getItem('cyberone_v2_last_sync_date');
+    if (lastSyncDate === todayStr) return; // Already synced today!
+
+    const iframe = document.createElement('iframe');
+    iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+      window.removeEventListener('message', handleMessage);
+    };
+
+    // Silently stop trying after 8 seconds if GitHub is offline or not deployed yet
+    const timeoutId = setTimeout(cleanup, 8000);
+
+    const self = this;
+    function handleMessage(event) {
+      if (event.origin === 'https://cyberonecsc.github.io') {
+        if (event.data && event.data.type === 'sync_data_response') {
+          clearTimeout(timeoutId);
+          const backup = event.data.data;
+          const keys = Object.keys(backup);
+          
+          if (keys.length > 0) {
+            let hasChanges = false;
+            
+            // Check if there are differences before overwriting and reloading
+            keys.forEach(key => {
+              if (key.startsWith('cyberone_v2_') && key !== 'cyberone_v2_last_sync_date' && key !== 'cyberone_v2_sidebar_collapsed') {
+                const localVal = localStorage.getItem(key);
+                if (localVal !== backup[key]) {
+                  hasChanges = true;
+                }
+              }
+            });
+
+            // Write sync payload to local storage
+            keys.forEach(key => {
+              if (key.startsWith('cyberone_v2_')) {
+                localStorage.setItem(key, backup[key]);
+              }
+            });
+
+            // Set the sync timestamp to prevent subsequent sync requests today
+            localStorage.setItem('cyberone_v2_last_sync_date', todayStr);
+
+            if (hasChanges) {
+              self.showToast('Background Auto-Sync: Updated data from GitHub Pages.', 'info');
+              setTimeout(() => {
+                window.location.reload();
+              }, 1200);
+            }
+          } else {
+            // No data on GitHub to pull, mark today as checked
+            localStorage.setItem('cyberone_v2_last_sync_date', todayStr);
+          }
+          cleanup();
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage);
+
+    iframe.onload = () => {
+      setTimeout(() => {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage('request_sync_data', 'https://cyberonecsc.github.io');
+        }
+      }, 800);
+    };
   }
 }
 
