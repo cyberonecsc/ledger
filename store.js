@@ -1290,7 +1290,13 @@ class StateStore {
     const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
     const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
 
-    if (!token) return;
+    if (!token) {
+      console.warn('GitHub Personal Access Token is missing. Remote edits will not persist!');
+      if (window.AppInstance && typeof window.AppInstance.showToast === 'function') {
+        window.AppInstance.showToast('Warning: GitHub Token missing in settings. Changes will not sync!', 'error');
+      }
+      return;
+    }
 
     try {
       const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
@@ -1320,7 +1326,8 @@ class StateStore {
       }
 
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-      const putRes = await fetch(url, {
+      const putUrl = url.split('?')[0]; // Clean PUT URL without ref query parameter
+      const putRes = await fetch(putUrl, {
         method: 'PUT',
         headers: {
           'Authorization': `token ${token}`,
