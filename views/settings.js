@@ -157,7 +157,10 @@ export function renderSettings(mountPoint, appInstance) {
     localStorage.setItem('cyberone_v2_github_repo', repo);
     localStorage.setItem('cyberone_v2_github_branch', branch);
 
-    appInstance.showToast('GitHub Sync parameters saved!', 'success');
+    // Trigger immediate disk save and git push
+    store.persistAll();
+
+    appInstance.showToast('GitHub Sync parameters saved & synced!', 'success');
   });
 }
 
