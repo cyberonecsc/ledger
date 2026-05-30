@@ -196,18 +196,7 @@ class Application {
           return;
         }
 
-        let updated = false;
-        Object.keys(remoteData).forEach(key => {
-          let value = remoteData[key];
-          if (key === 'cyberone_v2_github_token') {
-            value = deobfuscateToken(value);
-          }
-          const localVal = localStorage.getItem(key);
-          if (localVal !== value) {
-            localStorage.setItem(key, value);
-            updated = true;
-          }
-        });
+        const updated = this.mergeSyncData(remoteData);
         
         if (updated) {
           console.log("LocalStorage updated with remote database contents");
@@ -757,14 +746,22 @@ class Application {
   }
 
   mergeSyncData(remoteBackup) {
+    let changed = false;
     const keys = Object.keys(remoteBackup);
     keys.forEach(key => {
       if (key.startsWith('cyberone_v2_')) {
         const localRaw = localStorage.getItem(key);
-        const remoteRaw = remoteBackup[key];
+        let remoteRaw = remoteBackup[key];
+        
+        if (key === 'cyberone_v2_github_token') {
+          remoteRaw = deobfuscateToken(remoteRaw);
+        }
         
         if (!localRaw || localRaw === '[]' || localRaw === '{}') {
-          localStorage.setItem(key, remoteRaw);
+          if (localRaw !== remoteRaw) {
+            localStorage.setItem(key, remoteRaw);
+            changed = true;
+          }
           return;
         }
         
@@ -772,6 +769,7 @@ class Application {
           try {
             const localLogs = JSON.parse(localRaw || '{}');
             const remoteLogs = JSON.parse(remoteRaw || '{}');
+            let logChanged = false;
             const mergedLogs = { ...remoteLogs, ...localLogs };
             
             Object.keys(mergedLogs).forEach(date => {
@@ -783,13 +781,26 @@ class Application {
                 remoteTxns.forEach(t => txnMap.set(t.id, t));
                 localTxns.forEach(t => txnMap.set(t.id, t));
                 
-                mergedLogs[date].transactions = Array.from(txnMap.values());
+                const mergedTxns = Array.from(txnMap.values());
+                if (JSON.stringify(localLogs[date].transactions) !== JSON.stringify(mergedTxns)) {
+                  mergedLogs[date].transactions = mergedTxns;
+                  logChanged = true;
+                }
+              } else if (!localLogs[date] && remoteLogs[date]) {
+                logChanged = true;
               }
             });
-            localStorage.setItem(key, JSON.stringify(mergedLogs));
+            
+            if (logChanged) {
+              localStorage.setItem(key, JSON.stringify(mergedLogs));
+              changed = true;
+            }
           } catch (e) {
             console.error("Failed to merge daily logs", e);
-            localStorage.setItem(key, remoteRaw);
+            if (localRaw !== remoteRaw) {
+              localStorage.setItem(key, remoteRaw);
+              changed = true;
+            }
           }
         } else if (key === 'cyberone_v2_activity_logs') {
           try {
@@ -799,9 +810,15 @@ class Application {
             remoteAct.forEach(a => actMap.set(a.id, a));
             localAct.forEach(a => actMap.set(a.id, a));
             const mergedAct = Array.from(actMap.values()).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            localStorage.setItem(key, JSON.stringify(mergedAct));
+            if (JSON.stringify(localAct) !== JSON.stringify(mergedAct)) {
+              localStorage.setItem(key, JSON.stringify(mergedAct));
+              changed = true;
+            }
           } catch(e) {
-            localStorage.setItem(key, remoteRaw);
+            if (localRaw !== remoteRaw) {
+              localStorage.setItem(key, remoteRaw);
+              changed = true;
+            }
           }
         } else {
           try {
@@ -817,20 +834,34 @@ class Application {
                   map.set(item.id, existing ? { ...existing, ...item } : item);
                 }
               });
-              localStorage.setItem(key, JSON.stringify(Array.from(map.values())));
+              const mergedArr = Array.from(map.values());
+              if (JSON.stringify(localData) !== JSON.stringify(mergedArr)) {
+                localStorage.setItem(key, JSON.stringify(mergedArr));
+                changed = true;
+              }
             } else if (localData && typeof localData === 'object' && remoteData && typeof remoteData === 'object') {
               const mergedObj = { ...localData, ...remoteData };
-              localStorage.setItem(key, JSON.stringify(mergedObj));
+              if (JSON.stringify(localData) !== JSON.stringify(mergedObj)) {
+                localStorage.setItem(key, JSON.stringify(mergedObj));
+                changed = true;
+              }
             } else {
-              localStorage.setItem(key, remoteRaw);
+              if (localRaw !== remoteRaw) {
+                localStorage.setItem(key, remoteRaw);
+                changed = true;
+              }
             }
           } catch(e) {
             console.error("Failed to merge key " + key, e);
-            localStorage.setItem(key, remoteRaw);
+            if (localRaw !== remoteRaw) {
+              localStorage.setItem(key, remoteRaw);
+              changed = true;
+            }
           }
         }
       }
     });
+    return changed;
   }
 
   syncDatabase() {
