@@ -84,12 +84,43 @@ class Application {
   }
 
   async loadDatabaseFromGitHub() {
+    const token = localStorage.getItem('cyberone_v2_github_token');
+    const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
+    const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     try {
-      const response = await fetch('./db.json?t=' + Date.now());
-      if (response.ok) {
-        const remoteData = await response.json();
+      let remoteData = null;
+
+      if (!isLocalhost && token) {
+        // Fetch directly from GitHub REST API to get the absolute latest commit instantly,
+        // bypassing GitHub Pages build/deployment latency.
+        const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (response.ok) {
+          const fileData = await response.json();
+          const decoded = decodeURIComponent(escape(atob(fileData.content)));
+          remoteData = JSON.parse(decoded);
+          console.log("Database successfully fetched directly from GitHub REST API");
+        }
+      }
+
+      // If we couldn't fetch from GitHub API (or are on localhost), fallback to relative fetch
+      if (!remoteData) {
+        const response = await fetch('./db.json?t=' + Date.now());
+        if (response.ok) {
+          remoteData = await response.json();
+          console.log("Database fetched from relative db.json path");
+        }
+      }
+
+      if (remoteData) {
         let updated = false;
-        
         Object.keys(remoteData).forEach(key => {
           const localVal = localStorage.getItem(key);
           if (localVal !== remoteData[key]) {
@@ -99,12 +130,12 @@ class Application {
         });
         
         if (updated) {
-          console.log("Database successfully synced from db.json");
+          console.log("LocalStorage updated with remote database contents");
           store.loadState();
         }
       }
     } catch (e) {
-      console.error("Could not fetch database from GitHub Pages:", e);
+      console.error("Could not fetch remote database:", e);
     }
   }
 
