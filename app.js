@@ -342,10 +342,11 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
-              <!-- Universal Date Picker Badge -->
-              <div class="date-badge">
-                <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
-                <input type="date" id="global-date-picker" value="${activeDate}" style="background:none; border:none; color:inherit; font-weight:inherit; outline:none; cursor:pointer;">
+              <!-- Live Header Clock -->
+              <div class="header-clock" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid var(--panel-border); padding:6px 14px; border-radius:var(--border-radius-sm); font-size:12px; color:#fff; font-weight:600; user-select:none; -webkit-user-select:none;">
+                <i data-lucide="clock" style="width: 13px; height: 13px; color: var(--color-primary);"></i>
+                <span id="header-clock-date" style="color: var(--text-muted); font-size:11px; margin-right: 4px;"></span>
+                <span id="header-clock-time" style="font-family: 'Outfit', 'Inter', monospace; color: var(--color-primary); font-weight:700; font-size:13px; letter-spacing:0.5px;"></span>
               </div>
             </div>
           </header>
@@ -417,11 +418,19 @@ class Application {
 
 
 
-    // Date picker handler
-    const datePicker = document.getElementById('global-date-picker');
-    datePicker.addEventListener('change', (e) => {
-      this.setActiveDate(e.target.value);
-    });
+    // Live ticking clock handler for the header
+    const updateHeaderClock = () => {
+      const timeEl = document.getElementById('header-clock-time');
+      const dateEl = document.getElementById('header-clock-date');
+      if (!timeEl || !dateEl) return;
+      
+      const now = new Date();
+      timeEl.innerText = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      dateEl.innerText = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    };
+    updateHeaderClock();
+    if (window.headerClockInterval) clearInterval(window.headerClockInterval);
+    window.headerClockInterval = setInterval(updateHeaderClock, 1000);
 
     // Mount page view
     const mountPoint = document.getElementById('page-mount');

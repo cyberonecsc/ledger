@@ -148,15 +148,6 @@ export function renderDashboard(mountPoint, appInstance) {
   };
 
   mountPoint.innerHTML = `
-    <!-- Live Digital Clock Display -->
-    <div class="dashboard-clock-card glass-card" style="padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.02); margin-bottom: 25px; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
-      <div>
-        <h3 style="font-size: 13px; font-weight: 500; color: var(--text-muted); margin: 0; text-transform: uppercase; letter-spacing: 1px;">Live Center Clock</h3>
-        <p id="dashboard-clock-date" style="font-size: 15px; font-weight: 600; color: #fff; margin: 4px 0 0 0;"></p>
-      </div>
-      <div id="dashboard-clock-time" style="font-family: 'Outfit', 'Inter', monospace; font-size: 26px; font-weight: 800; color: var(--color-primary); text-shadow: 0 0 10px var(--color-primary-glow); letter-spacing: 1px;"></div>
-    </div>
-
     <!-- Quick Action Shortcut Buttons -->
     <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px;">
       <a href="#transactions?action=new-sale" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.08); transition: var(--transition-smooth);">
@@ -603,20 +594,7 @@ export function renderDashboard(mountPoint, appInstance) {
     });
   }
 
-  // Initialize Live Clock Interval
-  const updateClock = () => {
-    const timeEl = document.getElementById('dashboard-clock-time');
-    const dateEl = document.getElementById('dashboard-clock-date');
-    if (!timeEl || !dateEl) {
-      clearInterval(clockInterval);
-      return;
-    }
-    const now = new Date();
-    timeEl.innerText = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-    dateEl.innerText = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  };
-  updateClock();
-  const clockInterval = setInterval(updateClock, 1000);
+
 
   lucide.createIcons();
 }
