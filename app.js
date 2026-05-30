@@ -187,6 +187,15 @@ class Application {
       }
 
       if (remoteData) {
+        // Compare remote and local last_modified timestamps to prevent overwriting with stale remote content
+        const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
+        const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
+        
+        if (localLastModified && remoteLastModified && new Date(localLastModified) > new Date(remoteLastModified)) {
+          console.log(`Remote data is stale (${remoteLastModified}) compared to local changes (${localLastModified}). Skipping overwrite.`);
+          return;
+        }
+
         let updated = false;
         Object.keys(remoteData).forEach(key => {
           let value = remoteData[key];

@@ -337,6 +337,7 @@ class StateStore {
   }
 
   persistAll() {
+    localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
     this.saveItem('cyberone_v2_wallets', this.wallets);
     this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
     this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
