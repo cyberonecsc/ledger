@@ -344,7 +344,7 @@ class Application {
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
               <!-- Live Header Clock -->
               <div class="header-clock" style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; background:rgba(255,255,255,0.03); border:1px solid var(--panel-border); padding:4px 12px; border-radius:var(--border-radius-sm); user-select:none; -webkit-user-select:none;">
-                <span id="header-clock-time" style="font-family: 'Outfit', 'Inter', monospace; color: var(--color-primary); font-weight:800; font-size:12px; letter-spacing:0.5px; line-height:1.2;"></span>
+                <span id="header-clock-time" style="font-family: 'Outfit', 'Inter', monospace; color: var(--color-primary); font-weight:800; font-size:15px; letter-spacing:0.5px; line-height:1.2;"></span>
                 <span id="header-clock-date" style="color: #fff; font-size:13px; font-weight:700; margin-top:2px; line-height:1.2;"></span>
               </div>
             </div>
