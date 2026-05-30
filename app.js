@@ -108,13 +108,15 @@ class Application {
         const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
         const response = await fetch(url, {
           headers: {
-            'Authorization': `token ${token}`,
+            'Authorization': `Bearer ${token}`,
             'Accept': 'application/vnd.github.v3+json'
           }
         });
         if (response.ok) {
           const fileData = await response.json();
-          const decoded = decodeURIComponent(escape(atob(fileData.content)));
+          // Remove all whitespace/newlines from base64 content before running atob() to prevent parser exceptions
+          const cleanBase64 = fileData.content.replace(/\s/g, '');
+          const decoded = decodeURIComponent(escape(atob(cleanBase64)));
           remoteData = JSON.parse(decoded);
           console.log("Database successfully fetched directly from GitHub REST API");
         }

@@ -1322,7 +1322,7 @@ class StateStore {
       const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
       const fileRes = await fetch(url, {
         headers: {
-          'Authorization': `token ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3+json'
         }
       });
@@ -1354,7 +1354,7 @@ class StateStore {
       const putRes = await fetch(putUrl, {
         method: 'PUT',
         headers: {
-          'Authorization': `token ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json'
         },
