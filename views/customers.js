@@ -406,6 +406,26 @@ export function renderCustomers(mountPoint, appInstance) {
       renderIDCardModal(customer, container, backdrop, appInstance);
     });
   });
+
+  // Customer Deletion handler
+  const deleteCustBtns = document.querySelectorAll('.btn-delete-cust');
+  deleteCustBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const custId = e.currentTarget.getAttribute('data-id');
+      const customer = customers.find(c => c.id === custId);
+      if (!customer) return;
+
+      if (confirm(`Are you sure you want to delete customer "${customer.name}"? This will permanently remove their profile.`)) {
+        const deleted = store.deleteCustomer(custId);
+        if (deleted) {
+          appInstance.showToast(`Deleted customer: ${customer.name}`, 'success');
+          appInstance.handleRouting();
+        } else {
+          appInstance.showToast('Failed to delete customer', 'error');
+        }
+      }
+    });
+  });
 }
 
 function renderIDCardModal(customer, container, backdrop, appInstance) {
@@ -533,6 +553,9 @@ function renderCustomerTableRows(customers) {
         </button>
         <button class="btn btn-sm btn-secondary btn-idcard-cust" data-id="${c.id}" style="margin-left:5px; border-color:rgba(99,102,241,0.25);">
           <i data-lucide="contact" style="width: 14px; height: 14px; margin-right: 4px; color: var(--color-primary);"></i> ID Card
+        </button>
+        <button class="btn btn-sm btn-danger btn-delete-cust" data-id="${c.id}" style="margin-left:5px;">
+          <i data-lucide="trash-2" style="width: 14px; height: 14px; margin-right: 4px;"></i> Delete
         </button>
       </td>
     </tr>

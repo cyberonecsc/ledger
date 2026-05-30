@@ -21,6 +21,7 @@ import { renderUserManagement } from './views/users.js';
 import { renderAEPS } from './views/aeps.js';
 import { renderAuditLog } from './views/audit.js';
 import { renderBackupRestore } from './views/backup.js';
+import { renderWebsites } from './views/websites.js';
 
 
 // Route configurations and permission keys
@@ -28,6 +29,7 @@ const ROUTES = {
   '#login': { render: renderLogin, public: true },
   '#dashboard': { render: renderDashboard, permission: 'manage_ledger' }, // Base landing
   '#transactions': { render: renderTransactions, permission: 'manage_ledger' },
+  '#websites': { render: renderWebsites, permission: 'manage_applications' },
   '#applications': { render: renderApplications, permission: 'manage_applications' },
   '#invoices': { render: renderInvoices, permission: 'manage_ledger' },
   '#accounts': { render: renderAccounts, permission: 'manage_accounts' },
@@ -49,7 +51,7 @@ class Application {
     this.init();
   }
 
-  init() {
+  async init() {
     // Hide initial loading screen
     const loadingScreen = document.getElementById('app-loading');
     if (loadingScreen) {
@@ -67,8 +69,8 @@ class Application {
       localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
     }
 
-    // Trigger background auto-sync from GitHub Pages if running locally
-    this.checkAutoSync();
+    // Load database from GitHub Pages db.json relative location on boot
+    await this.loadDatabaseFromGitHub();
 
     // Trigger scheduled backup check
     this.checkScheduledBackup();
@@ -79,6 +81,31 @@ class Application {
 
     // Trigger initial route load
     this.handleRouting();
+  }
+
+  async loadDatabaseFromGitHub() {
+    try {
+      const response = await fetch('./db.json?t=' + Date.now());
+      if (response.ok) {
+        const remoteData = await response.json();
+        let updated = false;
+        
+        Object.keys(remoteData).forEach(key => {
+          const localVal = localStorage.getItem(key);
+          if (localVal !== remoteData[key]) {
+            localStorage.setItem(key, remoteData[key]);
+            updated = true;
+          }
+        });
+        
+        if (updated) {
+          console.log("Database successfully synced from db.json");
+          store.loadState();
+        }
+      }
+    } catch (e) {
+      console.error("Could not fetch database from GitHub Pages:", e);
+    }
   }
 
   getActiveDate() {
@@ -225,6 +252,9 @@ class Application {
             </li>
             <li class="sidebar-item ${this.activeRoute === '#transactions' ? 'active' : ''}">
               <a href="#transactions"><i data-lucide="receipt" style="width: 18px; height: 18px;"></i><span>Transactions</span></a>
+            </li>
+            <li class="sidebar-item ${this.activeRoute === '#websites' ? 'active' : ''}">
+              <a href="#websites"><i data-lucide="globe" style="width: 18px; height: 18px;"></i><span>Important Websites</span></a>
             </li>
             <li class="sidebar-item ${this.activeRoute === '#invoices' ? 'active' : ''}">
               <a href="#invoices"><i data-lucide="printer" style="width: 18px; height: 18px;"></i><span>Invoices</span></a>

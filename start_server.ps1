@@ -31,6 +31,49 @@ while ($listener.IsListening) {
         $response = $context.Response
         
         $path = $request.Url.LocalPath
+        if ($request.HttpMethod -eq "OPTIONS") {
+            $response.AddHeader("Access-Control-Allow-Origin", "*")
+            $response.AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+            $response.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            $response.StatusCode = 200
+            $response.OutputStream.Close()
+            continue
+        }
+
+        if ($request.HttpMethod -eq "POST" -and $path -eq "/api/save") {
+            try {
+                $reader = New-Object System.IO.StreamReader($request.InputStream)
+                $body = $reader.ReadToEnd()
+                $reader.Close()
+                
+                $dbPath = Join-Path $PSScriptRoot "db.json"
+                [System.IO.File]::WriteAllText($dbPath, $body)
+                
+                # Run background Git push job and log results
+                Start-Job -ScriptBlock {
+                    param($repoPath)
+                    cd $repoPath
+                    $logFile = Join-Path $repoPath "git_sync.log"
+                    Get-Date | Out-File $logFile -Append
+                    git add db.json 2>&1 | Out-File $logFile -Append
+                    git commit -m "Auto-sync database update" 2>&1 | Out-File $logFile -Append
+                    git push origin main 2>&1 | Out-File $logFile -Append
+                } -ArgumentList $PSScriptRoot | Out-Null
+                
+                $response.ContentType = "application/json"
+                $response.AddHeader("Access-Control-Allow-Origin", "*")
+                $response.StatusCode = 200
+                $resBytes = [System.Text.Encoding]::UTF8.GetBytes('{"status":"success"}')
+                $response.OutputStream.Write($resBytes, 0, $resBytes.Length)
+            } catch {
+                $response.StatusCode = 500
+                $resBytes = [System.Text.Encoding]::UTF8.GetBytes('{"status":"error","message":"' + $_.Exception.Message + '"}')
+                $response.OutputStream.Write($resBytes, 0, $resBytes.Length)
+            }
+            $response.OutputStream.Close()
+            continue
+        }
+
         if ($path -eq "/" -or [string]::IsNullOrEmpty($path)) { 
             $path = "/index.html" 
         }

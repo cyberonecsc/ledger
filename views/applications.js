@@ -27,18 +27,31 @@ export function renderApplications(mountPoint, appInstance) {
       });
     }
 
-    // Group apps into 3 columns
+    // Group apps into 4 columns
     const columns = {
       submitted: { title: 'Submitted to Portal', items: [], color: 'var(--color-info)' },
       pending_docs: { title: 'Pending Documents', items: [], color: 'var(--color-warning)' },
-      approved: { title: 'Approved / Ready', items: [], color: 'var(--color-success)' }
+      approved: { title: 'Approved / Ready', items: [], color: 'var(--color-success)' },
+      history: { title: 'History / Archived', items: 'var(--text-muted)'.startsWith('var') ? [] : [], color: 'var(--text-muted)' }
     };
 
+    const activeDateStr = appInstance.getActiveDate();
+    const activeDate = new Date(activeDateStr);
+
     filteredApps.forEach(app => {
-      // Map other status values safely into these 3 columns
+      // Map other status values safely into these columns
       let statusKey = app.status;
       if (statusKey === 'draft') statusKey = 'submitted';
       if (statusKey === 'ready_to_print' || statusKey === 'delivered') statusKey = 'approved';
+
+      if (statusKey === 'approved' && app.lastUpdated) {
+        const lastUpdatedDate = new Date(app.lastUpdated);
+        const diffTime = activeDate - lastUpdatedDate;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        if (diffDays >= 3) {
+          statusKey = 'history';
+        }
+      }
 
       if (columns[statusKey]) {
         columns[statusKey].items.push(app);
@@ -101,6 +114,15 @@ export function renderApplications(mountPoint, appInstance) {
                       </button>
                     `;
                   } else if (statusKey === 'approved') {
+                    buttonsHtml = `
+                      <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="submitted" style="flex:1; font-size:10px; padding: 3px; background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.25); color: var(--color-info);">
+                        <i data-lucide="send" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Submit
+                      </button>
+                      <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="pending_docs" style="flex:1; font-size:10px; padding: 3px; background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.25); color: var(--color-warning);">
+                        <i data-lucide="file-warning" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Pending
+                      </button>
+                    `;
+                  } else if (statusKey === 'history') {
                     buttonsHtml = `
                       <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="submitted" style="flex:1; font-size:10px; padding: 3px; background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.25); color: var(--color-info);">
                         <i data-lucide="send" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Submit

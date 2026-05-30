@@ -71,23 +71,72 @@ export function renderDashboard(mountPoint, appInstance) {
 
   // Calculate today's transaction types breakdown for Donut Chart
   const txnGroups = {
-    sale: { label: 'Sales', count: 0, amount: 0, color: 'var(--color-success)' },
-    expense: { label: 'Expenses', count: 0, amount: 0, color: 'var(--color-danger)' },
-    deposit: { label: 'Deposits', count: 0, amount: 0, color: 'var(--color-info)' },
-    adjustment: { label: 'Adjustments', count: 0, amount: 0, color: 'var(--color-warning)' }
+    photocopy: { label: 'Photocopy', count: 0, amount: 0, color: '#10b981' },
+    dtp: { label: 'DTP & Typing', count: 0, amount: 0, color: '#8b5cf6' },
+    print: { label: 'Print & Lamination', count: 0, amount: 0, color: '#f59e0b' },
+    apps: { label: 'Online Applications', count: 0, amount: 0, color: '#0ea5e9' },
+    transfer: { label: 'AEPS & Transfer', count: 0, amount: 0, color: '#06b6d4' },
+    recharges: { label: 'Recharges', count: 0, amount: 0, color: '#ec4899' },
+    bills: { label: 'Bills Payment', count: 0, amount: 0, color: '#f43f5e' },
+    salaries: { label: 'Salaries & Payroll', count: 0, amount: 0, color: '#6366f1' },
+    sales_misc: { label: 'Other Sales', count: 0, amount: 0, color: '#14b8a6' },
+    expense_misc: { label: 'Other Expenses', count: 0, amount: 0, color: '#ef4444' },
+    deposits: { label: 'Deposits', count: 0, amount: 0, color: '#3b82f6' }
   };
 
   if (dailyLog && dailyLog.transactions) {
     dailyLog.transactions.forEach(t => {
-      const type = (t.type === 'salary') ? 'expense' : t.type;
-      if (txnGroups[type]) {
-        txnGroups[type].count++;
-        txnGroups[type].amount += parseFloat(t.amount || 0);
+      if (t.type === 'adjustment') return; // Skip adjustments entirely
+
+      let groupKey = 'sales_misc';
+      
+      if (t.type === 'salary') {
+        groupKey = 'salaries';
+      } else if (t.type === 'expense') {
+        const desc = (t.description || '').toLowerCase();
+        if (desc.includes('bill') || desc.includes('kseb') || desc.includes('electricity') || desc.includes('water') || desc.includes('rent') || desc.includes('internet')) {
+          groupKey = 'bills';
+        } else {
+          groupKey = 'expense_misc';
+        }
+      } else if (t.type === 'deposit') {
+        groupKey = 'deposits';
+      } else if (t.type === 'sale') {
+        const desc = (t.description || '').toLowerCase();
+        if (desc.includes('photocopy') || desc.includes('xerox')) {
+          groupKey = 'photocopy';
+        } else if (desc.includes('dtp') || desc.includes('typing') || desc.includes('design')) {
+          groupKey = 'dtp';
+        } else if (desc.includes('print') || desc.includes('laminat')) {
+          groupKey = 'print';
+        } else if (desc.includes('application') || desc.includes('pan') || desc.includes('passport') || desc.includes('e-district') || desc.includes('enrolment') || desc.includes('admission') || desc.includes('epfo')) {
+          groupKey = 'apps';
+        } else if (desc.includes('transfer') || desc.includes('aeps') || desc.includes('withdr') || desc.includes('payout')) {
+          groupKey = 'transfer';
+        } else if (desc.includes('recharge') || desc.includes('top-up') || desc.includes('topup') || desc.includes('bsnl') || desc.includes('vi') || desc.includes('airtel')) {
+          groupKey = 'recharges';
+        } else if (desc.includes('bill') || desc.includes('kseb') || desc.includes('electricity')) {
+          groupKey = 'bills';
+        }
+      }
+
+      if (txnGroups[groupKey]) {
+        txnGroups[groupKey].count++;
+        txnGroups[groupKey].amount += parseFloat(t.amount || 0);
       }
     });
   }
 
-  const totalTxnVolume = Object.values(txnGroups).reduce((sum, g) => sum + g.amount, 0);
+  // Filter out 0 value groups
+  const activeTxnGroups = Object.keys(txnGroups)
+    .filter(key => txnGroups[key].amount > 0 || txnGroups[key].count > 0)
+    .reduce((obj, key) => {
+      obj[key] = txnGroups[key];
+      return obj;
+    }, {});
+
+  const totalTxnVolume = Object.values(activeTxnGroups).reduce((sum, g) => sum + g.amount, 0);
+  const totalTxnCount = dailyLog && dailyLog.transactions ? dailyLog.transactions.filter(t => t.type !== 'adjustment').length : 0;
 
   // Format currency helper
   const fmt = (val) => {
@@ -99,6 +148,15 @@ export function renderDashboard(mountPoint, appInstance) {
   };
 
   mountPoint.innerHTML = `
+    <!-- Live Digital Clock Display -->
+    <div class="dashboard-clock-card glass-card" style="padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.02); margin-bottom: 25px; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
+      <div>
+        <h3 style="font-size: 13px; font-weight: 500; color: var(--text-muted); margin: 0; text-transform: uppercase; letter-spacing: 1px;">Live Center Clock</h3>
+        <p id="dashboard-clock-date" style="font-size: 15px; font-weight: 600; color: #fff; margin: 4px 0 0 0;"></p>
+      </div>
+      <div id="dashboard-clock-time" style="font-family: 'Outfit', 'Inter', monospace; font-size: 26px; font-weight: 800; color: var(--color-primary); text-shadow: 0 0 10px var(--color-primary-glow); letter-spacing: 1px;"></div>
+    </div>
+
     <!-- Quick Action Shortcut Buttons -->
     <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px;">
       <a href="#transactions?action=new-sale" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.08); transition: var(--transition-smooth);">
@@ -331,7 +389,7 @@ export function renderDashboard(mountPoint, appInstance) {
             <svg viewBox="0 0 100 100" style="width: 130px; height: 130px; transform: rotate(-90deg);">
               ${(() => {
                 let cumulativePercent = 0;
-                return totalTxnVolume > 0 ? Object.values(txnGroups).map(g => {
+                return totalTxnVolume > 0 ? Object.values(activeTxnGroups).map(g => {
                   if (g.amount === 0 || totalTxnVolume === 0) return '';
                   const percentage = g.amount / totalTxnVolume;
                   const segmentLength = percentage * 251.3;
@@ -342,14 +400,14 @@ export function renderDashboard(mountPoint, appInstance) {
               })()}
             </svg>
             <div style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-              <span style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; line-height: 1;">${dailyLog.transactions ? dailyLog.transactions.length : 0}</span>
+              <span style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; line-height: 1;">${totalTxnCount}</span>
               <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Txns</span>
             </div>
           </div>
           
           <!-- Legend -->
-          <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 8px;">
-            ${Object.values(txnGroups).map(g => {
+          <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px;">
+            ${Object.values(activeTxnGroups).map(g => {
               const pct = totalTxnVolume > 0 ? ((g.amount / totalTxnVolume) * 100).toFixed(0) : 0;
               return `
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
@@ -544,6 +602,21 @@ export function renderDashboard(mountPoint, appInstance) {
       appInstance.setActiveDate(e.target.value);
     });
   }
+
+  // Initialize Live Clock Interval
+  const updateClock = () => {
+    const timeEl = document.getElementById('dashboard-clock-time');
+    const dateEl = document.getElementById('dashboard-clock-date');
+    if (!timeEl || !dateEl) {
+      clearInterval(clockInterval);
+      return;
+    }
+    const now = new Date();
+    timeEl.innerText = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    dateEl.innerText = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  };
+  updateClock();
+  const clockInterval = setInterval(updateClock, 1000);
 
   lucide.createIcons();
 }

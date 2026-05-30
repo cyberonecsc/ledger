@@ -62,6 +62,15 @@ const INITIAL_PRODUCTS = [
 // Initial seeded Government G2C applications
 const INITIAL_APPLICATIONS = [];
 
+// Initial preseed websites for Kerala CSC operator
+const INITIAL_WEBSITES = [
+  { id: 'WEB-1', name: 'e-District Kerala', url: 'https://edistrict.kerala.gov.in/', userId: '', password: '', notes: 'Certificate applications & revenue services', visitCount: 0 },
+  { id: 'WEB-2', name: 'Digital Seva / CSC', url: 'https://connect.digitalseva.gov.in/', userId: '', password: '', notes: 'CSC portal wallet & G2C services', visitCount: 0 },
+  { id: 'WEB-3', name: 'Aadhaar Portal (UIDAI)', url: 'https://myaadhaar.uidai.gov.in/', userId: '', password: '', notes: 'Aadhaar downloads, updates, and verify', visitCount: 0 },
+  { id: 'WEB-4', name: 'Income Tax Portal', url: 'https://www.incometax.gov.in/', userId: '', password: '', notes: 'PAN card services & filing return', visitCount: 0 },
+  { id: 'WEB-5', name: 'EPFO Member Portal', url: 'https://unifiedportal-mem.epfindia.gov.in/memberinterface/', userId: '', password: '', notes: 'PF balance & withdrawal portal', visitCount: 0 }
+];
+
 // Master data structure loading from LocalStorage or initializing
 class StateStore {
   constructor() {
@@ -71,6 +80,7 @@ class StateStore {
   loadState() {
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
+    this.websites = this.getItem('cyberone_v2_websites', INITIAL_WEBSITES);
     this.initialBalances = this.getItem('cyberone_v2_initial_balances', INITIAL_BALANCES);
     if (this.initialBalances.digipay !== undefined) {
       delete this.initialBalances.digipay;
@@ -301,9 +311,13 @@ class StateStore {
     this.saveItem('cyberone_v2_invoices', this.invoices);
     this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
     this.saveItem('cyberone_v2_center_profile', this.centerProfile);
+    this.saveItem('cyberone_v2_websites', this.websites);
     
-    // Background sync localhost changes to GitHub Pages
+    // Background sync changes to GitHub Pages
     this.syncToGitHubPages();
+    
+    // Auto-sync database changes
+    this.syncDatabaseState();
   }
 
   updateInitialBalances(balances) {
@@ -768,6 +782,16 @@ class StateStore {
     return this.customers[idx];
   }
 
+  deleteCustomer(customerId) {
+    const idx = this.customers.findIndex(c => c.id === customerId);
+    if (idx === -1) return false;
+    const name = this.customers[idx].name;
+    this.customers.splice(idx, 1);
+    this.logActivity('Delete Customer', `Deleted registered customer ${customerId}: "${name}"`);
+    this.persistAll();
+    return true;
+  }
+
   logCustomerVisit(customerId, dateString) {
     const customer = this.customers.find(c => c.id === customerId);
     if (customer) {
@@ -1171,6 +1195,154 @@ class StateStore {
 
   saveAutoBackupConfig(config) {
     localStorage.setItem('cyberone_v2_auto_backup_config', JSON.stringify(config));
+  }
+
+  // Websites Credentials Vault Methods
+  addWebsite(data) {
+    const id = 'WEB-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const newWeb = {
+      id,
+      name: data.name,
+      url: data.url,
+      userId: data.userId || '',
+      password: data.password || '',
+      notes: data.notes || '',
+      visitCount: 0
+    };
+    if (!this.websites) this.websites = [];
+    this.websites.push(newWeb);
+    this.logActivity('Add Website', `Added website "${newWeb.name}" to credential vault`);
+    this.persistAll();
+    return newWeb;
+  }
+
+  updateWebsite(webId, data) {
+    const idx = this.websites.findIndex(w => w.id === webId);
+    if (idx === -1) return null;
+    this.websites[idx] = {
+      ...this.websites[idx],
+      ...data
+    };
+    this.logActivity('Edit Website', `Updated details for website "${this.websites[idx].name}"`);
+    this.persistAll();
+    return this.websites[idx];
+  }
+
+  deleteWebsite(webId) {
+    const idx = this.websites.findIndex(w => w.id === webId);
+    if (idx === -1) return false;
+    const name = this.websites[idx].name;
+    this.websites.splice(idx, 1);
+    this.logActivity('Delete Website', `Removed website "${name}" from credential vault`);
+    this.persistAll();
+    return true;
+  }
+
+  incrementWebsiteVisit(webId) {
+    const web = this.websites.find(w => w.id === webId);
+    if (web) {
+      web.visitCount = (web.visitCount || 0) + 1;
+      this.persistAll();
+    }
+  }
+
+  syncDatabaseState() {
+    const payload = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('cyberone_v2_')) {
+        payload[key] = localStorage.getItem(key);
+      }
+    }
+    const users = localStorage.getItem('cyberone_v2_users');
+    if (users) {
+      payload['cyberone_v2_users'] = users;
+    }
+
+    // Try relative endpoint first. Works on localhost and any local LAN IP of the server.
+    fetch('./api/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(res => {
+      if (res.ok) {
+        return res.json();
+      } else {
+        throw new Error('Not local server');
+      }
+    })
+    .then(data => {
+      console.log('Successfully saved to local server database & pushed to Git:', data);
+    })
+    .catch(err => {
+      // If relative save fails, it means we are on a remote client (GitHub Pages)
+      // and should sync directly to GitHub via the REST API using the PAT token.
+      console.log('Relative server save failed/not supported. Syncing via GitHub REST API:', err);
+      this.pushToGitHubAPI();
+    });
+  }
+
+  async pushToGitHubAPI() {
+    const token = localStorage.getItem('cyberone_v2_github_token');
+    const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
+    const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
+
+    if (!token) return;
+
+    try {
+      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
+      const fileRes = await fetch(url, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      let sha = '';
+      if (fileRes.ok) {
+        const fileData = await fileRes.json();
+        sha = fileData.sha;
+      }
+
+      const payload = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cyberone_v2_')) {
+          payload[key] = localStorage.getItem(key);
+        }
+      }
+      const users = localStorage.getItem('cyberone_v2_users');
+      if (users) {
+        payload['cyberone_v2_users'] = users;
+      }
+
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: 'Auto-sync database update from remote portal',
+          content: content,
+          sha: sha,
+          branch: branch
+        })
+      });
+
+      if (putRes.ok) {
+        console.log('Saved state to GitHub via REST API!');
+      } else {
+        console.error('Failed to push to GitHub via API:', await putRes.text());
+      }
+    } catch (e) {
+      console.error('Error pushing to GitHub REST API:', e);
+    }
   }
 }
 

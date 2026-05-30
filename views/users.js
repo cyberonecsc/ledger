@@ -28,19 +28,22 @@ export function renderUserManagement(mountPoint, appInstance) {
 
     mountPoint.innerHTML = `
       <div class="glass-card" style="padding:24px; margin-bottom: 25px;">
-        <div class="section-header" style="margin-bottom:20px; border-bottom:1px solid var(--panel-border); padding-bottom:15px;">
+        <div class="section-header" style="margin-bottom:20px; border-bottom:1px solid var(--panel-border); padding-bottom:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div>
             <h3>User Management & Access Control</h3>
             <span style="font-size:12px; color:var(--text-muted);">Manage system operator credentials, profile details, and configure role privileges</span>
           </div>
+          <button id="btn-add-user" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px; height:36px; font-size:12px;">
+            <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Add New Account
+          </button>
         </div>
         
-        <div class="form-row" style="grid-template-columns: 1.3fr 2fr; gap:30px; align-items: start;">
-          <!-- Left Column: Accounts list & Add/Edit Form -->
+        <div class="form-row" style="grid-template-columns: 1fr 1.2fr; gap:30px; align-items: start;">
+          <!-- Left Column: Accounts list -->
           <div style="border-right: 1px solid var(--panel-border); padding-right: 25px; display:flex; flex-direction:column; gap:25px;">
             <div>
               <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Active Accounts</h5>
-              <div style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; padding-right:5px;">
+              <div style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; padding-right:5px;">
                 ${listUsers.map(u => `
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm);">
                     <div style="display:flex; align-items:center; gap:10px; min-width: 0; flex-grow: 1;">
@@ -60,7 +63,7 @@ export function renderUserManagement(mountPoint, appInstance) {
                       <button class="btn-idcard-user btn btn-secondary" data-username="${u.username}" style="padding: 4px 8px; font-size: 11px; height: 24px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; border-color: rgba(99,102,241,0.25);">
                         <i data-lucide="contact" style="width: 11px; height: 11px; color: var(--color-primary);"></i> ID Card
                       </button>
-
+                      
                       <!-- Edit Button -->
                       <button class="btn-edit-user btn btn-secondary" data-username="${u.username}" style="padding: 4px 8px; font-size: 11px; height: 24px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px;">
                         <i data-lucide="edit-2" style="width: 11px; height: 11px;"></i> Edit
@@ -75,76 +78,6 @@ export function renderUserManagement(mountPoint, appInstance) {
                   </div>
                 `).join('')}
               </div>
-            </div>
-
-            <!-- Form: Add/Edit Account -->
-            <div style="padding-top:15px; border-top:1px dashed var(--panel-border);">
-              <h5 id="form-title" style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">
-                ${editingUsername ? `Edit Account: @${editingUsername}` : 'Add New Account'}
-              </h5>
-              
-              <form id="form-operator-account" style="display:flex; flex-direction:column; gap:10px;">
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Full Name</label>
-                  <input type="text" id="op-name" class="form-control" placeholder="Full Name" style="font-size:12px; padding:8px 12px;" required>
-                </div>
-                
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Username</label>
-                  <input type="text" id="op-username" class="form-control" placeholder="Username" style="font-size:12px; padding:8px 12px;" required ${editingUsername ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''}>
-                </div>
-                
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Password</label>
-                  <input type="password" id="op-password" class="form-control" placeholder="Password" style="font-size:12px; padding:8px 12px;" required>
-                </div>
-                
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Access Level (Role)</label>
-                  <select id="op-role" class="form-control" style="font-size:12px; padding:8px 12px;" required ${editingUsername === 'owner' ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''}>
-                    <option value="owner">Owner (Full Permissions)</option>
-                    <option value="admin">Admin</option>
-                    <option value="accountant">Accountant</option>
-                    <option value="staff">Staff</option>
-                  </select>
-                </div>
-
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Base Salary (₹)</label>
-                  <input type="number" step="1" id="op-salary" class="form-control" placeholder="e.g. 15000" style="font-size:12px; padding:8px 12px;" required>
-                </div>
-
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Mobile (WhatsApp)</label>
-                  <input type="tel" id="op-mobile" class="form-control" placeholder="Mobile Number" style="font-size:12px; padding:8px 12px;">
-                </div>
-
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Email ID</label>
-                  <input type="email" id="op-email" class="form-control" placeholder="Email ID" style="font-size:12px; padding:8px 12px;">
-                </div>
-
-                <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Profile Photo</label>
-                  <input type="file" id="op-photo" class="form-control" accept="image/*" style="font-size:12px; padding:6px 12px;">
-                  <div id="op-photo-preview-container" style="display:none; align-items:center; gap:10px; margin-top:8px;">
-                    <img id="op-photo-preview" src="" alt="Avatar Preview" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid var(--color-primary);">
-                    <span style="font-size:10px; color:var(--text-muted);">Photo uploaded</span>
-                  </div>
-                </div>
-                
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                  <button type="submit" class="btn btn-sm btn-primary" style="flex-grow: 1; font-size:11px; padding:8px 12px;">
-                    <i data-lucide="check-circle" style="width:13px; height:13px;"></i> 
-                    ${editingUsername ? 'Save Changes' : 'Create Account'}
-                  </button>
-                  ${editingUsername ? `
-                    <button type="button" id="btn-cancel-edit" class="btn btn-sm btn-secondary" style="font-size:11px; padding:8px 12px;">
-                      Cancel
-                    </button>
-                  ` : ''}
-                </div>
-              </form>
             </div>
           </div>
           
@@ -191,6 +124,78 @@ export function renderUserManagement(mountPoint, appInstance) {
         </div>
       </div>
 
+      <!-- Modals Backdrop for User Registration/Edit -->
+      <div id="user-form-modal-backdrop" class="modal-backdrop">
+        <div class="modal-container" style="max-width: 600px;">
+          <div class="modal-header">
+            <h4 id="user-modal-title">Register New Operator</h4>
+            <button id="user-modal-close" class="modal-close">&times;</button>
+          </div>
+          <div style="padding-top: 10px;">
+            <form id="form-operator-account" style="display:flex; flex-direction:column; gap:12px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:11px; margin-bottom:4px;">Full Name</label>
+                <input type="text" id="op-name" class="form-control" placeholder="Ramesh Kumar" style="font-size:12px; padding:8px 12px;" required>
+              </div>
+              
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:11px; margin-bottom:4px;">Username</label>
+                <input type="text" id="op-username" class="form-control" placeholder="username" style="font-size:12px; padding:8px 12px;" required>
+              </div>
+              
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:11px; margin-bottom:4px;">Password</label>
+                <input type="password" id="op-password" class="form-control" placeholder="••••••••" style="font-size:12px; padding:8px 12px;" required>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Access Level (Role)</label>
+                  <select id="op-role" class="form-control" style="font-size:12px; padding:8px 12px;" required>
+                    <option value="owner">Owner (Full Permissions)</option>
+                    <option value="admin">Admin</option>
+                    <option value="accountant">Accountant</option>
+                    <option value="staff">Staff</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Base Salary (₹)</label>
+                  <input type="number" step="1" id="op-salary" class="form-control" placeholder="e.g. 15000" style="font-size:12px; padding:8px 12px;" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Mobile (WhatsApp)</label>
+                  <input type="tel" id="op-mobile" class="form-control" placeholder="Mobile Number" style="font-size:12px; padding:8px 12px;">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px; margin-bottom:4px;">Email ID</label>
+                  <input type="email" id="op-email" class="form-control" placeholder="Email ID" style="font-size:12px; padding:8px 12px;">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:11px; margin-bottom:4px;">Profile Photo</label>
+                <input type="file" id="op-photo" class="form-control" accept="image/*" style="font-size:12px; padding:6px 12px;">
+                <div id="op-photo-preview-container" style="display:none; align-items:center; gap:10px; margin-top:8px;">
+                  <img id="op-photo-preview" src="" alt="Avatar Preview" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid var(--color-primary);">
+                  <span style="font-size:10px; color:var(--text-muted);">Photo uploaded</span>
+                </div>
+              </div>
+              
+              <div style="display:flex; gap:10px; margin-top:15px;">
+                <button type="submit" class="btn btn-primary" style="flex-grow: 1; font-size:12px;">
+                  <i data-lucide="check-circle" style="width:14px; height:14px; margin-right:4px; vertical-align:middle;"></i> 
+                  <span id="user-submit-text">Create Account</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
       <!-- Modals Backdrop for Staff ID Card -->
       <div id="staff-modal-backdrop" class="modal-backdrop">
         <div class="modal-container" id="staff-modal-container" style="max-width: 500px;">
@@ -202,6 +207,44 @@ export function renderUserManagement(mountPoint, appInstance) {
     // Re-initialize lucide icons
     lucide.createIcons();
 
+    // Bind Add Account button click
+    const btnAddUser = document.getElementById('btn-add-user');
+    if (btnAddUser) {
+      btnAddUser.addEventListener('click', () => {
+        editingUsername = null;
+        editPhotoBase64 = '';
+        
+        // Reset form fields
+        document.getElementById('op-name').value = '';
+        const opUsernameInput = document.getElementById('op-username');
+        opUsernameInput.value = '';
+        opUsernameInput.disabled = false;
+        opUsernameInput.readOnly = false;
+        document.getElementById('op-password').value = '';
+        document.getElementById('op-role').value = 'staff';
+        document.getElementById('op-salary').value = 12000;
+        document.getElementById('op-mobile').value = '';
+        document.getElementById('op-email').value = '';
+        document.getElementById('op-photo').value = '';
+        
+        // Hide photo preview
+        const preview = document.getElementById('op-photo-preview');
+        const container = document.getElementById('op-photo-preview-container');
+        if (preview && container) {
+          preview.src = '';
+          container.style.display = 'none';
+        }
+        
+        // Set labels
+        document.getElementById('user-modal-title').innerText = 'Register New Operator';
+        document.getElementById('user-submit-text').innerText = 'Create Account';
+        
+        // Show modal
+        const modal = document.getElementById('user-form-modal-backdrop');
+        if (modal) modal.classList.add('show');
+      });
+    }
+
     // Bind Edit Account buttons click
     const editBtns = document.querySelectorAll('.btn-edit-user');
     editBtns.forEach(btn => {
@@ -212,12 +255,12 @@ export function renderUserManagement(mountPoint, appInstance) {
           editingUsername = userObj.username;
           editPhotoBase64 = userObj.photo || '';
           
-          // Re-render views inside panel to switch form content values
-          renderView();
-          
           // Populate fields
           document.getElementById('op-name').value = userObj.name;
-          document.getElementById('op-username').value = userObj.username;
+          const opUsernameInput = document.getElementById('op-username');
+          opUsernameInput.value = userObj.username;
+          opUsernameInput.disabled = true; // disable username edit
+          opUsernameInput.readOnly = true;
           document.getElementById('op-password').value = userObj.password;
           document.getElementById('op-role').value = userObj.role;
           document.getElementById('op-mobile').value = userObj.mobile || '';
@@ -227,25 +270,46 @@ export function renderUserManagement(mountPoint, appInstance) {
           const currentSal = userObj.baseSalary !== undefined && userObj.baseSalary !== null ? userObj.baseSalary : (staffObj ? staffObj.baseSalary : 0);
           document.getElementById('op-salary').value = currentSal;
           
+          const preview = document.getElementById('op-photo-preview');
+          const container = document.getElementById('op-photo-preview-container');
           if (userObj.photo) {
-            const preview = document.getElementById('op-photo-preview');
-            const container = document.getElementById('op-photo-preview-container');
             if (preview && container) {
               preview.src = userObj.photo;
               container.style.display = 'flex';
             }
+          } else {
+            if (preview && container) {
+              preview.src = '';
+              container.style.display = 'none';
+            }
           }
+          
+          // Set labels
+          document.getElementById('user-modal-title').innerText = 'Edit Operator Details';
+          document.getElementById('user-submit-text').innerText = 'Save Changes';
+          
+          // Show modal
+          const modal = document.getElementById('user-form-modal-backdrop');
+          if (modal) modal.classList.add('show');
         }
       });
     });
 
-    // Bind Cancel Edit button click
-    const cancelBtn = document.getElementById('btn-cancel-edit');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => {
-        editingUsername = null;
-        editPhotoBase64 = '';
-        renderView();
+    // Bind Close buttons for User modal
+    const userModal = document.getElementById('user-form-modal-backdrop');
+    const closeBtn = document.getElementById('user-modal-close');
+    if (closeBtn && userModal) {
+      closeBtn.addEventListener('click', () => {
+        userModal.classList.remove('show');
+      });
+    }
+    
+    if (userModal) {
+      const cancelBtns = userModal.querySelectorAll('.btn-modal-cancel');
+      cancelBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          userModal.classList.remove('show');
+        });
       });
     }
 
@@ -300,6 +364,9 @@ export function renderUserManagement(mountPoint, appInstance) {
             editingUsername = null;
             editPhotoBase64 = '';
             
+            // Hide modal
+            if (userModal) userModal.classList.remove('show');
+            
             // If editing own details, re-render layouts to trigger sidebar updates
             if (result.user.username === auth.currentUser.username) {
               appInstance.renderLayout((mount, app) => renderUserManagement(mount, app));
@@ -317,6 +384,10 @@ export function renderUserManagement(mountPoint, appInstance) {
             store.loadState(); // Force reload staff lists
             appInstance.showToast(`User Account @${username} created successfully!`, 'success');
             editPhotoBase64 = '';
+            
+            // Hide modal
+            if (userModal) userModal.classList.remove('show');
+            
             renderView();
           } else {
             alert(result.message);
