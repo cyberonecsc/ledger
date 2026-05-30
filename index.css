@@ -1837,3 +1837,56 @@ body.sidebar-collapsed .submenu-list {
   display: none !important;
 }
 
+/* Cloud Sync Status Badge */
+.sync-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: var(--transition-smooth);
+}
+
+.sync-badge i {
+  width: 14px;
+  height: 14px;
+}
+
+.sync-badge.synced {
+  color: var(--color-success);
+  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.05);
+}
+
+.sync-badge.syncing {
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.05);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.05);
+}
+
+.sync-badge.syncing i {
+  animation: spin 1.5s linear infinite;
+}
+
+.sync-badge.error {
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.05);
+}
+
+.sync-badge.offline {
+  color: var(--text-muted);
+  border-color: var(--panel-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+

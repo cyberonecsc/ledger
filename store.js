@@ -90,7 +90,27 @@ const INITIAL_WEBSITES = [
 // Master data structure loading from LocalStorage or initializing
 class StateStore {
   constructor() {
+    this.syncStatus = 'synced';
+    this.syncListeners = [];
     this.loadState();
+  }
+
+  onSyncStatusChange(listener) {
+    this.syncListeners.push(listener);
+    listener(this.syncStatus);
+  }
+
+  setSyncStatus(status) {
+    if (this.syncStatus !== status) {
+      this.syncStatus = status;
+      this.syncListeners.forEach(listener => {
+        try {
+          listener(status);
+        } catch (e) {
+          console.error('Error triggering sync status listener:', e);
+        }
+      });
+    }
   }
 
   loadState() {
@@ -1263,6 +1283,7 @@ class StateStore {
   }
 
   syncDatabaseState() {
+    this.setSyncStatus('syncing');
     const payload = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -1296,6 +1317,7 @@ class StateStore {
     })
     .then(data => {
       console.log('Successfully saved to local server database & pushed to Git:', data);
+      this.setSyncStatus('synced');
     })
     .catch(err => {
       // If relative save fails, it means we are on a remote client (GitHub Pages)
@@ -1312,6 +1334,7 @@ class StateStore {
 
     if (!token) {
       console.warn('GitHub Personal Access Token is missing. Remote edits will not persist!');
+      this.setSyncStatus('offline');
       if (window.AppInstance && typeof window.AppInstance.showToast === 'function') {
         window.AppInstance.showToast('Warning: GitHub Token missing in settings. Changes will not sync!', 'error');
       }
@@ -1319,7 +1342,8 @@ class StateStore {
     }
 
     try {
-      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
+      this.setSyncStatus('syncing');
+      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`;
       const fileRes = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1331,6 +1355,10 @@ class StateStore {
       if (fileRes.ok) {
         const fileData = await fileRes.json();
         sha = fileData.sha;
+      } else {
+        console.error('Failed to fetch existing db.json details from GitHub REST API');
+        this.setSyncStatus('error');
+        return;
       }
 
       const payload = {};
@@ -1368,11 +1396,14 @@ class StateStore {
 
       if (putRes.ok) {
         console.log('Saved state to GitHub via REST API!');
+        this.setSyncStatus('synced');
       } else {
         console.error('Failed to push to GitHub via API:', await putRes.text());
+        this.setSyncStatus('error');
       }
     } catch (e) {
       console.error('Error pushing to GitHub REST API:', e);
+      this.setSyncStatus('error');
     }
   }
 }

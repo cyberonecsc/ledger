@@ -58,6 +58,8 @@ class Application {
   constructor() {
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
+    this.needsUIRefresh = false;
+    this.lastPollTime = 0;
     this.init();
   }
 
@@ -79,12 +81,56 @@ class Application {
       localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
     }
 
+    // Listen to store sync status changes to update the visual badge
+    store.onSyncStatusChange((status) => {
+      this.updateSyncBadge(status);
+    });
+
     // Load database from GitHub Pages db.json relative location on boot
     await this.loadDatabaseFromGitHub();
 
     // Trigger scheduled backup check
     this.checkScheduledBackup();
     setInterval(() => this.checkScheduledBackup(), 60000);
+
+    // Live database polling (syncs like a Google Sheet)
+    setInterval(() => {
+      const token = localStorage.getItem('cyberone_v2_github_token');
+      
+      // Skip if tab is hidden
+      if (document.visibilityState !== 'visible') return;
+
+      const now = Date.now();
+      const lastPoll = this.lastPollTime || 0;
+      const pollInterval = token ? 5000 : 60000; // 5s if token is present, 60s if not
+
+      if (now - lastPoll >= pollInterval) {
+        this.lastPollTime = now;
+        console.log(`Live-polling latest data from GitHub API (interval: ${pollInterval / 1000}s)...`);
+        this.loadDatabaseFromGitHub();
+      }
+    }, 1000);
+
+    // Setup global listeners to refresh UI safely after user interaction ends
+    document.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (this.needsUIRefresh && !this.isUserInteracting()) {
+          console.log("User finished interaction. Triggering pending UI reload.");
+          this.needsUIRefresh = false;
+          this.handleRouting();
+        }
+      }, 100);
+    });
+
+    document.addEventListener('click', () => {
+      setTimeout(() => {
+        if (this.needsUIRefresh && !this.isUserInteracting()) {
+          console.log("User finished clicking. Triggering pending UI reload.");
+          this.needsUIRefresh = false;
+          this.handleRouting();
+        }
+      }, 150);
+    });
 
     // Bind hash change listener
     window.addEventListener('hashchange', () => this.handleRouting());
@@ -102,16 +148,19 @@ class Application {
     try {
       let remoteData = null;
 
-      if (!isLocalhost && token) {
-        // Fetch directly from GitHub REST API to get the absolute latest commit instantly,
-        // bypassing GitHub Pages build/deployment latency.
-        const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}`;
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
+      // Always try fetching from the GitHub REST API first (even without a token)
+      // to bypass GitHub Pages CDN caching and deployment delays.
+      // We append a cache-busting timestamp to avoid local/proxy caching.
+      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`;
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      try {
+        const response = await fetch(url, { headers });
         if (response.ok) {
           const fileData = await response.json();
           // Remove all whitespace/newlines from base64 content before running atob() to prevent parser exceptions
@@ -119,15 +168,21 @@ class Application {
           const decoded = decodeURIComponent(escape(atob(cleanBase64)));
           remoteData = JSON.parse(decoded);
           console.log("Database successfully fetched directly from GitHub REST API");
+          store.setSyncStatus('synced');
+        } else {
+          console.warn(`GitHub REST API content fetch returned non-200: ${response.status}`);
         }
+      } catch (apiErr) {
+        console.warn("Could not call GitHub REST API directly:", apiErr);
       }
 
-      // If we couldn't fetch from GitHub API (or are on localhost), fallback to relative fetch
+      // If we couldn't fetch from GitHub API, fallback to relative fetch
       if (!remoteData) {
         const response = await fetch('./db.json?t=' + Date.now());
         if (response.ok) {
           remoteData = await response.json();
           console.log("Database fetched from relative db.json path");
+          store.setSyncStatus(token ? 'synced' : 'offline');
         }
       }
 
@@ -148,11 +203,77 @@ class Application {
         if (updated) {
           console.log("LocalStorage updated with remote database contents");
           store.loadState();
+          
+          // Sync with local server disk if running on localhost
+          if (isLocalhost) {
+            store.syncDatabaseState();
+          }
+          
+          // Safeguard active typing/modals before reloading the UI
+          if (this.isUserInteracting()) {
+            console.log("Database updated in background, but user is interacting. Deferring UI reload.");
+            this.needsUIRefresh = true;
+          } else {
+            console.log("Database updated in background. Triggering UI reload.");
+            this.needsUIRefresh = false;
+            this.handleRouting();
+          }
         }
       }
     } catch (e) {
       console.error("Could not fetch remote database:", e);
+      store.setSyncStatus('error');
     }
+  }
+
+  isUserInteracting() {
+    // 1. Check if a modal is visible/open
+    const openModal = document.querySelector('.modal-backdrop.show');
+    if (openModal) return true;
+
+    // 2. Check if user is currently typing in an input, textarea, or selecting options
+    const activeEl = document.activeElement;
+    if (activeEl && (
+      activeEl.tagName === 'INPUT' ||
+      activeEl.tagName === 'TEXTAREA' ||
+      activeEl.tagName === 'SELECT' ||
+      activeEl.contentEditable === 'true'
+    )) {
+      return true;
+    }
+
+    return false;
+  }
+
+  updateSyncBadge(status) {
+    const badge = document.getElementById('cloud-sync-badge');
+    if (!badge) return;
+
+    badge.className = `sync-badge ${status}`;
+    
+    let iconName = 'cloud';
+    let text = 'Cloud Saved';
+
+    if (status === 'synced') {
+      iconName = 'cloud';
+      text = 'Cloud Saved';
+    } else if (status === 'syncing') {
+      iconName = 'refresh-cw';
+      text = 'Syncing...';
+    } else if (status === 'error') {
+      iconName = 'alert-triangle';
+      text = 'Sync Error';
+    } else if (status === 'offline') {
+      iconName = 'cloud-off';
+      text = 'Local Mode';
+    }
+
+    badge.innerHTML = `
+      <i data-lucide="${iconName}"></i>
+      <span>${text}</span>
+    `;
+
+    lucide.createIcons();
   }
 
   getActiveDate() {
@@ -168,6 +289,7 @@ class Application {
   }
 
   handleRouting() {
+    this.needsUIRefresh = false;
     let hash = window.location.hash || '#dashboard';
 
     // Parse query params if any
@@ -389,6 +511,12 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
+              <!-- Cloud Sync Status Badge -->
+              <div id="cloud-sync-badge" class="sync-badge offline">
+                <i data-lucide="cloud-off"></i>
+                <span>Local Mode</span>
+              </div>
+              
               <!-- Live Header Clock -->
               <div class="header-clock" style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; background:rgba(255,255,255,0.03); border:1px solid var(--panel-border); padding:4px 12px; border-radius:var(--border-radius-sm); user-select:none; -webkit-user-select:none;">
                 <span id="header-clock-time" style="font-family: 'Outfit', 'Inter', monospace; color: var(--color-primary); font-weight:800; font-size:15px; letter-spacing:0.5px; line-height:1.2;"></span>
@@ -484,6 +612,7 @@ class Application {
 
     // Dynamic icon replacement
     lucide.createIcons();
+    this.updateSyncBadge(store.syncStatus);
   }
 
   // Display clean unauthorized layout page
