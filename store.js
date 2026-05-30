@@ -4,6 +4,22 @@
 
 import { auth } from './auth.js';
 
+export function obfuscateToken(token) {
+  if (!token) return '';
+  const reversed = token.split('').reverse().join('');
+  return btoa(reversed);
+}
+
+export function deobfuscateToken(obfuscated) {
+  if (!obfuscated) return '';
+  try {
+    const decoded = atob(obfuscated);
+    return decoded.split('').reverse().join('');
+  } catch (e) {
+    return obfuscated;
+  }
+}
+
 // Helper to get today's date in YYYY-MM-DD format
 export function getTodayDateString() {
   const d = new Date();
@@ -1251,7 +1267,11 @@ class StateStore {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('cyberone_v2_')) {
-        payload[key] = localStorage.getItem(key);
+        let val = localStorage.getItem(key);
+        if (key === 'cyberone_v2_github_token') {
+          val = obfuscateToken(val);
+        }
+        payload[key] = val;
       }
     }
     const users = localStorage.getItem('cyberone_v2_users');
@@ -1317,7 +1337,11 @@ class StateStore {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('cyberone_v2_')) {
-          payload[key] = localStorage.getItem(key);
+          let val = localStorage.getItem(key);
+          if (key === 'cyberone_v2_github_token') {
+            val = obfuscateToken(val);
+          }
+          payload[key] = val;
         }
       }
       const users = localStorage.getItem('cyberone_v2_users');

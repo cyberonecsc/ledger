@@ -5,6 +5,16 @@
 import { auth } from './auth.js';
 import { store, getTodayDateString } from './store.js';
 
+export function deobfuscateToken(obfuscated) {
+  if (!obfuscated) return '';
+  try {
+    const decoded = atob(obfuscated);
+    return decoded.split('').reverse().join('');
+  } catch (e) {
+    return obfuscated;
+  }
+}
+
 // Import View Modules
 import { renderLogin } from './views/login.js';
 import { renderDashboard } from './views/dashboard.js';
@@ -122,9 +132,13 @@ class Application {
       if (remoteData) {
         let updated = false;
         Object.keys(remoteData).forEach(key => {
+          let value = remoteData[key];
+          if (key === 'cyberone_v2_github_token') {
+            value = deobfuscateToken(value);
+          }
           const localVal = localStorage.getItem(key);
-          if (localVal !== remoteData[key]) {
-            localStorage.setItem(key, remoteData[key]);
+          if (localVal !== value) {
+            localStorage.setItem(key, value);
             updated = true;
           }
         });
