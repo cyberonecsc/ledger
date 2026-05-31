@@ -793,6 +793,7 @@ class Application {
     const deletedCustomerIds = new Set();
     const deletedProductIds = new Set();
     const deletedTransactionIds = new Set();
+    const deletedApplicationIds = new Set();
     mergedAct.forEach(log => {
       if (log && log.details) {
         if (log.action === 'Delete Customer') {
@@ -801,6 +802,9 @@ class Application {
         } else if (log.action === 'Delete Product') {
           const match = log.details.match(/Deleted inventory item ([^:]+):/);
           if (match) deletedProductIds.add(match[1]);
+        } else if (log.action === 'Delete Application') {
+          const match = log.details.match(/Deleted application log ([^\s]+) for/);
+          if (match) deletedApplicationIds.add(match[1]);
         } else if (log.action && log.action.startsWith('Delete ')) {
           const match = log.details.match(/Deleted transaction ([^:]+):/);
           if (match) deletedTransactionIds.add(match[1]);
@@ -889,6 +893,7 @@ class Application {
                   if (k) {
                     if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
+                    if (key === 'cyberone_v2_applications' && deletedApplicationIds.has(k)) return;
                     map.set(k, item);
                   }
                 }
@@ -899,6 +904,7 @@ class Application {
                   if (k) {
                     if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
+                    if (key === 'cyberone_v2_applications' && deletedApplicationIds.has(k)) return;
                     const existing = map.get(k);
                     map.set(k, existing ? { ...existing, ...item } : item);
                   }
