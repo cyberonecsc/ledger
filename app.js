@@ -91,8 +91,11 @@ class Application {
       document.body.classList.add('sidebar-collapsed');
     }
 
-    // Always initialize active date to today's date on boot/reload
-    localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
+    // Initialize active date to today's date on first session load
+    if (!sessionStorage.getItem('cyberone_session_active')) {
+      localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
+      sessionStorage.setItem('cyberone_session_active', 'true');
+    }
 
     // Listen to store sync status changes to update the visual badge
     store.onSyncStatusChange((status) => {
