@@ -142,7 +142,6 @@ export function renderApplications(mountPoint, appInstance) {
                   }
 
                   return `
-                  return `
                     <div class="glass-card" style="padding: 12px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; gap: 8px; position: relative;">
                       <button class="btn-delete-app" data-id="${app.id}" style="position: absolute; right: 8px; top: 8px; background: none; border: none; color: var(--color-danger); opacity: 0.6; cursor: pointer; padding: 4px; outline: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="Delete Application Log">
                         <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
