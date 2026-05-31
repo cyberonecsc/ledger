@@ -832,12 +832,13 @@ class StateStore {
     const idx = this.customers.findIndex(c => c.id === customerId);
     if (idx === -1) return null;
     
+    const oldCredit = this.customers[idx].creditBalance || 0;
     this.customers[idx] = {
       ...this.customers[idx],
       ...updatedData,
-      creditBalance: parseFloat(updatedData.creditBalance || 0)
+      creditBalance: updatedData.creditBalance !== undefined ? parseFloat(updatedData.creditBalance) : oldCredit
     };
-    this.logActivity('Edit Customer', `Updated customer ${customerId}: name set to "${updatedData.name}", credit balance set to ₹${updatedData.creditBalance}`);
+    this.logActivity('Edit Customer', `Updated customer ${customerId}: name set to "${updatedData.name}"`);
     this.persistAll();
     return this.customers[idx];
   }

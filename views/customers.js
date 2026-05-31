@@ -172,12 +172,44 @@ export function renderCustomers(mountPoint, appInstance) {
 
         <div style="display:flex; flex-direction:column; gap:15px; max-height:480px; overflow-y:auto; padding-right:5px;">
           <!-- Profile metadata -->
-          <div class="glass-card" style="padding:15px; background: rgba(255,255,255,0.01);">
-            <div style="font-size:14px;"><strong>ID:</strong> <code>${customer.uniqueNumber}</code></div>
-            <div style="font-size:14px; margin-top:4px;"><strong>Phone:</strong> ${customer.phone}</div>
-            <div style="font-size:14px; margin-top:4px;"><strong>Email:</strong> ${customer.email || '—'}</div>
-            <div style="font-size:14px; margin-top:4px;"><strong>Address:</strong> ${customer.address || '—'}</div>
-            <div style="font-size:14px; margin-top:4px;"><strong>Visits:</strong> ${customer.visitCount} visits</div>
+          <div class="glass-card" id="profile-metadata-card" style="padding:15px; background: rgba(255,255,255,0.01); position: relative;">
+            <button id="btn-edit-profile-toggle" class="btn btn-sm btn-secondary" style="position: absolute; right: 15px; top: 15px; padding: 4px 8px; font-size: 11px;">
+              <i data-lucide="edit-3" style="width: 12px; height: 12px; margin-right: 4px;"></i> Edit Profile
+            </button>
+            <div id="profile-view-fields">
+              <div style="font-size:14px;"><strong>ID:</strong> <code>${customer.uniqueNumber}</code></div>
+              <div style="font-size:14px; margin-top:4px;"><strong>Name:</strong> ${customer.name}</div>
+              <div style="font-size:14px; margin-top:4px;"><strong>Phone:</strong> ${customer.phone}</div>
+              <div style="font-size:14px; margin-top:4px;"><strong>Email:</strong> ${customer.email || '—'}</div>
+              <div style="font-size:14px; margin-top:4px;"><strong>Address:</strong> ${customer.address || '—'}</div>
+              <div style="font-size:14px; margin-top:4px;"><strong>Visits:</strong> ${customer.visitCount} visits</div>
+            </div>
+            <div id="profile-edit-fields" style="display: none; margin-top: 5px;">
+              <form id="form-edit-customer-profile" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Name</label>
+                  <input type="text" id="edit-cust-name" class="form-control" value="${customer.name}" style="height: 32px; font-size: 12px;" required>
+                </div>
+                <div class="form-row" style="margin-top: 0; margin-bottom: 0;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Phone</label>
+                    <input type="text" id="edit-cust-phone" class="form-control" value="${customer.phone}" style="height: 32px; font-size: 12px;" required>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Email</label>
+                    <input type="email" id="edit-cust-email" class="form-control" value="${customer.email || ''}" style="height: 32px; font-size: 12px;">
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Address</label>
+                  <input type="text" id="edit-cust-address" class="form-control" value="${customer.address || ''}" style="height: 32px; font-size: 12px;">
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                  <button type="submit" class="btn btn-primary btn-sm" style="flex: 1; height: 32px; font-size: 11px;">Save Changes</button>
+                  <button type="button" id="btn-edit-profile-cancel" class="btn btn-secondary btn-sm" style="flex: 1; height: 32px; font-size: 11px;">Cancel</button>
+                </div>
+              </form>
+            </div>
           </div>
 
           <!-- Credit Balance Management Form -->
@@ -322,6 +354,55 @@ export function renderCustomers(mountPoint, appInstance) {
       lucide.createIcons();
       container.querySelector('.btn-modal-cancel').addEventListener('click', closeModal);
       backdrop.classList.add('show');
+ 
+      // Edit Profile Event Handlers
+      const btnEditProfileToggle = document.getElementById('btn-edit-profile-toggle');
+      const btnEditProfileCancel = document.getElementById('btn-edit-profile-cancel');
+      const profileViewFields = document.getElementById('profile-view-fields');
+      const profileEditFields = document.getElementById('profile-edit-fields');
+      const formEditProfile = document.getElementById('form-edit-customer-profile');
+
+      if (btnEditProfileToggle && btnEditProfileCancel && profileViewFields && profileEditFields && formEditProfile) {
+        btnEditProfileToggle.addEventListener('click', () => {
+          profileViewFields.style.display = 'none';
+          profileEditFields.style.display = 'block';
+          btnEditProfileToggle.style.display = 'none';
+        });
+
+        btnEditProfileCancel.addEventListener('click', () => {
+          profileViewFields.style.display = 'block';
+          profileEditFields.style.display = 'none';
+          btnEditProfileToggle.style.display = 'block';
+        });
+
+        formEditProfile.addEventListener('submit', (ev) => {
+          ev.preventDefault();
+          const nameVal = document.getElementById('edit-cust-name').value.trim();
+          const phoneVal = document.getElementById('edit-cust-phone').value.trim();
+          const emailVal = document.getElementById('edit-cust-email').value.trim();
+          const addressVal = document.getElementById('edit-cust-address').value.trim();
+
+          if (!nameVal || !phoneVal) {
+            alert('Name and Phone fields are required!');
+            return;
+          }
+
+          const updated = store.updateCustomer(custId, {
+            name: nameVal,
+            phone: phoneVal,
+            email: emailVal,
+            address: addressVal
+          });
+
+          if (updated) {
+            appInstance.showToast('Citizen profile updated successfully!', 'success');
+            closeModal();
+            appInstance.handleRouting();
+          } else {
+            appInstance.showToast('Failed to update citizen profile', 'error');
+          }
+        });
+      }
 
       // Handle checkbox toggles for webreg fields
       const webRegCheck = document.getElementById('visit-is-webreg');
