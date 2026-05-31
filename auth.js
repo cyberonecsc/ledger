@@ -60,6 +60,21 @@ class AuthService {
     this.currentUser = this.loadCurrentUser();
     this.privileges = this.loadPrivileges();
     this.users = this.loadUsers();
+    this.listeners = [];
+  }
+
+  onStateChange(listener) {
+    this.listeners.push(listener);
+  }
+
+  triggerStateChange() {
+    this.listeners.forEach(listener => {
+      try {
+        listener();
+      } catch (e) {
+        console.error('Error in auth state change listener:', e);
+      }
+    });
   }
 
   loadCurrentUser() {
@@ -120,6 +135,7 @@ class AuthService {
 
     this.privileges[role][privilegeName] = !!value;
     localStorage.setItem('cyberone_v2_privileges', JSON.stringify(this.privileges));
+    this.triggerStateChange();
     return true;
   }
 
@@ -138,6 +154,7 @@ class AuthService {
     const newUser = { name, username, password, role, mobile, email, photo, baseSalary: baseSalary !== null ? parseFloat(baseSalary) : null };
     this.users.push(newUser);
     localStorage.setItem('cyberone_v2_users', JSON.stringify(this.users));
+    this.triggerStateChange();
     return { success: true, user: newUser };
   }
 
@@ -161,6 +178,7 @@ class AuthService {
       localStorage.setItem('cyberone_v2_current_user', JSON.stringify(this.currentUser));
     }
 
+    this.triggerStateChange();
     return { success: true, user: this.users[idx] };
   }
 
@@ -172,6 +190,7 @@ class AuthService {
 
     this.users.splice(index, 1);
     localStorage.setItem('cyberone_v2_users', JSON.stringify(this.users));
+    this.triggerStateChange();
     return { success: true };
   }
 }

@@ -55,6 +55,21 @@ while ($listener.IsListening) {
                     cd $repoPath
                     $logFile = Join-Path $repoPath "git_sync.log"
                     Get-Date | Out-File $logFile -Append
+                    
+                    # Back up our latest merged database state
+                    $tempDbPath = [System.IO.Path]::GetTempFileName()
+                    Copy-Item "db.json" $tempDbPath -Force
+                    
+                    # Fetch origin and hard reset our local branch to match origin/main
+                    # This cleanly clears any local commits or push conflicts
+                    git fetch origin 2>&1 | Out-File $logFile -Append
+                    git reset --hard origin/main 2>&1 | Out-File $logFile -Append
+                    
+                    # Overwrite db.json with our merged version
+                    Copy-Item $tempDbPath "db.json" -Force
+                    Remove-Item $tempDbPath -ErrorAction SilentlyContinue
+                    
+                    # Add, commit, and push
                     git add db.json 2>&1 | Out-File $logFile -Append
                     git commit -m "Auto-sync database update" 2>&1 | Out-File $logFile -Append
                     git push origin main 2>&1 | Out-File $logFile -Append

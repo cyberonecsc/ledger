@@ -841,12 +841,22 @@ class Application {
             const remoteData = JSON.parse(remoteRaw);
             
             if (Array.isArray(localData) && Array.isArray(remoteData)) {
+              // Determine unique key property (defaults to 'id', or 'username' if objects have it)
+              const keyProp = (localData.length > 0 && localData[0] && localData[0].username) ? 'username' : 'id';
               const map = new Map();
-              localData.forEach(item => { if (item && item.id) map.set(item.id, item); });
+              localData.forEach(item => {
+                if (item) {
+                  const k = item[keyProp] || item.id;
+                  if (k) map.set(k, item);
+                }
+              });
               remoteData.forEach(item => {
-                if (item && item.id) {
-                  const existing = map.get(item.id);
-                  map.set(item.id, existing ? { ...existing, ...item } : item);
+                if (item) {
+                  const k = item[keyProp] || item.id;
+                  if (k) {
+                    const existing = map.get(k);
+                    map.set(k, existing ? { ...existing, ...item } : item);
+                  }
                 }
               });
               const mergedArr = Array.from(map.values());

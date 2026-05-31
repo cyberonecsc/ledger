@@ -111,6 +111,11 @@ class StateStore {
     this.syncStatus = 'synced';
     this.syncListeners = [];
     this.loadState();
+    
+    // Auto-sync when auth state changes (user management / privileges updates)
+    auth.onStateChange(() => {
+      this.persistAll();
+    });
   }
 
   onSyncStatusChange(listener) {
