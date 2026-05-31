@@ -9,7 +9,22 @@ export function deobfuscateToken(obfuscated) {
   if (!obfuscated) return '';
   try {
     const decoded = atob(obfuscated);
-    return decoded.split('').reverse().join('');
+    
+    // 1. Try custom shift-7 deobfuscation
+    const shiftedBack = decoded.split('').map(char => {
+      return String.fromCharCode(char.charCodeAt(0) - 7);
+    }).join('');
+    if (shiftedBack.startsWith('ghp_') || shiftedBack.startsWith('github_pat_')) {
+      return shiftedBack;
+    }
+    
+    // 2. Fallback to old reverse deobfuscation
+    const reversed = decoded.split('').reverse().join('');
+    if (reversed.startsWith('ghp_') || reversed.startsWith('github_pat_')) {
+      return reversed;
+    }
+    
+    return decoded;
   } catch (e) {
     return obfuscated;
   }
