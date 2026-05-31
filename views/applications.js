@@ -12,6 +12,8 @@ export function renderApplications(mountPoint, appInstance) {
   const staff = store.staff;
 
   let searchQuery = '';
+  let currentHistoryPage = 1;
+  const itemsPerPage = 10;
 
   const redrawLayout = () => {
     // Filter apps based on search query
@@ -28,13 +30,13 @@ export function renderApplications(mountPoint, appInstance) {
       });
     }
 
-    // Group apps into 4 columns
+    // Group apps into 3 active columns and collect history items separately
     const columns = {
       submitted: { title: 'Submitted to Portal', items: [], color: 'var(--color-info)' },
       pending_docs: { title: 'Pending Documents', items: [], color: 'var(--color-warning)' },
-      approved: { title: 'Approved / Ready', items: [], color: 'var(--color-success)' },
-      history: { title: 'History / Archived', items: 'var(--text-muted)'.startsWith('var') ? [] : [], color: 'var(--text-muted)' }
+      approved: { title: 'Approved / Ready', items: [], color: 'var(--color-success)' }
     };
+    const historyItems = [];
 
     const activeDateStr = localActiveDate;
     const activeDate = new Date(activeDateStr);
@@ -54,12 +56,23 @@ export function renderApplications(mountPoint, appInstance) {
         }
       }
 
-      if (columns[statusKey]) {
+      if (statusKey === 'history') {
+        historyItems.push(app);
+      } else if (columns[statusKey]) {
         columns[statusKey].items.push(app);
       } else {
         columns.submitted.items.push(app);
       }
     });
+
+    // Calculate pagination for historyItems
+    const totalPages = Math.max(1, Math.ceil(historyItems.length / itemsPerPage));
+    if (currentHistoryPage > totalPages) currentHistoryPage = totalPages;
+    if (currentHistoryPage < 1) currentHistoryPage = 1;
+
+    const startIndex = (currentHistoryPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, historyItems.length);
+    const pageItems = historyItems.slice(startIndex, endIndex);
 
     mountPoint.innerHTML = `
       <!-- Toolbar with Search & New File Action -->
@@ -126,15 +139,6 @@ export function renderApplications(mountPoint, appInstance) {
                         <i data-lucide="file-warning" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Pending
                       </button>
                     `;
-                  } else if (statusKey === 'history') {
-                    buttonsHtml = `
-                      <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="submitted" style="flex:1; font-size:10px; padding: 3px; background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.25); color: var(--color-info);">
-                        <i data-lucide="send" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Submit
-                      </button>
-                      <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="pending_docs" style="flex:1; font-size:10px; padding: 3px; background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.25); color: var(--color-warning);">
-                        <i data-lucide="file-warning" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Pending
-                      </button>
-                    `;
                   }
 
                   return `
@@ -160,6 +164,75 @@ export function renderApplications(mountPoint, appInstance) {
             </div>
           `;
         }).join('')}
+      </div>
+
+      <!-- History / Archived Files (Full-width Layout) -->
+      <div class="glass-card" style="margin-top: 30px; padding: 20px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.015);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
+          <span style="font-weight: 700; color: #fff; font-size: 15px;">History / Archived Files</span>
+          <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--panel-border); font-size: 11px; padding: 2px 8px; border-radius: 20px;">${historyItems.length} Total</span>
+        </div>
+
+        ${historyItems.length === 0 ? `
+          <div style="text-align: center; color: var(--text-dimmed); padding: 40px 10px; border: 1px dashed rgba(255, 255, 255, 0.05); border-radius: var(--border-radius-sm); font-size: 12px; font-style: italic;">
+            No applications in history
+          </div>
+        ` : `
+          <div class="table-responsive">
+            <table class="custom-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>Citizen Name</th>
+                  <th>Service Type</th>
+                  <th>Ref / App ID</th>
+                  <th style="text-align: right;">Govt Fee</th>
+                  <th style="text-align: right;">Service Charge</th>
+                  <th>Last Updated</th>
+                  <th style="text-align: center; width: 180px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pageItems.map(app => {
+                  const citizen = customers.find(c => c.id === app.customerId);
+                  return `
+                    <tr>
+                      <td><strong>${citizen ? citizen.name : 'Unknown Citizen'}</strong></td>
+                      <td>${app.serviceType}</td>
+                      <td><code>${app.applicationNumber || '—'}</code></td>
+                      <td style="text-align: right;">₹${(app.feePaid || 0).toFixed(2)}</td>
+                      <td style="text-align: right;">₹${(app.serviceCharge || 0).toFixed(2)}</td>
+                      <td>${app.lastUpdated}</td>
+                      <td style="text-align: center;">
+                        <div style="display: flex; gap: 6px; justify-content: center;">
+                          <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="submitted" style="font-size:10px; padding: 4px 8px; background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.25); color: var(--color-info);">
+                            <i data-lucide="send" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Submit
+                          </button>
+                          <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="pending_docs" style="font-size:10px; padding: 4px 8px; background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.25); color: var(--color-warning);">
+                            <i data-lucide="file-warning" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Pending
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--panel-border);">
+            <div style="font-size: 12px; color: var(--text-muted);">
+              Showing ${historyItems.length > 0 ? startIndex + 1 : 0} to ${endIndex} of ${historyItems.length} entries
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              ${Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => `
+                <button class="btn btn-sm btn-pagination-page ${pageNum === currentHistoryPage ? 'btn-primary' : 'btn-secondary'}" data-page="${pageNum}" style="padding: 4px 10px; font-size: 11px; font-weight: 600; min-width: 30px;">
+                  ${pageNum}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `}
       </div>
 
       <!-- Add Application Modal (Kept for creating new files) -->
@@ -263,6 +336,7 @@ export function renderApplications(mountPoint, appInstance) {
     // Search filter
     document.getElementById('app-search').oninput = (e) => {
       searchQuery = e.target.value;
+      currentHistoryPage = 1;
       redrawTableOnly();
     };
 
@@ -272,9 +346,20 @@ export function renderApplications(mountPoint, appInstance) {
       appDatePicker.onclick = (e) => e.stopPropagation();
       appDatePicker.onchange = (e) => {
         localActiveDate = e.target.value;
+        currentHistoryPage = 1;
         redrawLayout();
       };
     }
+
+    // Bind history pagination buttons
+    document.querySelectorAll('.btn-pagination-page').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const page = parseInt(btn.getAttribute('data-page'));
+        currentHistoryPage = page;
+        redrawLayout();
+      };
+    });
 
     // Modal helpers
     const backdrop = document.getElementById('app-modal-backdrop');
@@ -294,7 +379,7 @@ export function renderApplications(mountPoint, appInstance) {
       const staffId = document.getElementById('app-staff').value;
       const status = document.getElementById('app-status').value;
 
-      store.addApplication({
+      const app = store.addApplication({
         customerId,
         serviceType,
         applicationNumber: document.getElementById('app-ref').value,
@@ -305,7 +390,7 @@ export function renderApplications(mountPoint, appInstance) {
         notes: document.getElementById('app-notes').value
       });
 
-      // Automatically post transaction in daily ledger
+      // Automatically post transaction in daily ledger, linking to the newly created application
       store.addTransaction(localActiveDate, {
         type: 'sale',
         description: `${serviceType} application`,
@@ -315,7 +400,8 @@ export function renderApplications(mountPoint, appInstance) {
         deductedFrom: 'csc',
         deductedAmount: feePaid,
         customerId: customerId,
-        staffId: staffId
+        staffId: staffId,
+        applicationId: app.id
       });
 
       appInstance.showToast('G2C file registered & ledger updated!', 'success');

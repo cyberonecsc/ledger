@@ -575,6 +575,8 @@ class StateStore {
     let serviceChargeToCash = 0;
     let serviceChargeToAccount = 0;
 
+    let linkedApplicationId = txnData.applicationId || null;
+
     if (txnData.type === 'sale') {
       const amount = parseFloat(txnData.amount || 0);
       const cost = parseFloat(txnData.deductedAmount || 0);
@@ -618,8 +620,8 @@ class StateStore {
       }
 
       // Auto-create pending application if description has "application" and customer is linked
-      if (descLower.includes('application') && txnData.customerId) {
-        this.addApplication({
+      if (descLower.includes('application') && txnData.customerId && !linkedApplicationId) {
+        const app = this.addApplication({
           customerId: txnData.customerId,
           serviceType: txnData.description,
           applicationNumber: '',
@@ -627,18 +629,28 @@ class StateStore {
           assignedStaffId: txnData.staffId || 'STAFF-01',
           feePaid: parseFloat(txnData.deductedAmount || 0),
           serviceCharge: parseFloat((amount - cost).toFixed(2)),
-          notes: `Auto-created from transaction ${id}`
+          notes: `Auto-created from transaction ${id}`,
+          transactionId: id
         });
+        linkedApplicationId = app.id;
       }
     }
 
     const newTxn = {
       id,
       ...txnData,
+      applicationId: linkedApplicationId,
       serviceChargeToCash,
       serviceChargeToAccount,
       timestamp: new Date().toISOString()
     };
+
+    if (txnData.applicationId) {
+      const app = this.applications.find(a => a.id === txnData.applicationId);
+      if (app) {
+        app.transactionId = id;
+      }
+    }
 
     log.transactions.push(newTxn);
     this.logActivity('Create ' + newTxn.type.toUpperCase(), `Created transaction ${newTxn.id}: "${newTxn.description}" for ₹${newTxn.amount.toFixed(2)} on date ${dateString}`);
@@ -703,6 +715,19 @@ class StateStore {
         this.adjustCustomerCredit(txn.customerId, -parseFloat(txn.paidByCredit));
       }
     }
+
+    // Cascade delete associated application from store.applications
+    const appId = txn.applicationId;
+    this.applications = this.applications.filter(a => {
+      const matchId = appId && a.id === appId;
+      const matchTxnId = a.transactionId === txnId;
+      const matchNotes = a.notes && a.notes.includes(`Auto-created from transaction ${txnId}`);
+      if (matchId || matchTxnId || matchNotes) {
+        this.logActivity('Delete Application', `Cascaded deletion of application ${a.id} associated with transaction ${txnId}`);
+        return false;
+      }
+      return true;
+    });
 
     this.logActivity('Delete ' + txn.type.toUpperCase(), `Deleted transaction ${txn.id}: "${txn.description}" for ₹${txn.amount.toFixed(2)} on date ${dateString}`);
     log.transactions.splice(idx, 1);
