@@ -1889,4 +1889,128 @@ body.sidebar-collapsed .submenu-list {
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* ==========================================================================
+   Mobile & Tablet Optimization (Portrait & Landscape)
+   ========================================================================== */
+
+/* Up breakpoint to 1024px for tablet landscape drawer view */
+@media (max-width: 1024px) {
+  .mobile-only-flex {
+    display: flex !important;
+  }
+
+  .sidebar {
+    left: -260px !important;
+    box-shadow: none;
+    z-index: 1005;
+    width: 260px !important;
+  }
+
+  body.sidebar-collapsed .sidebar {
+    width: 260px !important;
+    left: -260px !important;
+  }
+
+  body.sidebar-collapsed .sidebar-logo h1,
+  body.sidebar-collapsed .sidebar-menu span,
+  body.sidebar-collapsed .user-details {
+    display: block !important;
+  }
+
+  .sidebar.open {
+    left: 0 !important;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+  }
+
+  #sidebar-toggle {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 15px 10px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .app-tracker-columns {
+    gap: 15px !important;
+  }
+
+  .tracker-column {
+    padding: 12px !important;
+    min-height: 350px !important;
+  }
+}
+
+/* Landscape orientation optimization for mobile height */
+@media (max-height: 600px) {
+  .main-header {
+    padding: 10px 15px !important;
+    gap: 8px !important;
+  }
+  .main-header h2 {
+    font-size: 16px !important;
+  }
+  .main-header p {
+    font-size: 11px !important;
+  }
+  .header-clock {
+    padding: 2px 8px !important;
+  }
+  #header-clock-time {
+    font-size: 12px !important;
+  }
+  #header-clock-date {
+    font-size: 10px !important;
+  }
+  
+  /* Scrollable modals in landscape orientation to prevent overflow offscreen */
+  .modal-container {
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 10px auto !important;
+    padding: 15px !important;
+    overflow: hidden !important;
+  }
+  .modal-container form {
+    overflow-y: auto !important;
+    flex: 1 !important;
+    padding-right: 5px !important;
+  }
+}
+
+/* Small mobile phone layout improvements */
+@media (max-width: 576px) {
+  .header-clock {
+    display: none !important; /* Hide clock on very small phones */
+  }
+  
+  .day-balance-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  
+  .day-balance-grid .glass-card {
+    padding: 10px !important;
+  }
+  
+  .day-balance-grid .glass-card span {
+    font-size: 10px !important;
+  }
+  
+  .day-balance-grid .glass-card i {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  
+  .day-balance-grid .glass-card div span {
+    font-size: 12px !important;
+  }
+}
+
 

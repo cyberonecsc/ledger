@@ -929,6 +929,16 @@ class StateStore {
     }
   }
 
+  deleteApplication(appId) {
+    const idx = this.applications.findIndex(a => a.id === appId);
+    if (idx === -1) return false;
+    const app = this.applications[idx];
+    this.applications.splice(idx, 1);
+    this.logActivity('Delete Application', `Deleted application log ${appId} for "${app.serviceType}"`);
+    this.persistAll();
+    return true;
+  }
+
   // Inventory Product Management
   addProduct(prodData) {
     const id = 'PROD-' + Math.random().toString(36).substr(2, 9).toUpperCase();

@@ -142,8 +142,12 @@ export function renderApplications(mountPoint, appInstance) {
                   }
 
                   return `
-                    <div class="glass-card" style="padding: 12px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; gap: 8px;">
-                      <div>
+                  return `
+                    <div class="glass-card" style="padding: 12px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; gap: 8px; position: relative;">
+                      <button class="btn-delete-app" data-id="${app.id}" style="position: absolute; right: 8px; top: 8px; background: none; border: none; color: var(--color-danger); opacity: 0.6; cursor: pointer; padding: 4px; outline: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="Delete Application Log">
+                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                      </button>
+                      <div style="padding-right: 20px;">
                         <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${citizen ? citizen.name : 'Unknown Citizen'}</div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${app.serviceType}</div>
                       </div>
@@ -203,12 +207,15 @@ export function renderApplications(mountPoint, appInstance) {
                       <td style="text-align: right;">₹${(app.serviceCharge || 0).toFixed(2)}</td>
                       <td>${app.lastUpdated}</td>
                       <td style="text-align: center;">
-                        <div style="display: flex; gap: 6px; justify-content: center;">
+                        <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
                           <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="submitted" style="font-size:10px; padding: 4px 8px; background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.25); color: var(--color-info);">
                             <i data-lucide="send" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Submit
                           </button>
                           <button class="btn btn-xs btn-transition-status" data-id="${app.id}" data-status="pending_docs" style="font-size:10px; padding: 4px 8px; background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.25); color: var(--color-warning);">
                             <i data-lucide="file-warning" style="width:10px; height:10px; margin-right:3px; vertical-align:middle;"></i>Pending
+                          </button>
+                          <button class="btn btn-xs btn-secondary btn-delete-app" data-id="${app.id}" style="padding: 4px 6px; color: var(--color-danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05);" title="Delete Application Log">
+                            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
                           </button>
                         </div>
                       </td>
@@ -358,6 +365,22 @@ export function renderApplications(mountPoint, appInstance) {
         const page = parseInt(btn.getAttribute('data-page'));
         currentHistoryPage = page;
         redrawLayout();
+      };
+    });
+
+    // Bind delete application log buttons
+    document.querySelectorAll('.btn-delete-app').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const app = apps.find(a => a.id === id);
+        if (app) {
+          if (confirm(`Are you sure you want to delete this application log for "${app.serviceType}"? This will not remove any associated ledger transactions.`)) {
+            store.deleteApplication(id);
+            appInstance.showToast('Application log deleted successfully', 'success');
+            redrawLayout();
+          }
+        }
       };
     });
 
