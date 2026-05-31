@@ -1318,6 +1318,7 @@ class StateStore {
       if (key && key.startsWith('cyberone_v2_')) {
         let val = localStorage.getItem(key);
         if (key === 'cyberone_v2_github_token') {
+          if (!val) continue; // Skip empty token to prevent overwriting valid remote token
           val = obfuscateToken(val);
         }
         payload[key] = val;
@@ -1395,6 +1396,7 @@ class StateStore {
         if (key && key.startsWith('cyberone_v2_')) {
           let val = localStorage.getItem(key);
           if (key === 'cyberone_v2_github_token') {
+            if (!val) continue; // Skip empty token to prevent overwriting valid remote token
             val = obfuscateToken(val);
           }
           payload[key] = val;

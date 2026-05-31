@@ -816,6 +816,8 @@ class Application {
         
         if (key === 'cyberone_v2_github_token') {
           remoteRaw = deobfuscateToken(remoteRaw);
+          // If remote token is empty and local token is valid, skip to prevent overwriting
+          if (!remoteRaw && localRaw) return;
         }
         
         if (!localRaw || localRaw === '[]' || localRaw === '{}') {
