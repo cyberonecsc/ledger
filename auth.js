@@ -63,6 +63,10 @@ class AuthService {
     this.listeners = [];
   }
 
+  reloadUsers() {
+    this.users = this.loadUsers();
+  }
+
   onStateChange(listener) {
     this.listeners.push(listener);
   }

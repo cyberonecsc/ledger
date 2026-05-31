@@ -137,6 +137,9 @@ class StateStore {
   }
 
   loadState() {
+    if (auth && typeof auth.reloadUsers === 'function') {
+      auth.reloadUsers();
+    }
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
     this.websites = this.getItem('cyberone_v2_websites', INITIAL_WEBSITES);
