@@ -7,10 +7,11 @@ import { auth } from '../auth.js';
 
 export function renderAccounts(mountPoint, appInstance) {
   const bankAccounts = store.bankAccounts;
-  const currentBalances = store.getCurrentBalances();
+  const activeDate = appInstance.getActiveDate();
+  const dailyLog = store.getOrCreateDailyLog(activeDate);
+  const currentBalances = dailyLog.closingBalances;
   const initialBalances = store.initialBalances || {};
   const sortedDates = Object.keys(store.dailyLogs).sort();
-  const latestDate = sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : appInstance.getActiveDate();
 
   mountPoint.innerHTML = `
     <!-- Bank Accounts Section -->
@@ -289,7 +290,7 @@ export function renderAccounts(mountPoint, appInstance) {
         store.persistAll();
 
         if (balance > 0) {
-          store.adjustBalance(latestDate, bankId, balance, auth.currentUser ? auth.currentUser.name : 'System');
+          store.adjustBalance(activeDate, bankId, balance, auth.currentUser ? auth.currentUser.name : 'System');
         }
 
         appInstance.showToast('Bank Account registered successfully!', 'success');
@@ -361,7 +362,7 @@ export function renderAccounts(mountPoint, appInstance) {
         store.persistAll();
 
         if (balance > 0) {
-          store.adjustBalance(latestDate, walletId, balance, auth.currentUser ? auth.currentUser.name : 'System');
+          store.adjustBalance(activeDate, walletId, balance, auth.currentUser ? auth.currentUser.name : 'System');
         }
 
         appInstance.showToast('Portal Wallet registered successfully!', 'success');
@@ -407,7 +408,7 @@ export function renderAccounts(mountPoint, appInstance) {
       document.getElementById('form-edit-cash').addEventListener('submit', (ev) => {
         ev.preventDefault();
         const newBal = parseFloat(document.getElementById('cash-balance').value || 0);
-        store.adjustBalance(latestDate, 'cash', newBal, auth.currentUser ? auth.currentUser.name : 'System');
+        store.adjustBalance(activeDate, 'cash', newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Cash In Hand balance adjusted successfully!', 'success');
         closeModal();
@@ -510,7 +511,7 @@ export function renderAccounts(mountPoint, appInstance) {
         });
 
         const newBal = parseFloat(document.getElementById('bank-balance').value || 0);
-        store.adjustBalance(latestDate, bankId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
+        store.adjustBalance(activeDate, bankId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Bank details updated successfully!', 'success');
         closeModal();
@@ -580,7 +581,7 @@ export function renderAccounts(mountPoint, appInstance) {
         });
 
         const newBal = parseFloat(document.getElementById('wallet-balance').value || 0);
-        store.adjustBalance(latestDate, walletId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
+        store.adjustBalance(activeDate, walletId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Wallet parameters updated successfully!', 'success');
         closeModal();
