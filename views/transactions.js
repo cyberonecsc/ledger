@@ -543,12 +543,26 @@ export function renderTransactions(mountPoint, appInstance) {
                 <label class="form-label">Total Customer Bill Amount (₹)</label>
                 <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
               </div>
-              <div class="form-group">
-                <label class="form-label">Customer Link (Optional)</label>
+              <div class="form-group" style="position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                  <label class="form-label" style="margin-bottom: 0;">Customer Link (Optional)</label>
+                  <a href="javascript:void(0);" id="btn-quick-add-customer" style="font-size: 11px; font-weight: 600; color: var(--color-primary); text-decoration: none;">+ Quick Register</a>
+                </div>
                 <select id="sale-customer" class="form-control">
                   <option value="">-- Unregistered Walk-in --</option>
                   ${customerOptions}
                 </select>
+              </div>
+            </div>
+
+            <!-- Quick Register Customer Section -->
+            <div id="quick-customer-section" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+              <h4 style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Quick Register Customer</h4>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="quick-cust-name" class="form-control" placeholder="Customer Name" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
+                <input type="text" id="quick-cust-phone" class="form-control" placeholder="Phone Number" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
+                <button type="button" id="btn-save-quick-customer" class="btn btn-primary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px; font-weight: 600;">Save</button>
+                <button type="button" id="btn-cancel-quick-customer" class="btn btn-secondary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px; font-weight: 600;">Cancel</button>
               </div>
             </div>
 
@@ -816,6 +830,58 @@ export function renderTransactions(mountPoint, appInstance) {
         inputCash.value = Math.max(0, amt - upi - credit).toFixed(2);
         updateProfitMath();
       });
+
+      // Quick Register Customer Event Handlers
+      const btnQuickAdd = document.getElementById('btn-quick-add-customer');
+      const quickSection = document.getElementById('quick-customer-section');
+      const btnSaveQuick = document.getElementById('btn-save-quick-customer');
+      const btnCancelQuick = document.getElementById('btn-cancel-quick-customer');
+      const selectCustomer = document.getElementById('sale-customer');
+
+      if (btnQuickAdd && quickSection) {
+        btnQuickAdd.addEventListener('click', () => {
+          quickSection.style.display = 'block';
+          document.getElementById('quick-cust-name').focus();
+        });
+
+        btnCancelQuick.addEventListener('click', () => {
+          quickSection.style.display = 'none';
+          document.getElementById('quick-cust-name').value = '';
+          document.getElementById('quick-cust-phone').value = '';
+        });
+
+        btnSaveQuick.addEventListener('click', () => {
+          const nameVal = document.getElementById('quick-cust-name').value.trim();
+          const phoneVal = document.getElementById('quick-cust-phone').value.trim();
+
+          if (!nameVal) {
+            alert('Please enter a customer name!');
+            return;
+          }
+
+          // Save the customer in database
+          const newCust = store.addCustomer({
+            name: nameVal,
+            phone: phoneVal
+          });
+
+          if (newCust) {
+            // Append to dropdown and select
+            const opt = document.createElement('option');
+            opt.value = newCust.id;
+            opt.text = `${newCust.name} (${newCust.uniqueNumber})`;
+            opt.selected = true;
+            selectCustomer.add(opt);
+
+            // Hide quick section and clean inputs
+            quickSection.style.display = 'none';
+            document.getElementById('quick-cust-name').value = '';
+            document.getElementById('quick-cust-phone').value = '';
+
+            appInstance.showToast(`Customer "${newCust.name}" registered and linked!`, 'success');
+          }
+        });
+      }
 
       // Submit handler
       document.getElementById('form-add-sale').addEventListener('submit', (e) => {
