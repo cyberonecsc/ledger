@@ -170,178 +170,189 @@ export function renderCustomers(mountPoint, appInstance) {
           <button id="cust-modal-close" class="modal-close" style="display:none;">&times;</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:15px; max-height:480px; overflow-y:auto; padding-right:5px;">
-          <!-- Profile metadata -->
-          <div class="glass-card" id="profile-metadata-card" style="padding:15px; background: rgba(255,255,255,0.01); position: relative;">
-            <button id="btn-edit-profile-toggle" class="btn btn-sm btn-secondary" style="position: absolute; right: 15px; top: 15px; padding: 4px 8px; font-size: 11px;">
-              <i data-lucide="edit-3" style="width: 12px; height: 12px; margin-right: 4px;"></i> Edit Profile
-            </button>
-            <div id="profile-view-fields">
-              <div style="font-size:14px;"><strong>ID:</strong> <code>${customer.uniqueNumber}</code></div>
-              <div style="font-size:14px; margin-top:4px;"><strong>Name:</strong> ${customer.name}</div>
-              <div style="font-size:14px; margin-top:4px;"><strong>Phone:</strong> ${customer.phone}</div>
-              <div style="font-size:14px; margin-top:4px;"><strong>Email:</strong> ${customer.email || '—'}</div>
-              <div style="font-size:14px; margin-top:4px;"><strong>Address:</strong> ${customer.address || '—'}</div>
-              <div style="font-size:14px; margin-top:4px;"><strong>Visits:</strong> ${customer.visitCount} visits</div>
+        <div style="display: grid; grid-template-columns: 320px 350px 1fr; gap: 20px; height: 580px; padding: 5px 0;">
+          <!-- Column 1: Profile & Credit -->
+          <div style="display: flex; flex-direction: column; gap: 15px; height: 100%; overflow-y: auto; padding-right: 5px;">
+            <!-- Profile metadata -->
+            <div class="glass-card" id="profile-metadata-card" style="padding:15px; background: rgba(255,255,255,0.01); position: relative; margin-bottom: 0;">
+              <button id="btn-edit-profile-toggle" class="btn btn-sm btn-secondary" style="position: absolute; right: 15px; top: 15px; padding: 4px 8px; font-size: 11px;">
+                <i data-lucide="edit-3" style="width: 12px; height: 12px; margin-right: 4px;"></i> Edit Profile
+              </button>
+              <div id="profile-view-fields">
+                <div style="font-size:14px;"><strong>ID:</strong> <code>${customer.uniqueNumber}</code></div>
+                <div style="font-size:14px; margin-top:4px;"><strong>Name:</strong> ${customer.name}</div>
+                <div style="font-size:14px; margin-top:4px;"><strong>Phone:</strong> ${customer.phone}</div>
+                <div style="font-size:14px; margin-top:4px;"><strong>Email:</strong> ${customer.email || '—'}</div>
+                <div style="font-size:14px; margin-top:4px;"><strong>Address:</strong> ${customer.address || '—'}</div>
+                <div style="font-size:14px; margin-top:4px;"><strong>Visits:</strong> ${customer.visitCount} visits</div>
+              </div>
+              <div id="profile-edit-fields" style="display: none; margin-top: 5px;">
+                <form id="form-edit-customer-profile" style="display: flex; flex-direction: column; gap: 8px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Name</label>
+                    <input type="text" id="edit-cust-name" class="form-control" value="${customer.name}" style="height: 32px; font-size: 12px;" required>
+                  </div>
+                  <div class="form-row" style="margin-top: 0; margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Phone</label>
+                      <input type="text" id="edit-cust-phone" class="form-control" value="${customer.phone}" style="height: 32px; font-size: 12px;" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Email</label>
+                      <input type="email" id="edit-cust-email" class="form-control" value="${customer.email || ''}" style="height: 32px; font-size: 12px;">
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Address</label>
+                    <input type="text" id="edit-cust-address" class="form-control" value="${customer.address || ''}" style="height: 32px; font-size: 12px;">
+                  </div>
+                  <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <button type="submit" class="btn btn-primary btn-sm" style="flex: 1; height: 32px; font-size: 11px;">Save Changes</button>
+                    <button type="button" id="btn-edit-profile-cancel" class="btn btn-secondary btn-sm" style="flex: 1; height: 32px; font-size: 11px;">Cancel</button>
+                  </div>
+                </form>
+              </div>
             </div>
-            <div id="profile-edit-fields" style="display: none; margin-top: 5px;">
-              <form id="form-edit-customer-profile" style="display: flex; flex-direction: column; gap: 8px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Name</label>
-                  <input type="text" id="edit-cust-name" class="form-control" value="${customer.name}" style="height: 32px; font-size: 12px;" required>
+
+            <!-- Credit Balance Management Form -->
+            <div class="glass-card" style="padding:15px; border-color: ${customer.creditBalance > 0 ? 'var(--color-warning)' : 'var(--panel-border)'}; margin-bottom: 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-size: 13px; font-weight:600; color:var(--text-muted);">Outstanding Balance</span>
+                <span style="font-family:var(--font-display); font-size:18px; font-weight:700; color:${customer.creditBalance > 0 ? 'var(--color-warning)' : 'var(--color-success)'};">₹${customer.creditBalance.toFixed(2)}</span>
+              </div>
+              
+              <form id="form-adjust-credit" style="display:flex; flex-direction:column; gap:10px; align-items:stretch;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px;">Record Payment / Add Credit (₹)</label>
+                  <input type="number" step="0.01" id="credit-adjust-amount" class="form-control" placeholder="0.00" required>
                 </div>
-                <div class="form-row" style="margin-top: 0; margin-bottom: 0;">
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Phone</label>
-                    <input type="text" id="edit-cust-phone" class="form-control" value="${customer.phone}" style="height: 32px; font-size: 12px;" required>
-                  </div>
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Email</label>
-                    <input type="email" id="edit-cust-email" class="form-control" value="${customer.email || ''}" style="height: 32px; font-size: 12px;">
-                  </div>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Address</label>
-                  <input type="text" id="edit-cust-address" class="form-control" value="${customer.address || ''}" style="height: 32px; font-size: 12px;">
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 10px;">
-                  <button type="submit" class="btn btn-primary btn-sm" style="flex: 1; height: 32px; font-size: 11px;">Save Changes</button>
-                  <button type="button" id="btn-edit-profile-cancel" class="btn btn-secondary btn-sm" style="flex: 1; height: 32px; font-size: 11px;">Cancel</button>
+                <div style="display:flex; gap:8px; margin-top:5px;">
+                  <select id="credit-action" class="form-control" style="flex: 1; font-size:12px; height: 32px;">
+                    <option value="pay">Receive Payment</option>
+                    <option value="add">Add Credit</option>
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-primary" style="height: 32px; padding: 0 15px;">Apply</button>
                 </div>
               </form>
             </div>
           </div>
 
-          <!-- Credit Balance Management Form -->
-          <div class="glass-card" style="padding:15px; border-color: ${customer.creditBalance > 0 ? 'var(--color-warning)' : 'var(--panel-border)'};">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <span style="font-size: 13px; font-weight:600; color:var(--text-muted);">Outstanding Balance</span>
-              <span style="font-family:var(--font-display); font-size:18px; font-weight:700; color:${customer.creditBalance > 0 ? 'var(--color-warning)' : 'var(--color-success)'};">₹${customer.creditBalance.toFixed(2)}</span>
-            </div>
-            
-            <form id="form-adjust-credit" style="display:flex; gap:10px; align-items:flex-end;">
-              <div class="form-group" style="flex-grow:1; margin-bottom:0;">
-                <label class="form-label" style="font-size:11px;">Record Payment / Add Credit (₹)</label>
-                <input type="number" step="0.01" id="credit-adjust-amount" class="form-control" placeholder="0.00" required>
-              </div>
-              <select id="credit-action" class="form-control" style="width:120px; font-size:12px;">
-                <option value="pay">Receive Payment</option>
-                <option value="add">Add Credit</option>
-              </select>
-              <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-            </form>
-          </div>
+          <!-- Column 2: Log Visit Purpose Form -->
+          <div style="display: flex; flex-direction: column; gap: 15px; height: 100%; overflow-y: auto; padding-right: 5px;">
+            <!-- Log New Visit Purpose Form -->
+            <div class="glass-card" style="padding:15px; background: rgba(255,255,255,0.01); margin-bottom: 0;">
+              <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px;">Log New Visit Purpose</h5>
+              <form id="form-log-visit">
+                <div class="form-group">
+                  <label class="form-label">Purpose of Visit</label>
+                  <input type="text" id="visit-purpose" class="form-control" placeholder="e.g. Website Registration, Certificate filing" required list="visit-purposes">
+                  <datalist id="visit-purposes">
+                    <option value="Website Registration">
+                    <option value="e-District Certificate">
+                    <option value="PAN Card Application">
+                    <option value="Aadhaar Biometric Update">
+                    <option value="Electricity Bill Payment">
+                    <option value="Money Transfer AEPS">
+                    <option value="DTP & Photocopy">
+                  </datalist>
+                </div>
 
-          <!-- Log Book Visits Listing -->
-          <div class="glass-card" style="padding: 15px;">
-            <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px; color: var(--color-primary);">Visit Purpose History Log</h5>
-            <div style="display:flex; flex-direction:column; gap:8px; max-height: 150px; overflow-y:auto; padding-right: 5px;">
-              ${customer.visitLogs.length === 0 ? `
-                <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:10px;">No visit details logged yet. Use the form below to log their visit purpose.</div>
-              ` : customer.visitLogs.map(log => `
-                <div style="padding:10px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
-                  <div style="display:flex; justify-content:space-between; font-weight:600; color: #fff;">
-                    <span>${log.purpose}</span>
-                    <span style="font-size:10px; color:var(--text-muted);">${log.date}</span>
+                <div class="form-row" style="margin-top: 0; margin-bottom: 10px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Operator Staff</label>
+                    <select id="visit-staff" class="form-control" required>
+                      <option value="Shibu (Owner)">Shibu (Owner)</option>
+                      <option value="Anil Kumar (Admin)">Anil Kumar (Admin)</option>
+                      <option value="Saritha (Accountant)">Saritha (Accountant)</option>
+                      <option value="Manu (Staff)">Manu (Staff)</option>
+                    </select>
                   </div>
-                  <div style="font-size:11px; margin-top:4px; color: var(--text-muted);">Operator: <strong>${log.staff}</strong></div>
-                  ${log.isWebReg ? `
-                    <div style="margin-top:6px; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px; font-family:monospace; font-size:11px;">
-                      <div>Web: ${log.webUrl || '—'}</div>
-                      <div>ID: <code>${log.webLoginId || '—'}</code> | Pass: <code>${log.webPassword || '—'}</code></div>
-                      <div>Ref No: <code>${log.webRefNo || '—'}</code> | Date: ${log.webAppliedDate || '—'}</div>
+                  <div class="form-group" style="display:flex; align-items:center; gap:8px; padding-top:20px; margin-bottom: 0;">
+                    <input type="checkbox" id="visit-is-webreg" style="width:18px; height:18px; cursor:pointer;">
+                    <label class="form-label" for="visit-is-webreg" style="margin-bottom:0; cursor:pointer;">Is Web Reg?</label>
+                  </div>
+                </div>
+
+                <!-- Website registration details (Hidden by default) -->
+                <div id="webreg-fields" style="display:none; background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); padding:12px; border-radius:var(--border-radius-sm); margin-bottom:15px;">
+                  <div class="form-group">
+                    <label class="form-label">Website Name / URL</label>
+                    <input type="text" id="web-url" class="form-control" placeholder="e.g. Kerala PSC Thulasi">
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Registration ID</label>
+                      <input type="text" id="web-login-id" class="form-control" placeholder="Login ID">
                     </div>
-                  ` : ''}
+                    <div class="form-group">
+                      <label class="form-label">Password</label>
+                      <input type="text" id="web-password" class="form-control" placeholder="Password">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Ref Number</label>
+                      <input type="text" id="web-ref-no" class="form-control" placeholder="Application / Ref No">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Applied Date</label>
+                      <input type="date" id="web-applied-date" class="form-control" value="${appInstance.getActiveDate()}">
+                    </div>
+                  </div>
                 </div>
-              `).join('')}
+
+                <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">
+                  <i data-lucide="plus-circle" style="width:14px; height:14px; margin-right:4px;"></i> Log Visit Purpose
+                </button>
+              </form>
             </div>
           </div>
 
-          <!-- Log New Visit Purpose Form -->
-          <div class="glass-card" style="padding:15px; background: rgba(255,255,255,0.01);">
-            <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px;">Log New Visit Purpose</h5>
-            <form id="form-log-visit">
-              <div class="form-group">
-                <label class="form-label">Purpose of Visit</label>
-                <input type="text" id="visit-purpose" class="form-control" placeholder="e.g. Website Registration, Certificate filing" required list="visit-purposes">
-                <datalist id="visit-purposes">
-                  <option value="Website Registration">
-                  <option value="e-District Certificate">
-                  <option value="PAN Card Application">
-                  <option value="Aadhaar Biometric Update">
-                  <option value="Electricity Bill Payment">
-                  <option value="Money Transfer AEPS">
-                  <option value="DTP & Photocopy">
-                </datalist>
+          <!-- Column 3: History Lists -->
+          <div style="display: flex; flex-direction: column; gap: 15px; height: 100%; overflow: hidden;">
+            <!-- Log Book Visits Listing -->
+            <div class="glass-card" style="padding: 15px; margin-bottom: 0; display: flex; flex-direction: column; flex: 1; min-height: 0;">
+              <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px; color: var(--color-primary);">Visit Purpose History Log</h5>
+              <div style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; flex: 1; padding-right: 5px; min-height: 0;">
+                ${customer.visitLogs.length === 0 ? `
+                  <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:10px;">No visit details logged yet.</div>
+                ` : customer.visitLogs.map(log => `
+                  <div style="padding:10px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; font-weight:600; color: #fff;">
+                      <span>${log.purpose}</span>
+                      <span style="font-size:10px; color:var(--text-muted);">${log.date}</span>
+                    </div>
+                    <div style="font-size:11px; margin-top:4px; color: var(--text-muted);">Operator: <strong>${log.staff}</strong></div>
+                    ${log.isWebReg ? `
+                      <div style="margin-top:6px; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px; font-family:monospace; font-size:11px;">
+                        <div>Web: ${log.webUrl || '—'}</div>
+                        <div>ID: <code>${log.webLoginId || '—'}</code> | Pass: <code>${log.webPassword || '—'}</code></div>
+                        <div>Ref: <code>${log.webRefNo || '—'}</code> | Date: ${log.webAppliedDate || '—'}</div>
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
               </div>
+            </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Operator Staff</label>
-                  <select id="visit-staff" class="form-control" required>
-                    <option value="Shibu (Owner)">Shibu (Owner)</option>
-                    <option value="Anil Kumar (Admin)">Anil Kumar (Admin)</option>
-                    <option value="Saritha (Accountant)">Saritha (Accountant)</option>
-                    <option value="Manu (Staff)">Manu (Staff)</option>
-                  </select>
-                </div>
-                <div class="form-group" style="display:flex; align-items:center; gap:8px; padding-top:20px;">
-                  <input type="checkbox" id="visit-is-webreg" style="width:18px; height:18px; cursor:pointer;">
-                  <label class="form-label" for="visit-is-webreg" style="margin-bottom:0; cursor:pointer;">Is Website Registration?</label>
-                </div>
+            <!-- Transaction History -->
+            <div class="glass-card" style="padding: 15px; margin-bottom: 0; display: flex; flex-direction: column; flex: 1; min-height: 0;">
+              <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px;">Transaction History (${customerTxns.length})</h5>
+              <div style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; flex: 1; padding-right: 5px; min-height: 0;">
+                ${customerTxns.length === 0 ? `
+                  <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:15px;">No transactions logged.</div>
+                ` : customerTxns.map(t => `
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
+                    <div>
+                      <div style="font-weight:600;">${t.description}</div>
+                      <div style="font-size:10px; color:var(--text-dimmed);">${t.date}</div>
+                    </div>
+                    <strong style="color: ${t.type === 'sale' ? 'var(--color-success)' : 'var(--color-danger)'};">
+                      ₹${t.amount.toFixed(2)}
+                    </strong>
+                  </div>
+                `).join('')}
               </div>
-
-              <!-- Website registration details (Hidden by default) -->
-              <div id="webreg-fields" style="display:none; background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); padding:12px; border-radius:var(--border-radius-sm); margin-bottom:15px;">
-                <div class="form-group">
-                  <label class="form-label">Website Name / URL</label>
-                  <input type="text" id="web-url" class="form-control" placeholder="e.g. Kerala PSC Thulasi">
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Registration Login ID</label>
-                    <input type="text" id="web-login-id" class="form-control" placeholder="Enter Registration ID">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Registration Password</label>
-                    <input type="text" id="web-password" class="form-control" placeholder="Enter Password">
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Application / Ref Number</label>
-                    <input type="text" id="web-ref-no" class="form-control" placeholder="e.g. APP/2026/89201">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Applied Date</label>
-                    <input type="date" id="web-applied-date" class="form-control" value="2026-05-29">
-                  </div>
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">
-                <i data-lucide="plus-circle" style="width:14px; height:14px; margin-right:4px;"></i> Log Visit Purpose
-              </button>
-            </form>
-          </div>
-
-          <!-- Transaction History -->
-          <div>
-            <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px;">Transaction History (${customerTxns.length})</h5>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${customerTxns.length === 0 ? `
-                <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:15px;">No transactions logged for this citizen.</div>
-              ` : customerTxns.map(t => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
-                  <div>
-                    <div style="font-weight:600;">${t.description}</div>
-                    <div style="font-size:10px; color:var(--text-dimmed);">${t.date}</div>
-                  </div>
-                  <strong style="color: ${t.type === 'sale' ? 'var(--color-success)' : 'var(--color-danger)'};">
-                    ₹${t.amount.toFixed(2)}
-                  </strong>
-                </div>
-              `).join('')}
             </div>
           </div>
         </div>
