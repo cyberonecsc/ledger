@@ -62,14 +62,17 @@ export function renderApplications(mountPoint, appInstance) {
 
     mountPoint.innerHTML = `
       <!-- Toolbar with Search & New File Action -->
-      <div class="search-filter-row no-print" style="margin-bottom: 25px;">
+      <div class="search-filter-row no-print" style="margin-bottom: 25px; display: flex; gap: 10px; align-items: center;">
         <div class="search-input-wrapper" style="flex-grow: 1;">
           <i data-lucide="search" style="width: 16px; height: 16px;"></i>
           <input type="text" id="app-search" class="form-control" placeholder="Search by citizen name, file ID, or reference number..." value="${searchQuery}">
         </div>
-        <button id="btn-add-app" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; height: 38px;">
-          <i data-lucide="plus" style="width: 16px; height: 16px;"></i> New File
-        </button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="date" id="app-date-picker" value="${appInstance.getActiveDate()}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+          <button id="btn-add-app" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; height: 38px;">
+            <i data-lucide="plus" style="width: 16px; height: 16px;"></i> New File
+          </button>
+        </div>
       </div>
 
       <!-- 3-Column Tracker Layout -->
@@ -261,6 +264,15 @@ export function renderApplications(mountPoint, appInstance) {
       searchQuery = e.target.value;
       redrawTableOnly();
     };
+
+    // Date Picker event
+    const appDatePicker = document.getElementById('app-date-picker');
+    if (appDatePicker) {
+      appDatePicker.onclick = (e) => e.stopPropagation();
+      appDatePicker.onchange = (e) => {
+        appInstance.setActiveDate(e.target.value);
+      };
+    }
 
     // Modal helpers
     const backdrop = document.getElementById('app-modal-backdrop');

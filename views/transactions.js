@@ -74,6 +74,7 @@ export function renderTransactions(mountPoint, appInstance) {
         <button id="btn-delete-selected" class="btn btn-danger" style="display: none;">
           <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Delete Selected (<span id="delete-selected-count">0</span>)
         </button>
+        <input type="date" id="txn-date-picker" value="${activeDate}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
         <button id="btn-open-txn-modal" class="btn btn-primary">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add Transaction
         </button>
@@ -206,6 +207,13 @@ export function renderTransactions(mountPoint, appInstance) {
     currentPage++;
     redrawTable();
   });
+
+  const txnDatePicker = document.getElementById('txn-date-picker');
+  if (txnDatePicker) {
+    txnDatePicker.addEventListener('change', (e) => {
+      appInstance.setActiveDate(e.target.value);
+    });
+  }
 
   const updateBulkDeleteButton = () => {
     const btnDelete = document.getElementById('btn-delete-selected');

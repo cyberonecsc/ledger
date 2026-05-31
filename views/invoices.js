@@ -42,7 +42,8 @@ export function renderInvoices(mountPoint, appInstance) {
         <input type="text" id="inv-search" class="form-control" placeholder="Search by invoice number or client name...">
       </div>
 
-      <div class="filter-actions">
+      <div class="filter-actions" style="display: flex; gap: 10px; align-items: center;">
+        <input type="date" id="inv-date-picker" value="${appInstance.getActiveDate()}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
         <button id="btn-create-inv" class="btn btn-primary">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Create Invoice
         </button>
@@ -124,6 +125,13 @@ export function renderInvoices(mountPoint, appInstance) {
       row.style.display = text.includes(query) ? '' : 'none';
     });
   });
+
+  const invDatePicker = document.getElementById('inv-date-picker');
+  if (invDatePicker) {
+    invDatePicker.addEventListener('change', (e) => {
+      appInstance.setActiveDate(e.target.value);
+    });
+  }
 
   const backdrop = document.getElementById('inv-modal-backdrop');
   const container = document.getElementById('inv-modal-container');
