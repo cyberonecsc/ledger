@@ -820,7 +820,9 @@ class StateStore {
 
   // CRUD for Customer Registration
   addCustomer(customerData) {
-    const id = 'CO-' + (1000 + this.customers.length + 1);
+    // Use timestamp + random suffix to ensure ID uniqueness even after deletions
+    const uniqueSuffix = Math.random().toString(36).substr(2, 5).toUpperCase();
+    const id = 'CO-' + Date.now().toString(36).toUpperCase() + uniqueSuffix;
     const newCustomer = {
       id,
       uniqueNumber: id,

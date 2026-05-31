@@ -9,7 +9,7 @@ export function renderAccounts(mountPoint, appInstance) {
   const bankAccounts = store.bankAccounts;
   const activeDate = appInstance.getActiveDate();
   const dailyLog = store.getOrCreateDailyLog(activeDate);
-  const currentBalances = dailyLog.closingBalances;
+  const currentBalances = store.getCurrentBalances();
   const initialBalances = store.initialBalances || {};
   const sortedDates = Object.keys(store.dailyLogs).sort();
 
@@ -730,31 +730,56 @@ export function renderAccounts(mountPoint, appInstance) {
   if (formOpeningBalances) {
     formOpeningBalances.addEventListener('submit', (e) => {
       e.preventDefault();
-      
-      const newBalances = {
-        cash: parseFloat(document.getElementById('opening-cash').value || 0)
-      };
 
-      // Gather bank opening balances
+      // Read the CURRENT stored values so we can preserve them if input is left blank
+      const existingBalances = store.initialBalances || {};
+
+      const cashInput = document.getElementById('opening-cash');
+      const newBalances = {};
+
+      // Only overwrite cash if the input has a non-empty value
+      if (cashInput && cashInput.value !== '') {
+        newBalances.cash = parseFloat(cashInput.value);
+      } else {
+        newBalances.cash = existingBalances.cash !== undefined ? existingBalances.cash : 0;
+      }
+
+      // Gather bank opening balances — preserve existing if input is blank
       const bankInputs = document.querySelectorAll('.bank-opening-input');
       bankInputs.forEach(input => {
         const id = input.getAttribute('data-id');
-        newBalances[id] = parseFloat(input.value || 0);
+        if (input.value !== '') {
+          newBalances[id] = parseFloat(input.value);
+        } else {
+          newBalances[id] = existingBalances[id] !== undefined ? existingBalances[id] : 0;
+        }
       });
 
-      // Gather wallet opening balances
+      // Gather wallet opening balances — preserve existing if input is blank
       const walletInputs = document.querySelectorAll('.wallet-opening-input');
       walletInputs.forEach(input => {
         const id = input.getAttribute('data-id');
-        newBalances[id] = parseFloat(input.value || 0);
+        if (input.value !== '') {
+          newBalances[id] = parseFloat(input.value);
+        } else {
+          newBalances[id] = existingBalances[id] !== undefined ? existingBalances[id] : 0;
+        }
       });
 
+      // Save all balances — this internally merges with existing via spread so nothing is lost
       store.updateInitialBalances(newBalances);
-      appInstance.showToast('Initial opening balances saved successfully!', 'success');
-      
-      setTimeout(() => {
-        appInstance.handleRouting();
-      }, 300);
+      appInstance.showToast('✅ Opening balances saved successfully!', 'success');
+
+      // Update displayed card values in-place without full page re-render
+      const updatedBalances = store.getCurrentBalances();
+      const cashCard = document.querySelector('.wallet-balance-val[data-balance-id="cash"]');
+      if (cashCard) cashCard.textContent = `₹${(updatedBalances.cash || 0).toFixed(2)}`;
+      document.querySelectorAll('[data-balance-id]').forEach(el => {
+        const bid = el.getAttribute('data-balance-id');
+        if (bid && updatedBalances[bid] !== undefined) {
+          el.textContent = `₹${updatedBalances[bid].toFixed(2)}`;
+        }
+      });
     });
   }
 }

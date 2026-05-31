@@ -6,7 +6,14 @@ import { store } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderDashboard(mountPoint, appInstance) {
-  const activeDate = appInstance.getActiveDate();
+  // Always reset to today's date when entering dashboard so the calendar doesn't stay stuck
+  const todayStr = new Date().toISOString().split('T')[0];
+  const storedDate = appInstance.getActiveDate();
+  // If the stored date is not today, silently reset it to today (no toast, no re-render loop)
+  if (storedDate !== todayStr) {
+    localStorage.setItem('cyberone_v2_active_date', todayStr);
+  }
+  const activeDate = todayStr;
   const currentMonth = activeDate.substring(0, 7); // Format: "YYYY-MM"
   // Calculate statistics
   const monthStats = store.getMonthlyStats(currentMonth);
