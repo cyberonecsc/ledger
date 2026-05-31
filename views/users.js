@@ -69,7 +69,7 @@ export function renderUserManagement(mountPoint, appInstance) {
                         <i data-lucide="edit-2" style="width: 11px; height: 11px;"></i> Edit
                       </button>
                       
-                      ${u.username !== 'owner' ? `
+                      ${u.username.toUpperCase() !== 'SHIBURCN' ? `
                         <button class="btn-delete-user" data-username="${u.username}" style="padding: 4px; color: var(--color-danger); background: none; border: 1px solid rgba(239,68,68,0.15); border-radius: 4px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--transition-smooth); width: 24px; height: 24px;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='none'">
                           <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
                         </button>
@@ -152,7 +152,6 @@ export function renderUserManagement(mountPoint, appInstance) {
                 <div class="form-group" style="margin-bottom:0;">
                   <label class="form-label" style="font-size:11px; margin-bottom:4px;">Access Level (Role)</label>
                   <select id="op-role" class="form-control" style="font-size:12px; padding:8px 12px;" required>
-                    <option value="owner">Owner (Full Permissions)</option>
                     <option value="admin">Admin</option>
                     <option value="accountant">Accountant</option>
                     <option value="staff">Staff</option>
@@ -221,7 +220,15 @@ export function renderUserManagement(mountPoint, appInstance) {
         opUsernameInput.disabled = false;
         opUsernameInput.readOnly = false;
         document.getElementById('op-password').value = '';
-        document.getElementById('op-role').value = 'staff';
+        
+        const opRoleSelect = document.getElementById('op-role');
+        opRoleSelect.innerHTML = `
+          <option value="admin">Admin</option>
+          <option value="accountant">Accountant</option>
+          <option value="staff" selected>Staff</option>
+        `;
+        opRoleSelect.disabled = false;
+        opRoleSelect.value = 'staff';
         document.getElementById('op-salary').value = 12000;
         document.getElementById('op-mobile').value = '';
         document.getElementById('op-email').value = '';
@@ -262,7 +269,21 @@ export function renderUserManagement(mountPoint, appInstance) {
           opUsernameInput.disabled = true; // disable username edit
           opUsernameInput.readOnly = true;
           document.getElementById('op-password').value = userObj.password;
-          document.getElementById('op-role').value = userObj.role;
+          
+          const opRoleSelect = document.getElementById('op-role');
+          if (editingUsername.toUpperCase() === 'SHIBURCN') {
+            opRoleSelect.innerHTML = `<option value="owner">Owner (Full Permissions)</option>`;
+            opRoleSelect.disabled = true;
+          } else {
+            opRoleSelect.innerHTML = `
+              <option value="admin">Admin</option>
+              <option value="accountant">Accountant</option>
+              <option value="staff">Staff</option>
+            `;
+            opRoleSelect.disabled = false;
+          }
+          opRoleSelect.value = userObj.role;
+          
           document.getElementById('op-mobile').value = userObj.mobile || '';
           document.getElementById('op-email').value = userObj.email || '';
           

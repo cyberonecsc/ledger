@@ -168,7 +168,7 @@ export function renderAuditLog(mountPoint, appInstance) {
       };
 
       if (editTxn) {
-        store.updateTransaction(activeDate, editTxn.id, txnData);
+        store.updateTransaction(editTxn.dateStr || activeDate, editTxn.id, txnData);
         appInstance.showToast('Expense updated successfully!', 'success');
       } else {
         store.addTransaction(activeDate, txnData);
@@ -178,8 +178,6 @@ export function renderAuditLog(mountPoint, appInstance) {
       closeExpenseModal();
       
       // Refresh current operations layout
-      const freshLog = store.getOrCreateDailyLog(activeDate);
-      log.transactions = freshLog.transactions;
       renderActiveTabContent();
     });
 
@@ -320,8 +318,25 @@ export function renderAuditLog(mountPoint, appInstance) {
       });
 
     } else if (activeTab === 'operations') {
-      const allTxns = log.transactions || [];
-      const nonSalesTxns = allTxns.filter(t => t.type !== 'sale');
+      const nonSalesTxns = [];
+      Object.keys(store.dailyLogs || {}).forEach(dateStr => {
+        const logObj = store.dailyLogs[dateStr];
+        if (logObj && logObj.transactions) {
+          logObj.transactions.forEach(t => {
+            if (t.type !== 'sale') {
+              const timestamp = t.timestamp || new Date(dateStr + 'T00:00:00').toISOString();
+              nonSalesTxns.push({
+                ...t,
+                timestamp,
+                dateStr: dateStr
+              });
+            }
+          });
+        }
+      });
+
+      // Sort chronological (newest first)
+      nonSalesTxns.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
       // Filter non-sales based on query
       const query = opsSearchQuery.toLowerCase();
@@ -332,7 +347,7 @@ export function renderAuditLog(mountPoint, appInstance) {
 
       let rowsHtml = '';
       if (filteredOps.length === 0) {
-        rowsHtml = `<tr><td colspan="6" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No operational logs (expenses, deposits, adjustments) recorded for this day.</td></tr>`;
+        rowsHtml = `<tr><td colspan="7" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No operational logs (expenses, deposits, adjustments) found.</td></tr>`;
       } else {
         rowsHtml = filteredOps.map(t => {
           let typeBadge = '';
@@ -356,6 +371,7 @@ export function renderAuditLog(mountPoint, appInstance) {
 
           return `
             <tr>
+              <td><span style="font-size: 12px; white-space: nowrap; font-family: monospace; color: var(--text-muted);">${formatTime(t.timestamp)}</span></td>
               <td><span style="font-family: monospace; font-size: 11px; color: var(--text-muted); font-weight:600;">${t.id}</span></td>
               <td>${typeBadge}</td>
               <td><strong>${t.description}</strong></td>
@@ -389,9 +405,10 @@ export function renderAuditLog(mountPoint, appInstance) {
 
         <div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 25px;">
           <div class="table-responsive ledger-table-container" style="max-height: 480px;">
-            <table class="custom-table" style="min-width: 900px;">
+            <table class="custom-table" style="min-width: 1000px;">
               <thead>
                 <tr>
+                  <th style="width: 180px;">Date & Time</th>
                   <th style="width: 120px;">ID</th>
                   <th style="width: 120px;">Type</th>
                   <th>Description</th>
@@ -432,12 +449,12 @@ export function renderAuditLog(mountPoint, appInstance) {
       document.querySelectorAll('.btn-delete-op').forEach(btn => {
         btn.onclick = (e) => {
           const txnId = e.currentTarget.getAttribute('data-id');
+          const txn = nonSalesTxns.find(t => t.id === txnId);
+          if (!txn) return;
           if (confirm(`Are you sure you want to delete this operational log (${txnId})? This will roll back all bank account, physical cash and inventory adjustments.`)) {
-            const deleted = store.deleteTransaction(activeDate, txnId);
+            const deleted = store.deleteTransaction(txn.dateStr, txnId);
             if (deleted) {
               appInstance.showToast('Log deleted successfully', 'success');
-              const freshLog = store.getOrCreateDailyLog(activeDate);
-              log.transactions = freshLog.transactions;
               renderActiveTabContent();
             } else {
               appInstance.showToast('Failed to delete log', 'error');

@@ -52,7 +52,7 @@ const DEFAULT_PRIVILEGES = {
 
 // Seed credentials (Owner account remains for default entry, others removed)
 const PRESET_USERS = [
-  { username: 'owner', name: 'CYBER ONE Owner', role: 'owner', password: '123' }
+  { username: 'SHIBURCN', name: 'Shibu (Owner)', role: 'owner', password: 'John@392091' }
 ];
 
 class AuthService {
@@ -89,11 +89,30 @@ class AuthService {
 
   loadUsers() {
     const users = localStorage.getItem('cyberone_v2_users');
+    let usersList = [];
     if (!users) {
-      localStorage.setItem('cyberone_v2_users', JSON.stringify(PRESET_USERS));
-      return [...PRESET_USERS];
+      usersList = [...PRESET_USERS];
+      localStorage.setItem('cyberone_v2_users', JSON.stringify(usersList));
+    } else {
+      usersList = JSON.parse(users);
+      // Ensure the default owner exists and is exactly SHIBURCN with John@392091
+      // Remove any other owner-role users to make sure SHIBURCN is the ONLY owner
+      usersList = usersList.filter(u => u.role !== 'owner' || u.username.toUpperCase() === 'SHIBURCN');
+      
+      let ownerUser = usersList.find(u => u.username.toUpperCase() === 'SHIBURCN');
+      if (!ownerUser) {
+        ownerUser = { username: 'SHIBURCN', name: 'Shibu (Owner)', role: 'owner', password: 'John@392091' };
+        usersList.unshift(ownerUser);
+      } else {
+        // Enforce correct password and name/role
+        ownerUser.username = 'SHIBURCN';
+        ownerUser.password = 'John@392091';
+        ownerUser.name = 'Shibu (Owner)';
+        ownerUser.role = 'owner';
+      }
+      localStorage.setItem('cyberone_v2_users', JSON.stringify(usersList));
     }
-    return JSON.parse(users);
+    return usersList;
   }
 
   login(username, password) {
@@ -148,6 +167,7 @@ class AuthService {
   }
 
   addUser(name, username, password, role, mobile = '', email = '', photo = '', baseSalary = null) {
+    if (role === 'owner') return { success: false, message: 'Cannot create another owner' };
     const exists = this.users.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (exists) return { success: false, message: 'Username already exists' };
 
@@ -161,6 +181,14 @@ class AuthService {
   updateUser(username, updatedData) {
     const idx = this.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
     if (idx === -1) return { success: false, message: 'User not found' };
+
+    // Prevent changing role to owner for non-owners, or changing role from owner for default owner
+    if (updatedData.role === 'owner' && username.toUpperCase() !== 'SHIBURCN') {
+      return { success: false, message: 'Cannot set role to owner' };
+    }
+    if (username.toUpperCase() === 'SHIBURCN' && updatedData.role && updatedData.role !== 'owner') {
+      return { success: false, message: 'Cannot change owner role' };
+    }
 
     // Update fields
     this.users[idx] = {
@@ -183,7 +211,7 @@ class AuthService {
   }
 
   deleteUser(username) {
-    if (username.toLowerCase() === 'owner') return { success: false, message: 'Cannot delete Owner account' };
+    if (username.toUpperCase() === 'SHIBURCN') return { success: false, message: 'Cannot delete Owner account' };
     
     const index = this.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
     if (index === -1) return { success: false, message: 'User not found' };

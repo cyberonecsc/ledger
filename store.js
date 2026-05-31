@@ -150,7 +150,7 @@ class StateStore {
     // Reconstruct staff list dynamically from active credentials
     const storedStaff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
     const rawUsers = localStorage.getItem('cyberone_v2_users');
-    const activeUsers = rawUsers ? JSON.parse(rawUsers) : [{ username: 'owner', name: 'CYBER ONE Owner', role: 'owner', password: '123' }];
+    const activeUsers = rawUsers ? JSON.parse(rawUsers) : [{ username: 'SHIBURCN', name: 'Shibu (Owner)', role: 'owner', password: 'John@392091' }];
     this.staff = activeUsers.map(user => {
       const existing = storedStaff.find(s => s.id === user.username || s.id === `STAFF-${user.username}` || s.name === user.name);
       let baseSal = user.baseSalary !== undefined && user.baseSalary !== null ? parseFloat(user.baseSalary) : (user.role === 'owner' ? 35000 : (user.role === 'admin' ? 20000 : (user.role === 'accountant' ? 18000 : 12000)));
