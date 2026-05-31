@@ -760,6 +760,51 @@ class Application {
 
   mergeSyncData(remoteBackup) {
     let changed = false;
+    
+    // 1. Merge activity logs first to collect deleted/tombstone entity IDs
+    let mergedAct = [];
+    const actKey = 'cyberone_v2_activity_logs';
+    if (remoteBackup[actKey]) {
+      try {
+        const localRaw = localStorage.getItem(actKey);
+        const remoteRaw = remoteBackup[actKey];
+        const localAct = JSON.parse(localRaw || '[]');
+        const remoteAct = JSON.parse(remoteRaw || '[]');
+        const actMap = new Map();
+        remoteAct.forEach(a => { if (a && a.id) actMap.set(a.id, a); });
+        localAct.forEach(a => { if (a && a.id) actMap.set(a.id, a); });
+        mergedAct = Array.from(actMap.values()).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        if (JSON.stringify(localAct) !== JSON.stringify(mergedAct)) {
+          localStorage.setItem(actKey, JSON.stringify(mergedAct));
+          changed = true;
+        }
+      } catch (e) {
+        console.error("Failed to merge activity logs in pre-pass", e);
+      }
+    } else {
+      try {
+        mergedAct = JSON.parse(localStorage.getItem(actKey) || '[]');
+      } catch (e) {}
+    }
+
+    const deletedCustomerIds = new Set();
+    const deletedProductIds = new Set();
+    const deletedTransactionIds = new Set();
+    mergedAct.forEach(log => {
+      if (log && log.details) {
+        if (log.action === 'Delete Customer') {
+          const match = log.details.match(/Deleted registered customer ([^:]+):/);
+          if (match) deletedCustomerIds.add(match[1]);
+        } else if (log.action === 'Delete Product') {
+          const match = log.details.match(/Deleted inventory item ([^:]+):/);
+          if (match) deletedProductIds.add(match[1]);
+        } else if (log.action && log.action.startsWith('Delete ')) {
+          const match = log.details.match(/Deleted transaction ([^:]+):/);
+          if (match) deletedTransactionIds.add(match[1]);
+        }
+      }
+    });
+
     const keys = Object.keys(remoteBackup);
     keys.forEach(key => {
       if (key.startsWith('cyberone_v2_')) {
@@ -786,21 +831,28 @@ class Application {
             const mergedLogs = { ...remoteLogs, ...localLogs };
             
             Object.keys(mergedLogs).forEach(date => {
-              if (localLogs[date] && remoteLogs[date]) {
-                const localTxns = localLogs[date].transactions || [];
-                const remoteTxns = remoteLogs[date].transactions || [];
-                const txnMap = new Map();
-                
-                remoteTxns.forEach(t => txnMap.set(t.id, t));
-                localTxns.forEach(t => txnMap.set(t.id, t));
-                
-                const mergedTxns = Array.from(txnMap.values());
-                if (JSON.stringify(localLogs[date].transactions) !== JSON.stringify(mergedTxns)) {
+              const localTxns = (localLogs[date] && localLogs[date].transactions) || [];
+              const remoteTxns = (remoteLogs[date] && remoteLogs[date].transactions) || [];
+              const txnMap = new Map();
+              
+              remoteTxns.forEach(t => {
+                if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                  txnMap.set(t.id, t);
+                }
+              });
+              localTxns.forEach(t => {
+                if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                  txnMap.set(t.id, t);
+                }
+              });
+              
+              const mergedTxns = Array.from(txnMap.values());
+              if (mergedLogs[date]) {
+                const currentTxns = mergedLogs[date].transactions || [];
+                if (JSON.stringify(currentTxns) !== JSON.stringify(mergedTxns)) {
                   mergedLogs[date].transactions = mergedTxns;
                   logChanged = true;
                 }
-              } else if (!localLogs[date] && remoteLogs[date]) {
-                logChanged = true;
               }
             });
             
@@ -816,23 +868,7 @@ class Application {
             }
           }
         } else if (key === 'cyberone_v2_activity_logs') {
-          try {
-            const localAct = JSON.parse(localRaw || '[]');
-            const remoteAct = JSON.parse(remoteRaw || '[]');
-            const actMap = new Map();
-            remoteAct.forEach(a => actMap.set(a.id, a));
-            localAct.forEach(a => actMap.set(a.id, a));
-            const mergedAct = Array.from(actMap.values()).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            if (JSON.stringify(localAct) !== JSON.stringify(mergedAct)) {
-              localStorage.setItem(key, JSON.stringify(mergedAct));
-              changed = true;
-            }
-          } catch(e) {
-            if (localRaw !== remoteRaw) {
-              localStorage.setItem(key, remoteRaw);
-              changed = true;
-            }
-          }
+          // Already merged in the pre-pass
         } else {
           try {
             const localData = JSON.parse(localRaw);
@@ -845,13 +881,19 @@ class Application {
               localData.forEach(item => {
                 if (item) {
                   const k = item[keyProp] || item.id;
-                  if (k) map.set(k, item);
+                  if (k) {
+                    if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
+                    if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
+                    map.set(k, item);
+                  }
                 }
               });
               remoteData.forEach(item => {
                 if (item) {
                   const k = item[keyProp] || item.id;
                   if (k) {
+                    if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
+                    if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
                     const existing = map.get(k);
                     map.set(k, existing ? { ...existing, ...item } : item);
                   }
