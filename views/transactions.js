@@ -2,12 +2,12 @@
    CYBERONE Center Management Platform - Transactions View (views/transactions.js)
    ========================================================================== */
 
-import { store } from '../store.js';
+import { store, getTodayDateString } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderTransactions(mountPoint, appInstance) {
-  const activeDate = appInstance.getActiveDate();
-  const log = store.getOrCreateDailyLog(activeDate);
+  let activeDate = getTodayDateString();
+  let log = store.getOrCreateDailyLog(activeDate);
   const currentBalances = store.getCurrentBalances();
 
   // Helper to format currency
@@ -211,7 +211,16 @@ export function renderTransactions(mountPoint, appInstance) {
   const txnDatePicker = document.getElementById('txn-date-picker');
   if (txnDatePicker) {
     txnDatePicker.addEventListener('change', (e) => {
-      appInstance.setActiveDate(e.target.value);
+      activeDate = e.target.value;
+      log = store.getOrCreateDailyLog(activeDate);
+      
+      const subHeading = document.getElementById('page-heading-sub');
+      if (subHeading) {
+        subHeading.innerText = `Reconciliation sheet for ${activeDate}`;
+      }
+      
+      redrawTable();
+      updateBalanceCards();
     });
   }
 
@@ -251,8 +260,7 @@ export function renderTransactions(mountPoint, appInstance) {
         }
 
         selectedTxnIds.clear();
-        const freshLog = store.getOrCreateDailyLog(activeDate);
-        log.transactions = freshLog.transactions;
+        log = store.getOrCreateDailyLog(activeDate);
         redrawTable();
         updateBalanceCards();
       }
@@ -386,8 +394,7 @@ export function renderTransactions(mountPoint, appInstance) {
             selectedTxnIds.delete(txnId); // Remove from bulk selection Set if present
             appInstance.showToast('Transaction deleted successfully', 'success');
             // Refresh logic and redraw
-            const freshLog = store.getOrCreateDailyLog(activeDate);
-            log.transactions = freshLog.transactions;
+            log = store.getOrCreateDailyLog(activeDate);
             redrawTable();
             updateBalanceCards();
           } else {
@@ -981,8 +988,7 @@ export function renderTransactions(mountPoint, appInstance) {
         closeModal();
         
         // Refresh local data & UI
-        const freshLog = store.getOrCreateDailyLog(activeDate);
-        log.transactions = freshLog.transactions;
+        log = store.getOrCreateDailyLog(activeDate);
         redrawTable();
         updateBalanceCards();
       });
@@ -1063,8 +1069,7 @@ export function renderTransactions(mountPoint, appInstance) {
         closeModal();
         
         // Refresh local data & UI
-        const freshLog = store.getOrCreateDailyLog(activeDate);
-        log.transactions = freshLog.transactions;
+        log = store.getOrCreateDailyLog(activeDate);
         redrawTable();
         updateBalanceCards();
       });

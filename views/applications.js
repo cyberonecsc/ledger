@@ -2,10 +2,11 @@
    CYBERONE Center Management Platform - Applications View (views/applications.js)
    ========================================================================== */
 
-import { store } from '../store.js';
+import { store, getTodayDateString } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderApplications(mountPoint, appInstance) {
+  let localActiveDate = getTodayDateString();
   const apps = store.applications;
   const customers = store.customers;
   const staff = store.staff;
@@ -35,7 +36,7 @@ export function renderApplications(mountPoint, appInstance) {
       history: { title: 'History / Archived', items: 'var(--text-muted)'.startsWith('var') ? [] : [], color: 'var(--text-muted)' }
     };
 
-    const activeDateStr = appInstance.getActiveDate();
+    const activeDateStr = localActiveDate;
     const activeDate = new Date(activeDateStr);
 
     filteredApps.forEach(app => {
@@ -68,7 +69,7 @@ export function renderApplications(mountPoint, appInstance) {
           <input type="text" id="app-search" class="form-control" placeholder="Search by citizen name, file ID, or reference number..." value="${searchQuery}">
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-          <input type="date" id="app-date-picker" value="${appInstance.getActiveDate()}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+          <input type="date" id="app-date-picker" value="${localActiveDate}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
           <button id="btn-add-app" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; height: 38px;">
             <i data-lucide="plus" style="width: 16px; height: 16px;"></i> New File
           </button>
@@ -270,7 +271,8 @@ export function renderApplications(mountPoint, appInstance) {
     if (appDatePicker) {
       appDatePicker.onclick = (e) => e.stopPropagation();
       appDatePicker.onchange = (e) => {
-        appInstance.setActiveDate(e.target.value);
+        localActiveDate = e.target.value;
+        redrawLayout();
       };
     }
 
@@ -304,7 +306,7 @@ export function renderApplications(mountPoint, appInstance) {
       });
 
       // Automatically post transaction in daily ledger
-      store.addTransaction(appInstance.getActiveDate(), {
+      store.addTransaction(localActiveDate, {
         type: 'sale',
         description: `${serviceType} application`,
         amount: feePaid + serviceCharge,

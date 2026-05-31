@@ -998,7 +998,7 @@ class StateStore {
       total: parseFloat(invoiceData.total || 0),
       dueDate: invoiceData.dueDate,
       status: invoiceData.status || 'sent',
-      createdAt: getTodayDateString()
+      createdAt: invoiceData.createdAt || getTodayDateString()
     };
     this.invoices.push(newInvoice);
     this.persistAll();
