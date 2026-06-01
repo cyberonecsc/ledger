@@ -217,6 +217,7 @@ class Application {
         if (updated) {
           console.log("LocalStorage updated with remote database contents");
           store.loadState();
+          auth.reloadUsers(); // Refresh in-memory user list so newly synced accounts work for login
           
           // Sync with local server disk if running on localhost
           if (isLocalhost) {
