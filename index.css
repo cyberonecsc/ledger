@@ -940,6 +940,14 @@ select.form-control option {
   visibility: visible;
 }
 
+/* Prevent modal close on backdrop click - only Cancel/X button closes */
+.modal-backdrop {
+  pointer-events: auto;
+}
+.modal-container {
+  pointer-events: auto;
+}
+
 .modal-container {
   width: 100%;
   max-width: 550px;
