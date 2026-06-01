@@ -191,9 +191,7 @@ export function renderAuditLog(mountPoint, appInstance) {
   };
 
   btnCloseModal.addEventListener('click', closeExpenseModal);
-  modalBackdrop.addEventListener('click', (e) => {
-    if (e.target === modalBackdrop) closeExpenseModal();
-  });
+  // Backdrop click close disabled - modal only closes via Cancel/X button
 
   const renderActiveTabContent = () => {
     const container = document.getElementById('audit-tab-content');
