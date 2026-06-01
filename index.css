@@ -928,7 +928,7 @@ select.form-control option {
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
-  padding: 40px 15px;
+  padding: 20px 10px;
   opacity: 0;
   visibility: hidden;
   transition: var(--transition-smooth);
@@ -951,8 +951,20 @@ select.form-control option {
   box-shadow: var(--shadow-premium);
   transform: translateY(30px);
   transition: var(--transition-smooth);
-  margin-bottom: 40px;
+  margin-bottom: 20px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Scrollable modal body content at any resolution */
+.modal-container form,
+.modal-container > div:not(.modal-header) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-backdrop.show .modal-container {
@@ -1429,7 +1441,19 @@ select.form-control option {
     padding: 20px 15px;
     margin: 10px;
     width: calc(100% - 20px);
-  }
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Scrollable modal body content at any resolution */
+.modal-container form,
+.modal-container > div:not(.modal-header) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
 
   .wallet-grid {
     grid-template-columns: 1fr !important;
@@ -1977,7 +2001,19 @@ body.sidebar-collapsed .submenu-list {
     margin: 10px auto !important;
     padding: 15px !important;
     overflow: hidden !important;
-  }
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Scrollable modal body content at any resolution */
+.modal-container form,
+.modal-container > div:not(.modal-header) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
   .modal-container form {
     overflow-y: auto !important;
     flex: 1 !important;
