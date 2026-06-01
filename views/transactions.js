@@ -185,9 +185,7 @@ export function renderTransactions(mountPoint, appInstance) {
 
   btnOpenModal.addEventListener('click', openAddModal);
   btnCloseModalX.addEventListener('click', closeModal);
-  modalBackdrop.addEventListener('click', (e) => {
-    if (e.target === modalBackdrop) closeModal();
-  });
+  // Backdrop click close disabled - modal only closes via Cancel/X button
 
   // Search input handler
   searchInput.addEventListener('input', () => {
