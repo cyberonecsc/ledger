@@ -120,6 +120,9 @@ class AuthService {
   }
 
   login(username, password) {
+    // Always refresh from localStorage before checking credentials,
+    // so newly synced user accounts from GitHub are available immediately
+    this.reloadUsers();
     const user = this.users.find(
       u => u.username.toLowerCase() === username.toLowerCase() && u.password === password
     );
