@@ -1446,14 +1446,6 @@ select.form-control option {
   overflow: hidden;
 }
 
-/* Scrollable modal body content at any resolution */
-.modal-container form,
-.modal-container > div:not(.modal-header) {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
-}
 
   .wallet-grid {
     grid-template-columns: 1fr !important;
@@ -2006,14 +1998,6 @@ body.sidebar-collapsed .submenu-list {
   overflow: hidden;
 }
 
-/* Scrollable modal body content at any resolution */
-.modal-container form,
-.modal-container > div:not(.modal-header) {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
-}
   .modal-container form {
     overflow-y: auto !important;
     flex: 1 !important;
