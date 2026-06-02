@@ -194,7 +194,14 @@ class Application {
 
       // If we couldn't fetch from GitHub API, fallback to relative fetch
       if (!remoteData) {
-        const response = await fetch('./db.json?t=' + Date.now());
+        const response = await fetch('./db.json?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         if (response.ok) {
           remoteData = await response.json();
           console.log("Database fetched from relative db.json path");

@@ -993,6 +993,7 @@ select.form-control option {
 }
 
 .modal-close {
+  display: none !important;
   background: none;
   border: none;
   font-size: 20px;
