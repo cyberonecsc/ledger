@@ -9,9 +9,10 @@ export function renderDashboard(mountPoint, appInstance) {
   // Call recalculateAllBalances first to fix opening balance mismatches
   store.recalculateAllBalances();
 
-  // Always use today's local date
+  // Always use today's local date as default
   const today = new Date();
-  const activeDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const activeDate = appInstance._dashboardDate || todayStr;
   const currentMonth = activeDate.substring(0, 7); // Format: "YYYY-MM"
   // Calculate statistics
   const monthStats = store.getMonthlyStats(currentMonth);
@@ -300,9 +301,10 @@ export function renderDashboard(mountPoint, appInstance) {
           <h3 style="font-size: 16px; margin-bottom: 4px;">Daily Balance Sheet</h3>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 12px; color: var(--text-muted);">Reconciliation Date:</span>
-            <span style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border);">
-              ${new Date(activeDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </span>
+            <input type="date" id="dashboard-date-picker" class="form-control" 
+               style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, 0.05); padding: 2px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border); height: 28px; width: 130px; cursor: pointer; color-scheme: dark;"
+               value="${activeDate}"
+               max="${todayStr}">
           </div>
         </div>
         <i data-lucide="scale" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
@@ -652,8 +654,14 @@ export function renderDashboard(mountPoint, appInstance) {
   document.getElementById('page-heading-title').innerText = 'Dashboard Overview';
   document.getElementById('page-heading-sub').innerText = `CYBER ONE Operations for ${new Date(activeDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
 
-  // Date picker removal cleanup (no handler required as input was removed)
-
+  // Date picker handler
+  const datePicker = document.getElementById('dashboard-date-picker');
+  if (datePicker) {
+    datePicker.addEventListener('change', (e) => {
+      appInstance._dashboardDate = e.target.value;
+      appInstance.handleRouting();
+    });
+  }
 
 
   lucide.createIcons();

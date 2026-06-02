@@ -330,6 +330,10 @@ class Application {
     
     this.queryParams = queryParams;
 
+    if (path !== '#dashboard') {
+      this._dashboardDate = null;
+    }
+
     // Route guards
     const route = ROUTES[path];
 
