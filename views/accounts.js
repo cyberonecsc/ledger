@@ -150,9 +150,15 @@ export function renderAccounts(mountPoint, appInstance) {
 
     <!-- Initial Opening Balances Config Card -->
     <div class="glass-card" style="padding:24px; max-width: 100%; margin-top: 35px;">
-      <div class="section-header" style="margin-bottom:15px;">
-        <h3>Initial Opening Balances</h3>
-        <span style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
+      <div class="section-header" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3>Initial Opening Balances</h3>
+          <span style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
+        </div>
+        <div>
+          <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Override specific date (Optional)</label>
+          <input type="date" id="opening-override-date" class="form-control" style="font-size:12px; padding:4px 8px; height:auto;">
+        </div>
       </div>
       <form id="form-opening-balances">
         <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Cash Reservoirs</h4>
@@ -822,10 +828,19 @@ export function renderAccounts(mountPoint, appInstance) {
         }
       });
 
-      // Save all balances — this internally merges with existing via spread so nothing is lost
-      store.updateInitialBalances(newBalances);
-      appInstance.showToast('✅ Opening balances saved successfully!', 'success');
+      // Check if a specific date was selected for overriding
+      const overrideDateInput = document.getElementById('opening-override-date');
+      const overrideDate = overrideDateInput ? overrideDateInput.value : '';
 
+      if (overrideDate) {
+        // Apply override to a specific date
+        store.setOpeningOverride(overrideDate, newBalances);
+        appInstance.showToast(`✅ Opening balances overridden for ${overrideDate}!`, 'success');
+      } else {
+        // Save to initial genesis balances
+        store.updateInitialBalances(newBalances);
+        appInstance.showToast('✅ Initial opening balances saved successfully!', 'success');
+      }
       // Update displayed card values in-place without full page re-render
       const updatedBalances = store.getCurrentBalances();
       const cashCard = document.querySelector('.wallet-balance-val[data-balance-id="cash"]');

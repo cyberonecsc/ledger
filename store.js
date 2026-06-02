@@ -193,6 +193,7 @@ class StateStore {
     this.serviceTypes = this.getItem('cyberone_v2_service_types', INITIAL_SERVICE_TYPES);
     this.applications = this.getItem('cyberone_v2_applications', INITIAL_APPLICATIONS);
     this.invoices = this.getItem('cyberone_v2_invoices', this.getSeededInvoices());
+    this.openingOverrides = this.getItem('cyberone_v2_opening_overrides', {});
     this.dailyLogs = this.getItem('cyberone_v2_daily_logs', null);
     
     // Default Center Profile
@@ -411,6 +412,14 @@ class StateStore {
     return true;
   }
 
+  setOpeningOverride(dateString, balances) {
+    if (!this.openingOverrides) this.openingOverrides = {};
+    this.openingOverrides[dateString] = { ...this.openingOverrides[dateString], ...balances };
+    this.saveItem('cyberone_v2_opening_overrides', this.openingOverrides);
+    this.recalculateAllBalances();
+    this.persistAll();
+  }
+
   updateCenterProfile(profileData) {
     this.centerProfile = {
       ...this.centerProfile,
@@ -474,6 +483,11 @@ class StateStore {
       } else {
         // Roll forward from the previous day's closing balances
         log.openingBalances = { ...previousClosingBalances };
+      }
+
+      // Apply overrides for the specific day if any exist
+      if (this.openingOverrides && this.openingOverrides[dateString]) {
+        log.openingBalances = { ...log.openingBalances, ...this.openingOverrides[dateString] };
       }
 
       // Compute closing balances for the day
