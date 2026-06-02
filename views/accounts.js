@@ -150,14 +150,27 @@ export function renderAccounts(mountPoint, appInstance) {
 
     <!-- Initial Opening Balances Config Card -->
     <div class="glass-card" style="padding:24px; max-width: 100%; margin-top: 35px;">
-      <div class="section-header" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
-        <div>
+      <div class="section-header" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
+        <div style="flex:1; min-width:200px;">
           <h3>Initial Opening Balances</h3>
           <span style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
         </div>
-        <div>
-          <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Override specific date (Optional)</label>
-          <input type="date" id="opening-override-date" class="form-control" style="font-size:12px; padding:4px 8px; height:auto;">
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+          <div>
+            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Type (Optional)</label>
+            <select id="override-type" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;">
+              <option value="opening">Opening Bal.</option>
+              <option value="closing">Closing Bal.</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Date</label>
+            <input type="date" id="opening-override-date" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;">
+          </div>
+          <div>
+            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Owner PIN</label>
+            <input type="password" id="override-pin" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:90px;" placeholder="****">
+          </div>
         </div>
       </div>
       <form id="form-opening-balances">
@@ -830,12 +843,31 @@ export function renderAccounts(mountPoint, appInstance) {
 
       // Check if a specific date was selected for overriding
       const overrideDateInput = document.getElementById('opening-override-date');
+      const overrideTypeInput = document.getElementById('override-type');
+      const overridePinInput = document.getElementById('override-pin');
+      
       const overrideDate = overrideDateInput ? overrideDateInput.value : '';
+      const overrideType = overrideTypeInput ? overrideTypeInput.value : 'opening';
+      const overridePin = overridePinInput ? overridePinInput.value : '';
 
       if (overrideDate) {
-        // Apply override to a specific date
-        store.setOpeningOverride(overrideDate, newBalances);
-        appInstance.showToast(`✅ Opening balances overridden for ${overrideDate}!`, 'success');
+        if (!auth.currentUser || auth.currentUser.role !== 'owner') {
+          appInstance.showToast('❌ Only owners can perform date overrides.', 'error');
+          return;
+        }
+        if (auth.currentUser.password !== overridePin) {
+          appInstance.showToast('❌ Incorrect Owner PIN.', 'error');
+          return;
+        }
+
+        if (overrideType === 'closing') {
+          store.setClosingOverride(overrideDate, newBalances);
+          appInstance.showToast(`✅ Closing balances overridden for ${overrideDate}!`, 'success');
+        } else {
+          // Apply override to a specific date
+          store.setOpeningOverride(overrideDate, newBalances);
+          appInstance.showToast(`✅ Opening balances overridden for ${overrideDate}!`, 'success');
+        }
       } else {
         // Save to initial genesis balances
         store.updateInitialBalances(newBalances);
