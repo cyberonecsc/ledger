@@ -6,9 +6,12 @@ import { store } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderDashboard(mountPoint, appInstance) {
-  // Use the stored active date (which may have been set by the date picker).
-  // Only fall back to today if no date is stored at all.
-  const activeDate = appInstance.getActiveDate();
+  // Call recalculateAllBalances first to fix opening balance mismatches
+  store.recalculateAllBalances();
+
+  // Always use today's local date
+  const today = new Date();
+  const activeDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const currentMonth = activeDate.substring(0, 7); // Format: "YYYY-MM"
   // Calculate statistics
   const monthStats = store.getMonthlyStats(currentMonth);
@@ -22,7 +25,8 @@ export function renderDashboard(mountPoint, appInstance) {
   
   // Define account list metadata dynamically from store
   const accountMeta = [
-    { key: 'cash', name: 'Cash In Hand', type: 'cash', icon: 'wallet', color: 'var(--color-success)' }
+    { key: 'cash', name: 'Cash In Hand', type: 'cash', icon: 'wallet', color: 'var(--color-success)' },
+    { key: 'petty_cash', name: 'Petty Cash', type: 'cash', icon: 'coins', color: '#fb923c' }
   ];
 
   // Dynamically append all bank accounts individually
@@ -70,6 +74,52 @@ export function renderDashboard(mountPoint, appInstance) {
 
   // Find active government applications (not delivered)
   const activeApps = store.applications.filter(a => a.status !== 'delivered');
+
+  // Get 5 recently used inventory items
+  const recentProducts = [];
+  const recentProductIds = new Set();
+  
+  const sortedLogDates = Object.keys(store.dailyLogs).sort().reverse();
+  for (const date of sortedLogDates) {
+    const log = store.dailyLogs[date];
+    if (log && log.transactions) {
+      const sortedTxns = [...log.transactions].reverse();
+      for (const txn of sortedTxns) {
+        if (txn.type === 'sale') {
+          if (txn.productId) {
+            recentProductIds.add(txn.productId);
+          }
+          if (txn.consumables && Array.isArray(txn.consumables)) {
+            txn.consumables.forEach(c => {
+              if (c.productId) recentProductIds.add(c.productId);
+            });
+          }
+          if (txn.pagesPrinted > 0) {
+            recentProductIds.add('PROD-A4');
+          }
+          const descLower = (txn.description || '').toLowerCase();
+          if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+            recentProductIds.add('PROD-PVC');
+          }
+        }
+        if (recentProductIds.size >= 5) break;
+      }
+    }
+    if (recentProductIds.size >= 5) break;
+  }
+
+  recentProductIds.forEach(id => {
+    const product = store.products.find(p => p.id === id);
+    if (product) recentProducts.push(product);
+  });
+
+  if (recentProducts.length < 5) {
+    store.products.forEach(p => {
+      if (recentProducts.length < 5 && !recentProductIds.has(p.id)) {
+        recentProducts.push(p);
+      }
+    });
+  }
 
   // Calculate today's transaction types breakdown for Donut Chart
   const txnGroups = {
@@ -210,30 +260,35 @@ export function renderDashboard(mountPoint, appInstance) {
         </div>
       </div>
 
-      <!-- Low Stock Inventory Alerts -->
+      <!-- Inventory Overview card -->
       <div class="glass-card" style="padding: 24px;">
         <div class="section-header">
-          <h3>Low Stock Alerts (${lowStockProducts.length})</h3>
+          <h3>Inventory Overview</h3>
           <a href="#inventory" style="font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 600;">Manage Inventory</a>
         </div>
         <div style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
-          ${lowStockProducts.length === 0 ? `
+          ${recentProducts.length === 0 ? `
             <div style="text-align: center; color: var(--text-dimmed); font-size: 13px; padding: 30px 10px;">
-              <i data-lucide="check" style="width: 24px; height: 24px; color: var(--color-success); margin-bottom: 5px; display: inline-block;"></i>
-              <div style="margin-top: 5px;">All items fully stocked!</div>
+              No products in catalog.
             </div>
-          ` : lowStockProducts.map(p => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: var(--border-radius-sm);">
-              <div>
-                <div style="font-size: 13px; font-weight: 600;">${p.name}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">SKU: ${p.sku}</div>
+          ` : recentProducts.map(p => {
+            const isLowStock = p.stock <= p.minStock;
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isLowStock ? 'rgba(239, 68, 68, 0.03)' : 'rgba(255, 255, 255, 0.01)'}; border: 1px solid ${isLowStock ? 'rgba(239, 68, 68, 0.15)' : 'var(--panel-border)'}; border-radius: var(--border-radius-sm);">
+                <div>
+                  <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    ${p.name}
+                    ${isLowStock ? '<span class="badge" style="background: var(--color-danger); color: #fff; font-size: 9px; padding: 2px 6px;">Low Stock</span>' : ''}
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted);">SKU: ${p.sku || 'N/A'}</div>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 13px; font-weight: 700; color: ${isLowStock ? 'var(--color-danger)' : 'var(--color-success)'};">${p.stock} left</span>
+                  <div style="font-size: 10px; color: var(--text-dimmed);">Min: ${p.minStock}</div>
+                </div>
               </div>
-              <div style="text-align: right;">
-                <span style="font-size: 13px; font-weight: 700; color: var(--color-danger);">${p.stock} left</span>
-                <div style="font-size: 10px; color: var(--text-dimmed);">Min: ${p.minStock}</div>
-              </div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       </div>
     </div>
@@ -245,7 +300,9 @@ export function renderDashboard(mountPoint, appInstance) {
           <h3 style="font-size: 16px; margin-bottom: 4px;">Daily Balance Sheet</h3>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 12px; color: var(--text-muted);">Reconciliation Date:</span>
-            <input type="date" id="dashboard-date-picker" value="${activeDate}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary);">
+            <span style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border);">
+              ${new Date(activeDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </span>
           </div>
         </div>
         <i data-lucide="scale" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
@@ -309,6 +366,9 @@ export function renderDashboard(mountPoint, appInstance) {
                 <td style="padding: 8px 12px; text-align: right; font-family: var(--font-display); font-weight: 600; color: ${diffColor};">
                   ${diffPrefix}${fmt(diff)}
                 </td>
+                <td style="padding: 8px 12px; text-align: right; font-family: var(--font-display); color: var(--text-muted);">
+                  —
+                </td>
               </tr>
             `;
           }).join('');
@@ -335,6 +395,7 @@ export function renderDashboard(mountPoint, appInstance) {
                     <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Opening Balance</th>
                     <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Closing Balance</th>
                     <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Variance (V)</th>
+                    <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Net Profit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,6 +415,9 @@ export function renderDashboard(mountPoint, appInstance) {
                     </td>
                     <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); color: ${totalDiffColor}; font-size: 13px; font-weight: 700;">
                       ${totalDiffPrefix}${fmt(totalDiff)}
+                    </td>
+                    <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: ${dailyStats.dailyProfit >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
+                      ${dailyStats.dailyProfit >= 0 ? '+' : ''}${fmt(dailyStats.dailyProfit)}
                     </td>
                   </tr>
                 </tfoot>
@@ -588,13 +652,7 @@ export function renderDashboard(mountPoint, appInstance) {
   document.getElementById('page-heading-title').innerText = 'Dashboard Overview';
   document.getElementById('page-heading-sub').innerText = `CYBER ONE Operations for ${new Date(activeDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
 
-  // Set date picker change handler
-  const dashboardDatePicker = document.getElementById('dashboard-date-picker');
-  if (dashboardDatePicker) {
-    dashboardDatePicker.addEventListener('change', (e) => {
-      appInstance.setActiveDate(e.target.value);
-    });
-  }
+  // Date picker removal cleanup (no handler required as input was removed)
 
 
 

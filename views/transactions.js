@@ -433,6 +433,34 @@ export function renderTransactions(mountPoint, appInstance) {
         .map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || 'N/A'}, Price: ₹${p.sellPrice})</option>`)
         .join('');
 
+      const consumableProductOptions = store.products
+        .filter(p => p.type === 'product')
+        .map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`)
+        .join('');
+
+      const createConsumableRow = (productId = '', quantity = 1) => {
+        const row = document.createElement('div');
+        row.className = 'consumable-row';
+        row.style = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
+        row.innerHTML = `
+          <select class="form-control consumable-select" style="flex: 2; height: 32px; font-size: 12px; padding: 4px 8px;">
+            <option value="">-- Choose Material --</option>
+            ${consumableProductOptions}
+          </select>
+          <input type="number" class="form-control consumable-qty" value="${quantity}" min="1" style="flex: 1; height: 32px; font-size: 12px; padding: 4px 8px; min-width: 60px;">
+          <button type="button" class="btn btn-danger btn-sm btn-delete-consumable" style="height: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        `;
+        if (productId) {
+          row.querySelector('.consumable-select').value = productId;
+        }
+        row.querySelector('.btn-delete-consumable').addEventListener('click', () => {
+          row.remove();
+        });
+        return row;
+      };
+
       // Determine initial sale type based on edit state
       const initialType = (editTxn && editTxn.productId) ? 'product' : 'service';
 
@@ -451,29 +479,28 @@ export function renderTransactions(mountPoint, appInstance) {
           <!-- Section 1: Service Fields (Conditional) -->
           <div id="service-fields-container" style="display: ${initialType === 'service' ? 'block' : 'none'};">
             <div class="form-row">
-              <div class="form-group">
+              <div class="form-group" style="flex: 2;">
                 <label class="form-label">Service Type / Description</label>
-                <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" list="service-presets">
+                <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" list="service-presets" required>
                 <datalist id="service-presets">
-                  <option value="e-District Application">
-                  <option value="PAN Card Application">
-                  <option value="Passport Registration">
-                  <option value="Aadhaar Update">
-                  <option value="Print / Copy Service">
-                  <option value="Mobile Recharge">
-                  <option value="KSEB Bill Payout">
-                  <option value="AEPS Cash Withdrawal">
-                  <option value="PVC Card Service">
-                  <option value="PVC Lamination">
+                  ${store.serviceTypes.map(s => `<option value="${s}">`).join('')}
                 </datalist>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Pages Printed (Deducts A4 paper)</label>
-                <input type="number" id="sale-pages-printed" class="form-control" value="0" min="0">
               </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-top: 10px;">
+              <div class="form-group" style="grid-column: span 2; width: 100%;">
+                <label class="form-label">Material Deductions (Consumables)</label>
+                <div id="consumables-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- Rows dynamically appended -->
+                </div>
+                <button type="button" id="btn-add-consumable-row" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;">
+                  <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Material
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 15px;">
               <div class="form-group">
                 <label class="form-label">Deducted Cost Source</label>
                 <select id="sale-deduct-source" class="form-control">
@@ -786,6 +813,16 @@ export function renderTransactions(mountPoint, appInstance) {
         adjustPayments();
       });
 
+      // Add consumable button click handler
+      const btnAddConsumable = document.getElementById('btn-add-consumable-row');
+      const containerConsumables = document.getElementById('consumables-list-container');
+      if (btnAddConsumable && containerConsumables) {
+        btnAddConsumable.addEventListener('click', () => {
+          containerConsumables.appendChild(createConsumableRow());
+          lucide.createIcons();
+        });
+      }
+
       // Pre-fill values if editing
       if (editTxn) {
         if (editTxn.productId) {
@@ -793,7 +830,18 @@ export function renderTransactions(mountPoint, appInstance) {
           inputProductQty.value = editTxn.quantity || 1;
         } else {
           document.getElementById('sale-desc').value = editTxn.description || '';
-          document.getElementById('sale-pages-printed').value = editTxn.pagesPrinted || 0;
+          if (containerConsumables) {
+            if (editTxn.consumables && Array.isArray(editTxn.consumables)) {
+              editTxn.consumables.forEach(c => {
+                containerConsumables.appendChild(createConsumableRow(c.productId, c.quantity));
+              });
+            } else if (editTxn.pagesPrinted > 0) {
+              const a4Paper = store.products.find(p => p.sku === 'A4-PAPER' || p.name.toLowerCase() === 'a4 paper');
+              if (a4Paper) {
+                containerConsumables.appendChild(createConsumableRow(a4Paper.id, editTxn.pagesPrinted));
+              }
+            }
+          }
           document.getElementById('sale-deduct-source').value = editTxn.deductedFrom || 'none';
           document.getElementById('sale-deduct-amount-service').value = editTxn.deductedAmount || 0;
         }
@@ -936,6 +984,26 @@ export function renderTransactions(mountPoint, appInstance) {
         let pagesPrinted = 0;
         let deductedFrom = 'none';
         let deductedAmount = 0;
+        const consumables = [];
+
+        if (containerConsumables) {
+          containerConsumables.querySelectorAll('.consumable-row').forEach(row => {
+            const prodId = row.querySelector('.consumable-select').value;
+            const qty = parseInt(row.querySelector('.consumable-qty').value || 1);
+            if (prodId) {
+              consumables.push({ productId: prodId, quantity: qty });
+            }
+          });
+        }
+
+        // Set pagesPrinted for legacy compatibility if A4 Paper is deducted
+        const a4PaperItem = consumables.find(c => {
+          const p = store.products.find(prod => prod.id === c.productId);
+          return p && (p.sku === 'A4-PAPER' || p.name.toLowerCase() === 'a4 paper');
+        });
+        if (a4PaperItem) {
+          pagesPrinted = a4PaperItem.quantity;
+        }
 
         if (isProd) {
           const selectedProduct = store.products.find(p => p.id === productId);
@@ -943,7 +1011,7 @@ export function renderTransactions(mountPoint, appInstance) {
           deductedAmount = selectedProduct.buyPrice * quantity;
         } else {
           description = document.getElementById('sale-desc').value.trim();
-          pagesPrinted = parseInt(document.getElementById('sale-pages-printed').value || 0);
+          store.addServiceType(description); // Save service type automatically
           deductedFrom = document.getElementById('sale-deduct-source').value;
           deductedAmount = parseFloat(document.getElementById('sale-deduct-amount-service').value || 0);
         }
@@ -960,6 +1028,7 @@ export function renderTransactions(mountPoint, appInstance) {
           paidByUPI: upi,
           paidByCredit: credit,
           pagesPrinted,
+          consumables,
           deductedFrom,
           deductedAmount,
           customerId,
@@ -1022,6 +1091,7 @@ export function renderTransactions(mountPoint, appInstance) {
             <label class="form-label">Payment Source</label>
             <select id="expense-source" class="form-control">
               <option value="cash">Cash In Hand (Physical Cash)</option>
+              <option value="petty_cash">Petty Cash</option>
               <option value="account">Bank Account (UPI / Transfer)</option>
             </select>
           </div>

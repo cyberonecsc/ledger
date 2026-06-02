@@ -50,6 +50,7 @@ export function getTodayDateString() {
 // Initial configuration for default opening balances (May 28, 2026)
 const INITIAL_BALANCES = {
   cash: 0,
+  petty_cash: 0,
   main_bob: 17729.76,
   csc: 1606.28,
   ibkart: 11.15,
@@ -59,6 +60,19 @@ const INITIAL_BALANCES = {
   vi: 0,
   airtel: 448.35
 };
+
+const INITIAL_SERVICE_TYPES = [
+  "e-District Application",
+  "PAN Card Application",
+  "Passport Registration",
+  "Aadhaar Update",
+  "Print / Copy Service",
+  "Mobile Recharge",
+  "KSEB Bill Payout",
+  "AEPS Cash Withdrawal",
+  "PVC Card Service",
+  "PVC Lamination"
+];
 
 // Initial Wallets metadata
 const INITIAL_WALLETS = [
@@ -89,8 +103,8 @@ const INITIAL_STAFF = [
 
 // Initial Products / Inventory items for CYBERONE/CSC stores
 const INITIAL_PRODUCTS = [
-  { id: 'PROD-A4', name: 'A4 paper', sku: 'A4-PAPER', category: 'Materials', buyPrice: 0.8, sellPrice: 2, stock: 500, minStock: 50, type: 'product' },
-  { id: 'PROD-PVC', name: 'PVC Lamination pouch', sku: 'PVC-POUCH', category: 'Materials', buyPrice: 5, sellPrice: 10, stock: 100, minStock: 10, type: 'product' }
+  { id: 'PROD-A4', name: 'A4 paper', sku: 'A4-PAPER', category: 'Materials', buyPrice: 0.8, sellPrice: 2, stock: 500, minStock: 50, type: 'product', barcode: '' },
+  { id: 'PROD-PVC', name: 'PVC Lamination pouch', sku: 'PVC-POUCH', category: 'Materials', buyPrice: 5, sellPrice: 10, stock: 100, minStock: 10, type: 'product', barcode: '' }
 ];
 
 // Initial seeded Government G2C applications
@@ -144,6 +158,10 @@ class StateStore {
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
     this.websites = this.getItem('cyberone_v2_websites', INITIAL_WEBSITES);
     this.initialBalances = this.getItem('cyberone_v2_initial_balances', INITIAL_BALANCES);
+    if (this.initialBalances.petty_cash === undefined) {
+      this.initialBalances.petty_cash = 0;
+      this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
+    }
     if (this.initialBalances.digipay !== undefined) {
       delete this.initialBalances.digipay;
       this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
@@ -172,6 +190,7 @@ class StateStore {
     this.saveItem('cyberone_v2_staff', this.staff);
 
     this.products = this.getItem('cyberone_v2_products', INITIAL_PRODUCTS);
+    this.serviceTypes = this.getItem('cyberone_v2_service_types', INITIAL_SERVICE_TYPES);
     this.applications = this.getItem('cyberone_v2_applications', INITIAL_APPLICATIONS);
     this.invoices = this.getItem('cyberone_v2_invoices', this.getSeededInvoices());
     this.dailyLogs = this.getItem('cyberone_v2_daily_logs', null);
@@ -370,6 +389,7 @@ class StateStore {
     this.saveItem('cyberone_v2_customers', this.customers);
     this.saveItem('cyberone_v2_staff', this.staff);
     this.saveItem('cyberone_v2_products', this.products);
+    this.saveItem('cyberone_v2_service_types', this.serviceTypes);
     this.saveItem('cyberone_v2_applications', this.applications);
     this.saveItem('cyberone_v2_invoices', this.invoices);
     this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
@@ -399,6 +419,21 @@ class StateStore {
     this.logActivity('Edit Profile', `Updated center profile settings: ${profileData.name}`);
     this.persistAll();
     return true;
+  }
+
+  addServiceType(name) {
+    if (!name) return;
+    const trimmed = name.trim();
+    if (trimmed && !this.serviceTypes.includes(trimmed)) {
+      this.serviceTypes.push(trimmed);
+      this.persistAll();
+    }
+  }
+
+  findProductByBarcode(barcode) {
+    if (!barcode) return null;
+    const cleanBarcode = barcode.trim().toLowerCase();
+    return this.products.find(p => p.barcode && p.barcode.trim().toLowerCase() === cleanBarcode) || null;
   }
 
   logActivity(action, details) {
@@ -596,18 +631,27 @@ class StateStore {
         this.adjustStock(txnData.productId, -Math.abs(txnData.quantity || 1));
       }
 
-      // Auto-deductions for PVC Lamination pouch and A4 paper
-      const descLower = (txnData.description || '').toLowerCase();
-      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
-        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
-        if (pvcPouch) {
-          this.adjustStock(pvcPouch.id, -1);
+      // Process consumables array
+      if (txnData.consumables && Array.isArray(txnData.consumables)) {
+        txnData.consumables.forEach(c => {
+          if (c.productId) {
+            this.adjustStock(c.productId, -Math.abs(c.quantity || 1));
+          }
+        });
+      } else {
+        // Fallback auto-deductions for PVC Lamination pouch and A4 paper if consumables array is not provided
+        const descLower = (txnData.description || '').toLowerCase();
+        if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+          const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+          if (pvcPouch) {
+            this.adjustStock(pvcPouch.id, -1);
+          }
         }
-      }
-      if (txnData.pagesPrinted > 0) {
-        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
-        if (a4Paper) {
-          this.adjustStock(a4Paper.id, -Math.abs(txnData.pagesPrinted));
+        if (txnData.pagesPrinted > 0) {
+          const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+          if (a4Paper) {
+            this.adjustStock(a4Paper.id, -Math.abs(txnData.pagesPrinted));
+          }
         }
       }
 
@@ -698,17 +742,25 @@ class StateStore {
       if (txn.productId) {
         this.adjustStock(txn.productId, Math.abs(txn.quantity || 1));
       }
-      const descLower = (txn.description || '').toLowerCase();
-      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
-        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
-        if (pvcPouch) {
-          this.adjustStock(pvcPouch.id, 1);
+      if (txn.consumables && Array.isArray(txn.consumables)) {
+        txn.consumables.forEach(c => {
+          if (c.productId) {
+            this.adjustStock(c.productId, Math.abs(c.quantity || 1));
+          }
+        });
+      } else {
+        const descLower = (txn.description || '').toLowerCase();
+        if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+          const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+          if (pvcPouch) {
+            this.adjustStock(pvcPouch.id, 1);
+          }
         }
-      }
-      if (txn.pagesPrinted > 0) {
-        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
-        if (a4Paper) {
-          this.adjustStock(a4Paper.id, Math.abs(txn.pagesPrinted));
+        if (txn.pagesPrinted > 0) {
+          const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+          if (a4Paper) {
+            this.adjustStock(a4Paper.id, Math.abs(txn.pagesPrinted));
+          }
         }
       }
       if (txn.customerId && txn.paidByCredit > 0) {
@@ -749,17 +801,25 @@ class StateStore {
       if (oldTxn.productId) {
         this.adjustStock(oldTxn.productId, Math.abs(oldTxn.quantity || 1));
       }
-      const descLower = (oldTxn.description || '').toLowerCase();
-      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
-        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
-        if (pvcPouch) {
-          this.adjustStock(pvcPouch.id, 1);
+      if (oldTxn.consumables && Array.isArray(oldTxn.consumables)) {
+        oldTxn.consumables.forEach(c => {
+          if (c.productId) {
+            this.adjustStock(c.productId, Math.abs(c.quantity || 1));
+          }
+        });
+      } else {
+        const descLower = (oldTxn.description || '').toLowerCase();
+        if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+          const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+          if (pvcPouch) {
+            this.adjustStock(pvcPouch.id, 1);
+          }
         }
-      }
-      if (oldTxn.pagesPrinted > 0) {
-        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
-        if (a4Paper) {
-          this.adjustStock(a4Paper.id, Math.abs(oldTxn.pagesPrinted));
+        if (oldTxn.pagesPrinted > 0) {
+          const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+          if (a4Paper) {
+            this.adjustStock(a4Paper.id, Math.abs(oldTxn.pagesPrinted));
+          }
         }
       }
       if (oldTxn.customerId && oldTxn.paidByCredit > 0) {
@@ -787,17 +847,25 @@ class StateStore {
         this.adjustStock(updatedData.productId, -Math.abs(updatedData.quantity || 1));
       }
 
-      const descLower = (updatedData.description || '').toLowerCase();
-      if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
-        const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
-        if (pvcPouch) {
-          this.adjustStock(pvcPouch.id, -1);
+      if (updatedData.consumables && Array.isArray(updatedData.consumables)) {
+        updatedData.consumables.forEach(c => {
+          if (c.productId) {
+            this.adjustStock(c.productId, -Math.abs(c.quantity || 1));
+          }
+        });
+      } else {
+        const descLower = (updatedData.description || '').toLowerCase();
+        if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
+          const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
+          if (pvcPouch) {
+            this.adjustStock(pvcPouch.id, -1);
+          }
         }
-      }
-      if (updatedData.pagesPrinted > 0) {
-        const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
-        if (a4Paper) {
-          this.adjustStock(a4Paper.id, -Math.abs(updatedData.pagesPrinted));
+        if (updatedData.pagesPrinted > 0) {
+          const a4Paper = this.products.find(p => p.name.toLowerCase() === 'a4 paper' || p.sku.toLowerCase() === 'a4-paper');
+          if (a4Paper) {
+            this.adjustStock(a4Paper.id, -Math.abs(updatedData.pagesPrinted));
+          }
         }
       }
       if (updatedData.customerId && updatedData.paidByCredit > 0) {
@@ -948,6 +1016,7 @@ class StateStore {
       id,
       name: prodData.name,
       sku: prodData.sku || '',
+      barcode: prodData.barcode || '',
       category: prodData.category || 'General',
       buyPrice: parseFloat(prodData.buyPrice || 0),
       sellPrice: parseFloat(prodData.sellPrice || 0),
@@ -968,6 +1037,7 @@ class StateStore {
     this.products[idx] = {
       ...this.products[idx],
       ...updatedData,
+      barcode: updatedData.barcode || '',
       buyPrice: parseFloat(updatedData.buyPrice || 0),
       sellPrice: parseFloat(updatedData.sellPrice || 0),
       stock: updatedData.type === 'service' ? 0 : parseInt(updatedData.stock || 0),

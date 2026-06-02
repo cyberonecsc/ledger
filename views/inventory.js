@@ -36,6 +36,19 @@ export function renderInventory(mountPoint, appInstance) {
         </div>
       ` : ''}
 
+      <!-- Scan to Restock Barcode Panel (No-print, only for products tab) -->
+      ${activeTab === 'product' ? `
+        <div class="no-print glass-card" style="padding: 15px; margin-bottom: 15px; border-color: rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.03); display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="scan-barcode" style="width: 22px; height: 22px; color: var(--color-primary);"></i>
+            <span style="font-weight: 700; font-size: 13px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Scan to Restock</span>
+          </div>
+          <div style="flex: 1; min-width: 250px;">
+            <input type="text" id="barcode-scan-input" class="form-control" placeholder="Point scanner here and scan barcode (or enter manual barcode & press Enter)..." style="font-size: 12px; height: 36px; padding: 6px 12px; background: rgba(0,0,0,0.25);">
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Tab Buttons for Product vs Service -->
       <div class="tab-row no-print" style="margin-bottom: 20px; display: flex; gap: 15px; border-bottom: 1px solid var(--panel-border); padding-bottom: 8px;">
         <button id="tab-inventory-products" class="btn ${activeTab === 'product' ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; outline: none; cursor: pointer;">
@@ -183,6 +196,28 @@ export function renderInventory(mountPoint, appInstance) {
       currentPage = 1;
       renderTableData();
     });
+
+    // Barcode scan keydown listener
+    const barcodeInput = document.getElementById('barcode-scan-input');
+    if (barcodeInput) {
+      barcodeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const barcodeVal = e.target.value.trim();
+          if (!barcodeVal) return;
+          
+          const product = store.findProductByBarcode(barcodeVal);
+          if (product) {
+            openRestockModal(product);
+            e.target.value = '';
+          } else {
+            appInstance.showToast(`Product with barcode "${barcodeVal}" not found!`, 'danger');
+            e.target.value = '';
+            e.target.focus();
+          }
+        }
+      });
+    }
 
     document.getElementById('btn-pag-prev').onclick = () => {
       if (currentPage > 1) {
@@ -441,6 +476,10 @@ export function renderInventory(mountPoint, appInstance) {
                 <input type="number" id="prod-min" class="form-control" value="3">
               </div>
             </div>
+            <div class="form-group">
+              <label class="form-label">Barcode / UPC (Optional)</label>
+              <input type="text" id="prod-barcode" class="form-control" placeholder="Scan or enter item barcode">
+            </div>
           ` : ''}
 
           <div style="display:flex; gap:10px; margin-top:15px;">
@@ -475,6 +514,7 @@ export function renderInventory(mountPoint, appInstance) {
         store.addProduct({
           name: document.getElementById('prod-name').value,
           sku: document.getElementById('prod-sku').value,
+          barcode: activeTab === 'product' ? (document.getElementById('prod-barcode')?.value || '') : '',
           category: category,
           buyPrice: parseFloat(document.getElementById('prod-buy').value),
           sellPrice: parseFloat(document.getElementById('prod-sell').value),
@@ -563,6 +603,10 @@ export function renderInventory(mountPoint, appInstance) {
               <input type="number" id="edit-prod-min" class="form-control" value="${product.minStock}">
             </div>
           </div>
+          <div class="form-group">
+            <label class="form-label">Barcode / UPC (Optional)</label>
+            <input type="text" id="edit-prod-barcode" class="form-control" value="${product.barcode || ''}" placeholder="Scan or enter item barcode">
+          </div>
         ` : ''}
 
         <div style="display:flex; gap:10px; margin-top:15px;">
@@ -597,6 +641,7 @@ export function renderInventory(mountPoint, appInstance) {
       store.updateProduct(product.id, {
         name: document.getElementById('edit-prod-name').value,
         sku: document.getElementById('edit-prod-sku').value,
+        barcode: product.type === 'product' ? (document.getElementById('edit-prod-barcode')?.value || '') : '',
         category: category,
         buyPrice: parseFloat(document.getElementById('edit-prod-buy').value),
         sellPrice: parseFloat(document.getElementById('edit-prod-sell').value),

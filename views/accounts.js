@@ -24,8 +24,8 @@ export function renderAccounts(mountPoint, appInstance) {
         <button id="btn-add-bank" class="btn btn-primary btn-sm">
           <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Add Bank Account
         </button>
-        <button id="btn-cash-deposit" class="btn btn-success btn-sm">
-          <i data-lucide="arrow-up-right" style="width: 14px; height: 14px;"></i> Deposit Cash to Bank
+        <button id="btn-unified-deposit" class="btn btn-success btn-sm">
+          <i data-lucide="arrow-up-right" style="width: 14px; height: 14px;"></i> Deposit
         </button>
       </div>
     </div>
@@ -50,6 +50,28 @@ export function renderAccounts(mountPoint, appInstance) {
         <div class="wallet-card-body" style="margin-top: auto; padding-top: 10px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center;">
           <span class="wallet-balance-label">Balance</span>
           <span class="wallet-balance-val" style="color: var(--color-success);">₹${currentBalances.cash.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <!-- Petty Cash Card -->
+      <div class="wallet-card" style="height: 190px; border-left: 4px solid #fb923c;">
+        <div class="wallet-card-header">
+          <div>
+            <span class="wallet-name">Petty Cash</span>
+            <div class="wallet-meta">Secondary cash fund</div>
+          </div>
+          <button class="btn btn-sm btn-secondary btn-edit-petty" style="padding: 4px;">
+            <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
+          </button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">
+          <div>Type: <code>Physical Currency</code></div>
+          <div>Location: <code>Petty Cash Box</code></div>
+          <div>Audit: <code>System Recalculated</code></div>
+        </div>
+        <div class="wallet-card-body" style="margin-top: auto; padding-top: 10px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center;">
+          <span class="wallet-balance-label">Balance</span>
+          <span class="wallet-balance-val" style="color: #fb923c;">₹${(currentBalances.petty_cash !== undefined ? currentBalances.petty_cash : 0.00).toFixed(2)}</span>
         </div>
       </div>
 
@@ -90,8 +112,8 @@ export function renderAccounts(mountPoint, appInstance) {
         <button id="btn-add-wallet" class="btn btn-secondary btn-sm">
           <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Add Wallet
         </button>
-        <button id="btn-wallet-topup" class="btn btn-primary btn-sm">
-          <i data-lucide="arrow-right-left" style="width: 14px; height: 14px;"></i> Top-up Wallet
+        <button id="btn-wallet-deposit" class="btn btn-primary btn-sm">
+          <i data-lucide="arrow-right-left" style="width: 14px; height: 14px;"></i> Deposit
         </button>
       </div>
     </div>
@@ -134,12 +156,15 @@ export function renderAccounts(mountPoint, appInstance) {
       </div>
       <form id="form-opening-balances">
         <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Cash Reservoirs</h4>
-        <div class="form-row" style="margin-bottom:15px; display: grid; grid-template-columns: 1fr 1fr;">
+        <div class="form-row" style="margin-bottom:15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" style="font-size:11px;">Cash In Hand (₹)</label>
-            <input type="number" step="0.01" id="opening-cash" class="form-control" value="${initialBalances.cash || 0.00}" style="font-size:12px;" required>
+            <input type="number" step="0.01" id="opening-cash" class="form-control" value="${initialBalances.cash !== undefined ? initialBalances.cash : 0.00}" style="font-size:12px;" required>
           </div>
-          <div style="margin-bottom:0;"></div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Petty Cash (₹)</label>
+            <input type="number" step="0.01" id="opening-petty-cash" class="form-control" value="${initialBalances.petty_cash !== undefined ? initialBalances.petty_cash : 0.00}" style="font-size:12px;" required>
+          </div>
         </div>
 
         <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; margin-top: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Bank Accounts</h4>
@@ -417,6 +442,51 @@ export function renderAccounts(mountPoint, appInstance) {
     });
   }
 
+  // Edit Petty Cash balance binding
+  const btnEditPetty = document.querySelector('.btn-edit-petty');
+  if (btnEditPetty) {
+    btnEditPetty.addEventListener('click', () => {
+      const pettyBal = currentBalances.petty_cash !== undefined ? currentBalances.petty_cash : 0.00;
+
+      document.getElementById('account-modal-title').innerText = 'Adjust Petty Cash';
+      formMount.innerHTML = `
+        <form id="form-edit-petty">
+          <div class="form-group">
+            <label class="form-label">Account Label Name</label>
+            <input type="text" class="form-control" value="Petty Cash" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Current Balance (₹)</label>
+            <input type="number" step="0.01" id="petty-balance" class="form-control" value="${pettyBal.toFixed(2)}" required>
+            <span style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px; display:block;">
+              *Adjusting this will create a manual ledger balance correction.
+            </span>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn btn-primary" style="flex-grow:1;">
+              <i data-lucide="save" style="width:16px; height:16px;"></i> Save Petty Cash Balance
+            </button>
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+          </div>
+        </form>
+      `;
+
+      lucide.createIcons();
+      bindCancelBtn();
+      backdrop.classList.add('show');
+
+      document.getElementById('form-edit-petty').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const newBal = parseFloat(document.getElementById('petty-balance').value || 0);
+        store.adjustBalance(activeDate, 'petty_cash', newBal, auth.currentUser ? auth.currentUser.name : 'System');
+
+        appInstance.showToast('Petty Cash balance adjusted successfully!', 'success');
+        closeModal();
+        appInstance.handleRouting();
+      });
+    });
+  }
+
   // Edit Bank Account buttons binding
   const editBankBtns = document.querySelectorAll('.btn-edit-bank');
   editBankBtns.forEach(btn => {
@@ -590,139 +660,119 @@ export function renderAccounts(mountPoint, appInstance) {
     });
   });
 
-  // Deposit Cash to Bank Button click handler
-  const btnCashDeposit = document.getElementById('btn-cash-deposit');
-  if (btnCashDeposit) {
-    btnCashDeposit.addEventListener('click', () => {
-      document.getElementById('account-modal-title').innerText = 'Deposit Cash to Bank Account';
-      formMount.innerHTML = `
-        <form id="form-cash-deposit">
-          <div class="form-group">
-            <label class="form-label">Source Cash Reservoir</label>
-            <input type="text" class="form-control" value="Cash In Hand (Balance: ₹${currentBalances.cash.toFixed(2)})" disabled>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Target Bank Account</label>
-            <select id="deposit-bank-id" class="form-control" required>
-              ${bankAccounts.map(b => `<option value="${b.id}">${b.name} (${b.bankName})</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Deposit Amount (₹)</label>
-            <input type="number" step="0.01" id="deposit-cash-amount" class="form-control" placeholder="0.00" required min="0.01" max="${currentBalances.cash}">
-            <span style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px; display:block;">
-              *Deducted from Cash in Hand and added to Bank Account.
-            </span>
-          </div>
-
-          <div style="display:flex; gap:10px; margin-top:15px;">
-            <button type="submit" class="btn btn-success" style="flex-grow:1;">
-              <i data-lucide="check" style="width: 16px; height: 16px;"></i> Complete Cash Deposit
-            </button>
-            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
-          </div>
-        </form>
-      `;
-
-      lucide.createIcons();
-      bindCancelBtn();
-      backdrop.classList.add('show');
-
-      document.getElementById('form-cash-deposit').addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        const bankId = document.getElementById('deposit-bank-id').value;
-        const amount = parseFloat(document.getElementById('deposit-cash-amount').value);
-        const bank = bankAccounts.find(b => b.id === bankId);
-        
-        if (amount > currentBalances.cash) {
-          alert('Insufficient Cash in Hand to complete this deposit!');
-          return;
-        }
-
-        store.addTransaction(appInstance.getActiveDate(), {
-          type: 'deposit',
-          description: `Cash Deposit to ${bank ? bank.name : 'Bank'}`,
-          amount,
-          source: 'cash',
-          targetWallet: bankId
-        });
-
-        appInstance.showToast(`Deposited ₹${amount.toFixed(2)} cash to ${bank ? bank.name : 'Bank'} (deducted from Cash in Hand)`, 'success');
-        closeModal();
-        appInstance.handleRouting();
-      });
+  // Unified Deposit / Transfer Modal Handler
+  const openDepositModal = () => {
+    document.getElementById('account-modal-title').innerText = 'Deposit';
+    
+    const sources = [
+      { id: 'cash', name: 'Cash In Hand', bal: currentBalances.cash },
+      { id: 'petty_cash', name: 'Petty Cash', bal: currentBalances.petty_cash || 0 }
+    ];
+    bankAccounts.forEach(b => {
+      sources.push({ id: b.id, name: b.name, bal: currentBalances[b.id] || 0 });
     });
+
+    formMount.innerHTML = `
+      <form id="form-unified-deposit">
+        <div class="form-group">
+          <label class="form-label">Source Account</label>
+          <select id="deposit-source-id" class="form-control" required>
+            ${sources.map(s => `<option value="${s.id}">${s.name} (Bal: ₹${s.bal.toFixed(2)})</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Target Account / Wallet</label>
+          <select id="deposit-target-id" class="form-control" required>
+            <!-- Target list dynamically filtered -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Transfer/Deposit Amount (₹)</label>
+          <input type="number" step="0.01" id="deposit-amount" class="form-control" placeholder="0.00" required min="0.01">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:15px;">
+          <button type="submit" class="btn btn-success" style="flex-grow:1;">
+            <i data-lucide="check" style="width: 16px; height: 16px;"></i> Complete Deposit
+          </button>
+          <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+        </div>
+      </form>
+    `;
+
+    lucide.createIcons();
+    bindCancelBtn();
+
+    const selectSource = document.getElementById('deposit-source-id');
+    const selectTarget = document.getElementById('deposit-target-id');
+    const inputAmount = document.getElementById('deposit-amount');
+
+    const updateTargets = () => {
+      const selectedSource = selectSource.value;
+      const targets = [
+        { id: 'cash', name: 'Cash In Hand' },
+        { id: 'petty_cash', name: 'Petty Cash' }
+      ];
+      bankAccounts.forEach(b => {
+        targets.push({ id: b.id, name: `${b.name} (${b.bankName})` });
+      });
+      store.wallets.filter(w => w.isActive).forEach(w => {
+        targets.push({ id: w.id, name: w.name });
+      });
+
+      const filteredTargets = targets.filter(t => t.id !== selectedSource);
+      selectTarget.innerHTML = filteredTargets.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
+      const sourceObj = sources.find(s => s.id === selectedSource);
+      if (sourceObj) {
+        inputAmount.max = sourceObj.bal;
+      }
+    };
+
+    selectSource.addEventListener('change', updateTargets);
+    updateTargets();
+
+    backdrop.classList.add('show');
+
+    document.getElementById('form-unified-deposit').addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const sourceId = selectSource.value;
+      const targetId = selectTarget.value;
+      const amount = parseFloat(inputAmount.value);
+
+      const sourceObj = sources.find(s => s.id === sourceId);
+      if (sourceObj && amount > sourceObj.bal) {
+        alert(`Insufficient balance in ${sourceObj.name} to complete this deposit!`);
+        return;
+      }
+
+      const sourceName = sourceId === 'cash' ? 'Cash' : (sourceId === 'petty_cash' ? 'Petty Cash' : (bankAccounts.find(b => b.id === sourceId)?.name || 'Bank'));
+      const targetName = targetId === 'cash' ? 'Cash' : (targetId === 'petty_cash' ? 'Petty Cash' : (bankAccounts.find(b => b.id === targetId)?.name || store.wallets.find(w => w.id === targetId)?.name || 'Wallet'));
+
+      store.addTransaction(appInstance.getActiveDate(), {
+        type: 'deposit',
+        description: `Deposit: ${sourceName} to ${targetName}`,
+        amount,
+        source: sourceId,
+        targetWallet: targetId
+      });
+
+      appInstance.showToast(`Transferred ₹${amount.toFixed(2)} from ${sourceName} to ${targetName}`, 'success');
+      closeModal();
+      appInstance.handleRouting();
+    });
+  };
+
+  const btnUnifiedDeposit = document.getElementById('btn-unified-deposit');
+  if (btnUnifiedDeposit) {
+    btnUnifiedDeposit.addEventListener('click', openDepositModal);
   }
 
-  // Deposit Wallet Top-up Button click handler
-  const btnWalletTopup = document.getElementById('btn-wallet-topup');
-  if (btnWalletTopup) {
-    btnWalletTopup.addEventListener('click', () => {
-      const walletOptions = store.wallets
-        .filter(w => w.isActive)
-        .map(w => `<option value="${w.id}">${w.name}</option>`)
-        .join('');
-
-      document.getElementById('account-modal-title').innerText = 'Top-up Portal Wallet';
-      formMount.innerHTML = `
-        <form id="form-wallet-topup">
-          <div class="form-group">
-            <label class="form-label">Source Bank Account</label>
-            <select id="topup-bank-id" class="form-control" required>
-              ${bankAccounts.map(b => `<option value="${b.id}">${b.name} (${b.bankName})</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Target Portal Wallet</label>
-            <select id="topup-wallet-id" class="form-control" required>
-              ${walletOptions}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Transfer/Top-up Amount (₹)</label>
-            <input type="number" step="0.01" id="topup-amount" class="form-control" placeholder="0.00" required min="0.01">
-            <span style="font-size: 11px; color: var(--text-dimmed); margin-top: 4px; display:block;">
-              *Deducted from selected Bank Account and added to selected Wallet.
-            </span>
-          </div>
-
-          <div style="display:flex; gap:10px; margin-top:15px;">
-            <button type="submit" class="btn btn-primary" style="flex-grow:1;">
-              <i data-lucide="arrow-right-left" style="width: 16px; height: 16px;"></i> Complete Wallet Top-up
-            </button>
-            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
-          </div>
-        </form>
-      `;
-
-      lucide.createIcons();
-      bindCancelBtn();
-      backdrop.classList.add('show');
-
-      document.getElementById('form-wallet-topup').addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        const bankId = document.getElementById('topup-bank-id').value;
-        const walletId = document.getElementById('topup-wallet-id').value;
-        const amount = parseFloat(document.getElementById('topup-amount').value);
-        const bank = bankAccounts.find(b => b.id === bankId);
-        const wallet = store.wallets.find(w => w.id === walletId);
-
-        store.addTransaction(appInstance.getActiveDate(), {
-          type: 'deposit',
-          description: `${wallet ? wallet.name : 'Wallet'} Top-up`,
-          amount,
-          source: bankId,
-          targetWallet: walletId
-        });
-
-        appInstance.showToast(`Transferred ₹${amount.toFixed(2)} from ${bank ? bank.name : 'Bank'} to ${wallet ? wallet.name : 'Wallet'}`, 'success');
-        closeModal();
-      });
-    });
+  const btnWalletDeposit = document.getElementById('btn-wallet-deposit');
+  if (btnWalletDeposit) {
+    btnWalletDeposit.addEventListener('click', openDepositModal);
   }
 
   // Initial Opening Balances Form submit handler
@@ -735,13 +785,19 @@ export function renderAccounts(mountPoint, appInstance) {
       const existingBalances = store.initialBalances || {};
 
       const cashInput = document.getElementById('opening-cash');
+      const pettyInput = document.getElementById('opening-petty-cash');
       const newBalances = {};
 
-      // Only overwrite cash if the input has a non-empty value
       if (cashInput && cashInput.value !== '') {
         newBalances.cash = parseFloat(cashInput.value);
       } else {
         newBalances.cash = existingBalances.cash !== undefined ? existingBalances.cash : 0;
+      }
+
+      if (pettyInput && pettyInput.value !== '') {
+        newBalances.petty_cash = parseFloat(pettyInput.value);
+      } else {
+        newBalances.petty_cash = existingBalances.petty_cash !== undefined ? existingBalances.petty_cash : 0;
       }
 
       // Gather bank opening balances — preserve existing if input is blank
