@@ -368,9 +368,6 @@ export function renderDashboard(mountPoint, appInstance) {
                 <td style="padding: 8px 12px; text-align: right; font-family: var(--font-display); font-weight: 600; color: ${diffColor};">
                   ${diffPrefix}${fmt(diff)}
                 </td>
-                <td style="padding: 8px 12px; text-align: right; font-family: var(--font-display); color: var(--text-muted);">
-                  —
-                </td>
               </tr>
             `;
           }).join('');
@@ -397,7 +394,6 @@ export function renderDashboard(mountPoint, appInstance) {
                     <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Opening Balance</th>
                     <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Closing Balance</th>
                     <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Variance (V)</th>
-                    <th style="padding: 10px 12px; font-weight: 600; text-align: right; font-size: 12px;">Net Profit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -417,9 +413,6 @@ export function renderDashboard(mountPoint, appInstance) {
                     </td>
                     <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); color: ${totalDiffColor}; font-size: 13px; font-weight: 700;">
                       ${totalDiffPrefix}${fmt(totalDiff)}
-                    </td>
-                    <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: ${dailyStats.dailyProfit >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
-                      ${dailyStats.dailyProfit >= 0 ? '+' : ''}${fmt(dailyStats.dailyProfit)}
                     </td>
                   </tr>
                 </tfoot>
