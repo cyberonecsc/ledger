@@ -404,7 +404,7 @@ export function renderPayroll(mountPoint, appInstance) {
     printSlipDiv.innerHTML = `
       <div class="receipt-header">
         <div class="header-left">
-          <img class="receipt-logo" src="./logo.png" alt="logo" onerror="this.style.display='none';">
+          <img class="receipt-logo" src=`${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}` alt="logo" onerror="this.style.display='none';">
           <div class="company-info">
             <h3>${store.centerProfile.name}</h3>
             <p>Center Code: ${store.centerProfile.code}</p>

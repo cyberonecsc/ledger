@@ -37,8 +37,10 @@ export function renderAuditLog(mountPoint, appInstance) {
   const auditItemsPerPage = 10;
   let auditSearchQuery = '';
 
-  // State for operations table search
+  // State for operations table search & pagination
   let opsSearchQuery = '';
+  let opsPage = 1;
+  const opsItemsPerPage = 10;
 
   // Render main layout
   mountPoint.innerHTML = `
@@ -341,15 +343,24 @@ export function renderAuditLog(mountPoint, appInstance) {
       const filteredOps = nonSalesTxns.filter(t => 
         (t.description || '').toLowerCase().includes(query) ||
         (t.id || '').toLowerCase().includes(query)
-      );
+          // Pagination logic
+      const totalOpsItems = filteredOps.length;
+      const totalOpsPages = Math.max(1, Math.ceil(totalOpsItems / opsItemsPerPage));
+      if (opsPage > totalOpsPages) opsPage = totalOpsPages;
+      if (opsPage < 1) opsPage = 1;
+      
+      const opsStartIndex = (opsPage - 1) * opsItemsPerPage;
+      const opsEndIndex = Math.min(opsStartIndex + opsItemsPerPage, totalOpsItems);
+      
+      const pagedOps = filteredOps.slice(opsStartIndex, opsEndIndex);
 
       let rowsHtml = '';
-      if (filteredOps.length === 0) {
+      if (pagedOps.length === 0) {
         rowsHtml = `<tr><td colspan="7" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No operational logs (expenses, deposits, adjustments) found.</td></tr>`;
       } else {
-        rowsHtml = filteredOps.map(t => {
+        rowsHtml = pagedOps.map(t => {
           let typeBadge = '';
-          let sourceName = '—';
+          let sourceName = '-';
           
           if (t.type === 'expense') {
             typeBadge = `<span class="badge expense">Expense</span>`;
@@ -362,7 +373,7 @@ export function renderAuditLog(mountPoint, appInstance) {
             sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
           } else if (t.type === 'adjustment') {
             typeBadge = `<span class="badge deposit" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning);">Adjustment</span>`;
-            sourceName = t.sourceId || '—';
+            sourceName = t.sourceId || '-';
           }
 
           const isEditable = (t.type === 'expense');
@@ -403,16 +414,16 @@ export function renderAuditLog(mountPoint, appInstance) {
 
         <div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 25px;">
           <div class="table-responsive ledger-table-container" style="max-height: 480px;">
-            <table class="custom-table" style="min-width: 1000px;">
+            <table class="custom-table" style="table-layout: fixed; width: 100%;">
               <thead>
                 <tr>
-                  <th style="width: 180px;">Date & Time</th>
-                  <th style="width: 120px;">ID</th>
-                  <th style="width: 120px;">Type</th>
+                  <th style="width: 130px;">Date & Time</th>
+                  <th style="width: 100px;">ID</th>
+                  <th style="width: 90px;">Type</th>
                   <th>Description</th>
-                  <th style="width: 120px;">Amount</th>
-                  <th style="width: 160px;">Payment Source</th>
-                  <th style="width: 120px; text-align: center;">Actions</th>
+                  <th style="width: 90px;">Amount</th>
+                  <th style="width: 120px;">Payment Source</th>
+                  <th style="width: 90px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,14 +431,49 @@ export function renderAuditLog(mountPoint, appInstance) {
               </tbody>
             </table>
           </div>
+          <div class="table-footer" style="padding: 15px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+            <div style="font-size: 12px; color: var(--text-muted);">
+              Showing <span>${totalOpsItems > 0 ? opsStartIndex + 1 : 0}</span> to <span>${opsEndIndex}</span> of <span>${totalOpsItems}</span> entries
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button id="btn-ops-prev" class="btn btn-sm btn-secondary" ${opsPage === 1 ? 'disabled' : ''}>
+                <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Prev
+              </button>
+              <span style="color: #fff; padding: 0 8px; font-size: 12px;">Page ${opsPage} of ${totalOpsPages}</span>
+              <button id="btn-ops-next" class="btn btn-sm btn-secondary" ${opsPage === totalOpsPages ? 'disabled' : ''}>
+                Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+              </button>
+            </div>
+          </div>
         </div>
       `;
 
       // Event listeners for search & actions
       document.getElementById('ops-search').addEventListener('input', (e) => {
         opsSearchQuery = e.target.value;
+        opsPage = 1; // Reset to page 1 on search
         renderActiveTabContent();
       });
+
+      const btnOpsPrev = document.getElementById('btn-ops-prev');
+      if (btnOpsPrev) {
+        btnOpsPrev.addEventListener('click', () => {
+          if (opsPage > 1) {
+            opsPage--;
+            renderActiveTabContent();
+          }
+        });
+      }
+
+      const btnOpsNext = document.getElementById('btn-ops-next');
+      if (btnOpsNext) {
+        btnOpsNext.addEventListener('click', () => {
+          if (opsPage < totalOpsPages) {
+            opsPage++;
+            renderActiveTabContent();
+          }
+        });
+      }
 
       document.getElementById('btn-ops-add-expense').addEventListener('click', () => {
         openExpenseModal();

@@ -31,6 +31,36 @@ export function renderBackupRestore(mountPoint, appInstance) {
       </div>
     </div>
 
+    <!-- GitHub Auto-Sync Settings Config -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>GitHub Auto-Sync Configurations</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Enable remote sync for when you access the portal from other devices</span>
+      </div>
+      <form id="form-github-sync">
+        <div class="form-group" style="margin-bottom:15px;">
+          <label class="form-label" style="font-size:11px;">GitHub Personal Access Token (PAT)</label>
+          <input type="password" id="github-token" class="form-control" value="${localStorage.getItem('cyberone_v2_github_token') || ''}" style="font-size:12px;" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+          <span style="font-size:10px; color:var(--text-dimmed); margin-top: 4px; display:block;">
+            *Required for updating database when accessed on remote locations (GitHub Pages).
+          </span>
+        </div>
+        
+        <div class="form-row" style="margin-bottom:20px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Repository Path</label>
+            <input type="text" id="github-repo" class="form-control" value="${localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger'}" style="font-size:12px;" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Target Branch</label>
+            <input type="text" id="github-branch" class="form-control" value="${localStorage.getItem('cyberone_v2_github_branch') || 'main'}" style="font-size:12px;" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Sync Credentials</button>
+      </form>
+    </div>
+
     <!-- Automatic Backup & Local Snapshots -->
     <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
       <div class="section-header" style="margin-bottom:15px;">
@@ -319,4 +349,30 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
       });
     }
   }
+
+  // GitHub Sync Save Handler
+  const formGithubSync = document.getElementById('form-github-sync');
+  if (formGithubSync) {
+    formGithubSync.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const token = document.getElementById('github-token').value.trim();
+      const repo = document.getElementById('github-repo').value.trim();
+      const branch = document.getElementById('github-branch').value.trim();
+
+      if (token) {
+        localStorage.setItem('cyberone_v2_github_token', token);
+      } else {
+        localStorage.removeItem('cyberone_v2_github_token');
+      }
+      localStorage.setItem('cyberone_v2_github_repo', repo);
+      localStorage.setItem('cyberone_v2_github_branch', branch);
+
+      // Trigger immediate disk save and git push
+      store.persistAll();
+
+      appInstance.showToast('GitHub Sync parameters saved & synced!', 'success');
+    });
+  }
 }
+
+export default renderBackupRestore;

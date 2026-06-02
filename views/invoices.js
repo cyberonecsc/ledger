@@ -191,7 +191,7 @@ export function renderInvoices(mountPoint, appInstance) {
       <div id="printable-invoice-receipt" class="preview-normal">
         <div class="receipt-header">
           <div class="header-left">
-            <img class="receipt-logo" src="./logo.png" alt="logo" onerror="this.style.display='none';">
+            <img class="receipt-logo" src=`${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}` alt="logo" onerror="this.style.display='none';">
             <div class="company-info" style="display: flex; flex-direction: column; gap: 4px;">
               <h3 style="font-size: 18px; margin: 0; color: #1e1b4b; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">${store.centerProfile.name}</h3>
               <div style="font-size: 11px; font-weight: 700; color: #4338ca; display: flex; gap: 8px; align-items: center; margin-bottom: 2px;">

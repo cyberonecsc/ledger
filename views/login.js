@@ -13,13 +13,18 @@ export function renderLogin(mountPoint, appInstance) {
   let isResetOtpVerified = false;
 
   const updateCardContent = () => {
+    const customLogo = localStorage.getItem('cyberone_v2_custom_logo');
+    const loginLogoHtml = customLogo ? `<img src="${customLogo}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'shield-check\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'">` : `<i data-lucide="shield-check" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>`;
+    const signupLogoHtml = customLogo ? `<img src="${customLogo}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'user-plus\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'">` : `<i data-lucide="user-plus" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>`;
+    const resetLogoHtml = customLogo ? `<img src="${customLogo}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'key-round\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'">` : `<i data-lucide="key-round" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>`;
+
     if (viewMode === 'login') {
       // Render Sign In form
       mountPoint.innerHTML = `
         <div class="login-screen">
           <div class="login-card">
             <div class="login-header">
-              <i data-lucide="shield-check" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>
+              ${loginLogoHtml}
               <h2>CYBERONE CSC Portal Login</h2>
               <p>Sign in to manage service records & accounting</p>
             </div>
@@ -63,7 +68,7 @@ export function renderLogin(mountPoint, appInstance) {
         <div class="login-screen">
           <div class="login-card" style="max-width: 480px; margin: 30px auto; max-height: 90vh; overflow-y: auto;">
             <div class="login-header">
-              <i data-lucide="user-plus" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>
+              ${signupLogoHtml}
               <h2>Create Operator Account</h2>
               <p>Register as a center admin, accountant, or staff</p>
             </div>
@@ -151,7 +156,7 @@ export function renderLogin(mountPoint, appInstance) {
         <div class="login-screen">
           <div class="login-card" style="max-width: 450px;">
             <div class="login-header">
-              <i data-lucide="key-round" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>
+              ${resetLogoHtml}
               <h2>Reset Password</h2>
               <p>Verify your account email to set a new password</p>
             </div>

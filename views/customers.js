@@ -539,7 +539,7 @@ function renderIDCardModal(customer, container, backdrop, appInstance) {
         <div class="idcard-front" style="width: 330px; height: 200px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 15px; position: relative; color: #0f172a; box-shadow: 0 8px 24px rgba(0,0,0,0.1); overflow:hidden; font-family: 'Outfit', sans-serif;">
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">
             <div style="display:flex; align-items:center; gap:6px;">
-              <img src="./logo.png" style="width:22px; height:22px; object-fit:contain;" onerror="this.style.display='none';">
+              <img src=`${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}` style="width:22px; height:22px; object-fit:contain;" onerror="this.style.display='none';">
               <span style="font-family: 'Outfit', sans-serif; font-size:12px; font-weight:800; letter-spacing:0.5px; color:#1e40af;">CYBER ONE CSC</span>
             </div>
             <span style="font-size:9px; color:#64748b; font-weight:800; letter-spacing:0.5px;">ATTINGAL CENTER</span>
