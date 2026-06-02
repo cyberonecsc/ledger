@@ -83,10 +83,16 @@ export function renderSettings(mountPoint, appInstance) {
       </div>
       <form id="form-custom-logo">
         <div class="form-group" style="margin-bottom:15px;">
-          <label class="form-label" style="font-size:11px;">Logo Image URL (or Base64 string)</label>
-          <input type="text" id="custom-logo-url" class="form-control" value="${localStorage.getItem('cyberone_v2_custom_logo') || ''}" style="font-size:12px;" placeholder="https://example.com/logo.png">
+          <label class="form-label" style="font-size:11px;">Logo Image URL (or upload from device)</label>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="custom-logo-url" class="form-control" value="${localStorage.getItem('cyberone_v2_custom_logo') || ''}" style="font-size:12px; flex: 1; min-width: 250px;" placeholder="https://example.com/logo.png">
+            <label class="btn btn-sm btn-secondary" style="display: inline-flex; align-items: center; cursor: pointer; white-space: nowrap; margin: 0; padding: 0 12px; height: 32px;">
+              <i data-lucide="upload" style="width: 14px; height: 14px; margin-right: 6px;"></i> Browse File
+              <input type="file" id="custom-logo-file" accept="image/*" style="display: none;">
+            </label>
+          </div>
           <span style="font-size:10px; color:var(--text-dimmed); margin-top: 4px; display:block;">
-            *Leave blank to use the default platform logo.
+            *Leave blank to use the default platform logo. Recommended size under 1MB.
           </span>
         </div>
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Custom Logo</button>
@@ -131,6 +137,23 @@ export function renderSettings(mountPoint, appInstance) {
   });
 
   // Custom Logo Save Handler
+  const logoFileInp = document.getElementById('custom-logo-file');
+  const logoUrlInp = document.getElementById('custom-logo-url');
+  if (logoFileInp && logoUrlInp) {
+    logoFileInp.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        appInstance.showToast('File is too large. Please select an image under 2MB.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => { logoUrlInp.value = ev.target.result; };
+      reader.onerror = () => { appInstance.showToast('Failed to read file.', 'error'); };
+      reader.readAsDataURL(file);
+    });
+  }
+
   document.getElementById('form-custom-logo').addEventListener('submit', (e) => {
     e.preventDefault();
     const logoUrl = document.getElementById('custom-logo-url').value.trim();
@@ -149,3 +172,4 @@ export function renderSettings(mountPoint, appInstance) {
 }
 
 export default renderSettings;
+

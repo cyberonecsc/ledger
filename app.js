@@ -537,7 +537,13 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
-              <!-- Cloud Sync Status Badge -->
+              <!-- Theme Toggle Button -->
+                <button id="theme-toggle" class="btn btn-sm btn-secondary" style="background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); padding: 6px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; outline: none;">
+                  <i data-lucide="sun" class="theme-icon-light" style="display:none; width: 18px; height: 18px;"></i>
+                  <i data-lucide="moon" class="theme-icon-dark" style="width: 18px; height: 18px;"></i>
+                </button>
+
+                <!-- Cloud Sync Status Badge -->
               <div id="cloud-sync-badge" class="sync-badge offline">
                 <i data-lucide="cloud-off"></i>
                 <span>Local Mode</span>
@@ -578,6 +584,36 @@ class Application {
         }
         lucide.createIcons();
       });
+    }
+
+    // Theme toggle click
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', () => {
+        const isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
+        if (isLightMode) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('cyberone_v2_theme', 'dark');
+          document.querySelector('.theme-icon-light').style.display = 'none';
+          document.querySelector('.theme-icon-dark').style.display = 'block';
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+          localStorage.setItem('cyberone_v2_theme', 'light');
+          document.querySelector('.theme-icon-light').style.display = 'block';
+          document.querySelector('.theme-icon-dark').style.display = 'none';
+        }
+      });
+    }
+
+    // Load saved theme
+    if (localStorage.getItem('cyberone_v2_theme') === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      const lightIcon = document.querySelector('.theme-icon-light');
+      const darkIcon = document.querySelector('.theme-icon-dark');
+      if (lightIcon && darkIcon) {
+        lightIcon.style.display = 'block';
+        darkIcon.style.display = 'none';
+      }
     }
 
     // Submenu expanding toggle
@@ -1191,3 +1227,4 @@ if (document.readyState === 'loading') {
 }
 
 export default Application;
+
