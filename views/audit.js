@@ -343,6 +343,7 @@ export function renderAuditLog(mountPoint, appInstance) {
       const filteredOps = nonSalesTxns.filter(t => 
         (t.description || '').toLowerCase().includes(query) ||
         (t.id || '').toLowerCase().includes(query)
+      );
           // Pagination logic
       const totalOpsItems = filteredOps.length;
       const totalOpsPages = Math.max(1, Math.ceil(totalOpsItems / opsItemsPerPage));
