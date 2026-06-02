@@ -545,7 +545,7 @@ export function renderPayroll(mountPoint, appInstance) {
       description: `Salary payout: ${staffName}`,
       amount: netPayVal,
       category: 'Salary',
-      source: 'account', // Default to Bank Account (UPI transfer)
+      source: document.getElementById('edit-salary-source').value || 'cash',
       salaryDetails: {
         days: daysVal,
         proRata: proRataVal,

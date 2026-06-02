@@ -1214,11 +1214,15 @@ function renderLedgerRows(txns) {
       columns[0] = t.description;
       columns[1] = fmt(t.amount);
       const source = t.source === 'account' ? 'main_bob' : t.source;
-      if (source === 'cash') {
-        columns[2] = `-${fmt(t.amount)}`;
-      } else if (source === 'main_bob') {
-        columns[7] = `-${fmt(t.amount)}`;
-      }
+      if (source === 'cash') columns[2] = `-${fmt(t.amount)}`;
+      else if (source === 'main_bob') columns[7] = `-${fmt(t.amount)}`;
+      else if (source === 'csc') columns[8] = `-${fmt(t.amount)}`;
+      else if (source === 'paynearby') columns[9] = `-${fmt(t.amount)}`;
+      else if (source === 'airtel_pb') columns[10] = `-${fmt(t.amount)}`;
+      else if (source === 'ibkart') columns[11] = `-${fmt(t.amount)}`;
+      else if (source === 'bsnl') columns[12] = `-${fmt(t.amount)}`;
+      else if (source === 'vi') columns[13] = `-${fmt(t.amount)}`;
+      else if (source === 'airtel') columns[14] = `-${fmt(t.amount)}`;
     } else if (t.type === 'adjustment') {
       typeBadge = `<span class="badge deposit" style="background:rgba(245,158,11,0.1); color:var(--color-warning);">Adjustment</span>`;
       columns[0] = t.description;
