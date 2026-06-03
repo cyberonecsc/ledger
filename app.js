@@ -131,6 +131,10 @@ class Application {
     document.addEventListener('focusout', () => {
       setTimeout(() => {
         if (this.needsUIRefresh && !this.isUserInteracting()) {
+          if (this.activeRoute === '#accounts') {
+            console.log("On accounts page, deferring UI reload to prevent resetting input fields.");
+            return;
+          }
           console.log("User finished interaction. Triggering pending UI reload.");
           this.needsUIRefresh = false;
           this.handleRouting();
@@ -141,6 +145,10 @@ class Application {
     document.addEventListener('click', () => {
       setTimeout(() => {
         if (this.needsUIRefresh && !this.isUserInteracting()) {
+          if (this.activeRoute === '#accounts') {
+            console.log("On accounts page, deferring UI reload to prevent resetting input fields.");
+            return;
+          }
           console.log("User finished clicking. Triggering pending UI reload.");
           this.needsUIRefresh = false;
           this.handleRouting();
@@ -232,8 +240,8 @@ class Application {
           }
           
           // Safeguard active typing/modals before reloading the UI
-          if (this.isUserInteracting()) {
-            console.log("Database updated in background, but user is interacting. Deferring UI reload.");
+          if (this.isUserInteracting() || this.activeRoute === '#accounts') {
+            console.log("Database updated in background, but user is interacting or on Accounts page. Deferring UI reload.");
             this.needsUIRefresh = true;
           } else {
             console.log("Database updated in background. Triggering UI reload.");
