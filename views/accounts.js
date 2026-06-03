@@ -168,8 +168,8 @@ export function renderAccounts(mountPoint, appInstance) {
             <input type="date" id="opening-override-date" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;" value="${activeDate}">
           </div>
           <div>
-            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Owner PIN</label>
-            <input type="password" id="override-pin" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:90px;" placeholder="****">
+            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Owner Password</label>
+            <input type="password" id="override-pin" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;" placeholder="Password">
           </div>
         </div>
       </div>
@@ -857,7 +857,7 @@ export function renderAccounts(mountPoint, appInstance) {
         }
         const ownerUser = auth.getPresetUsers().find(u => u.username.toUpperCase() === 'SHIBURCN');
         if (!ownerUser || ownerUser.password !== overridePin) {
-          appInstance.showToast('❌ Incorrect Owner PIN.', 'error');
+          appInstance.showToast('❌ Incorrect Owner Password.', 'error');
           return;
         }
 

@@ -6,7 +6,7 @@ import { store, getTodayDateString } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderTransactions(mountPoint, appInstance) {
-  let activeDate = getTodayDateString();
+  let activeDate = appInstance.getActiveDate();
   let log = store.getOrCreateDailyLog(activeDate);
   const currentBalances = store.getCurrentBalances();
 
@@ -209,16 +209,7 @@ export function renderTransactions(mountPoint, appInstance) {
   const txnDatePicker = document.getElementById('txn-date-picker');
   if (txnDatePicker) {
     txnDatePicker.addEventListener('change', (e) => {
-      activeDate = e.target.value;
-      log = store.getOrCreateDailyLog(activeDate);
-      
-      const subHeading = document.getElementById('page-heading-sub');
-      if (subHeading) {
-        subHeading.innerText = `Reconciliation sheet for ${activeDate}`;
-      }
-      
-      redrawTable();
-      updateBalanceCards();
+      appInstance.setActiveDate(e.target.value);
     });
   }
 

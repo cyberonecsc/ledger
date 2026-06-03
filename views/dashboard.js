@@ -9,10 +9,8 @@ export function renderDashboard(mountPoint, appInstance) {
   // Call recalculateAllBalances first to fix opening balance mismatches
   store.recalculateAllBalances();
 
-  // Always use today's local date as default
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const activeDate = appInstance._dashboardDate || todayStr;
+  // Always use active date from the global application instance
+  const activeDate = appInstance.getActiveDate();
   const currentMonth = activeDate.substring(0, 7); // Format: "YYYY-MM"
   // Calculate statistics
   const monthStats = store.getMonthlyStats(currentMonth);
@@ -651,8 +649,7 @@ export function renderDashboard(mountPoint, appInstance) {
   const datePicker = document.getElementById('dashboard-date-picker');
   if (datePicker) {
     datePicker.addEventListener('change', (e) => {
-      appInstance._dashboardDate = e.target.value;
-      appInstance.handleRouting();
+      appInstance.setActiveDate(e.target.value);
     });
   }
 

@@ -380,7 +380,7 @@ class StateStore {
     }
     if (this.closingOverrides) {
       Object.keys(this.closingOverrides).forEach(date => {
-        if (date.startsWith('2026-05-') || date < '2026-06-01') {
+        if (date !== '2026-05-31' && (date.startsWith('2026-05-') || date < '2026-06-01')) {
           delete this.closingOverrides[date];
           clearedMay = true;
         }
