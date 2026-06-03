@@ -152,12 +152,12 @@ export function renderAccounts(mountPoint, appInstance) {
     <div class="glass-card" style="padding:24px; max-width: 100%; margin-top: 35px;">
       <div class="section-header" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
         <div style="flex:1; min-width:200px;">
-          <h3 id="override-section-title">Initial Opening Balances</h3>
+          <h3 id="override-section-title">Initiate Opening and Closing Balances</h3>
           <span id="override-section-subtitle" style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
         </div>
         <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
           <div>
-            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Type (Optional)</label>
+            <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Type</label>
             <select id="override-type" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;">
               <option value="opening">Opening Bal.</option>
               <option value="closing">Closing Bal.</option>
@@ -165,7 +165,7 @@ export function renderAccounts(mountPoint, appInstance) {
           </div>
           <div>
             <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Date</label>
-            <input type="date" id="opening-override-date" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;">
+            <input type="date" id="opening-override-date" class="form-control" style="font-size:12px; padding:4px 8px; height:auto; width:120px;" value="${activeDate}">
           </div>
           <div>
             <label style="font-size:11px; display:block; margin-bottom:2px; color:var(--text-muted);">Owner PIN</label>
@@ -861,7 +861,10 @@ export function renderAccounts(mountPoint, appInstance) {
           return;
         }
 
-        if (overrideType === 'closing') {
+        if (overrideDate === '2026-06-01' && overrideType === 'opening') {
+          store.updateInitialBalances(newBalances);
+          appInstance.showToast('✅ Initial genesis opening balances saved successfully!', 'success');
+        } else if (overrideType === 'closing') {
           store.setClosingOverride(overrideDate, newBalances);
           appInstance.showToast(`✅ Closing balances overridden for ${overrideDate}!`, 'success');
         } else {
@@ -900,7 +903,7 @@ export function renderAccounts(mountPoint, appInstance) {
     let balances = { ...store.initialBalances };
     
     if (dateVal) {
-      sectionTitle.innerText = `${typeVal === 'closing' ? 'Closing' : 'Opening'} Balance Override: ${dateVal}`;
+      sectionTitle.innerText = `${typeVal === 'closing' ? 'Closing' : 'Opening'} Balance: ${dateVal}`;
       sectionSub.innerText = `Adjust the ${typeVal} balance figures for the specific date of ${dateVal}`;
       
       const overrides = typeVal === 'closing' ? store.closingOverrides : store.openingOverrides;
@@ -913,8 +916,8 @@ export function renderAccounts(mountPoint, appInstance) {
         }
       }
     } else {
-      sectionTitle.innerText = 'Initial Genesis Opening Balances';
-      sectionSub.innerText = 'Set starting balances for all cash, banks and wallets (ledger start)';
+      sectionTitle.innerText = 'Initiate Opening and Closing Balances';
+      sectionSub.innerText = 'Set or override opening and closing balance figures for a specific date';
     }
 
     const cashInp = document.getElementById('opening-cash');
@@ -938,6 +941,9 @@ export function renderAccounts(mountPoint, appInstance) {
 
   if (dateInp) dateInp.addEventListener('change', updateInputsWithOverride);
   if (typeInp) typeInp.addEventListener('change', updateInputsWithOverride);
+
+  // Sync inputs on render load
+  updateInputsWithOverride();
 }
 
 export default renderAccounts;
