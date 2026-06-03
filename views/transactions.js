@@ -476,20 +476,100 @@ export function renderTransactions(mountPoint, appInstance) {
             </button>
           </div>
 
-          <!-- Section 1: Service Fields (Conditional) -->
-          <div id="service-fields-container" style="display: ${initialType === 'service' ? 'block' : 'none'};">
-            <div class="form-row">
-              <div class="form-group" style="flex: 2;">
-                <label class="form-label">Service Type / Description</label>
-                <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" list="service-presets" required>
-                <datalist id="service-presets">
-                  ${store.serviceTypes.map(s => `<option value="${s}">`).join('')}
-                </datalist>
-              </div>
+          <!-- Essential Details Section -->
+          <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <!-- Service Description Field (Conditional) -->
+            <div id="service-desc-group" style="flex: 2; display: ${initialType === 'service' ? 'block' : 'none'};">
+              <label class="form-label">Service Type / Description</label>
+              <input type="text" id="sale-desc" class="form-control" placeholder="e.g. Recharge, Print, Caste Certificate" list="service-presets" ${initialType === 'service' ? 'required' : ''}>
+              <datalist id="service-presets">
+                ${store.serviceTypes.map(s => `<option value="${s}">`).join('')}
+              </datalist>
+            </div>
+            
+            <!-- Product Link Field (Conditional) -->
+            <div id="product-link-group" style="flex: 2; display: ${initialType === 'product' ? 'block' : 'none'};">
+              <label class="form-label">Select Inventory Product</label>
+              <select id="sale-product-link" class="form-control" ${initialType === 'product' ? 'required' : ''}>
+                <option value="">-- Choose Product --</option>
+                ${productOptions}
+              </select>
+            </div>
+            
+            <!-- Quantity Field (Conditional) -->
+            <div id="product-qty-group" style="flex: 1; display: ${initialType === 'product' ? 'block' : 'none'};">
+              <label class="form-label">Quantity</label>
+              <input type="number" id="sale-product-qty" class="form-control" value="1" min="1">
             </div>
 
-            <div class="form-row" style="margin-top: 10px;">
-              <div class="form-group" style="grid-column: span 2; width: 100%;">
+            <!-- Total Bill Amount -->
+            <div style="flex: 1.2;">
+              <label class="form-label">Total Bill Amount (₹)</label>
+              <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <!-- Payment Fields -->
+          <div class="form-row-3" style="margin-bottom: 15px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Paid By Cash (₹)</label>
+              <input type="number" step="0.01" id="sale-cash" class="form-control" value="0.00">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Paid By UPI / Bank (₹)</label>
+              <input type="number" step="0.01" id="sale-upi" class="form-control" value="0.00">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Add to Credit (₹)</label>
+              <input type="number" step="0.01" id="sale-credit" class="form-control" value="0.00">
+            </div>
+          </div>
+
+          <!-- Customer Link -->
+          <div class="form-group" style="position: relative; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <label class="form-label" style="margin-bottom: 0;">Customer Link (Optional)</label>
+              <a href="javascript:void(0);" id="btn-quick-add-customer" style="font-size: 11px; font-weight: 600; color: var(--color-primary); text-decoration: none;">+ Quick Register</a>
+            </div>
+            <select id="sale-customer" class="form-control">
+              <option value="">-- Unregistered Walk-in --</option>
+              ${customerOptions}
+            </select>
+          </div>
+
+          <!-- Quick Register Customer Section -->
+          <div id="quick-customer-section" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+            <h4 style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Quick Register Customer</h4>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <input type="text" id="quick-cust-name" class="form-control" placeholder="Customer Name" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
+              <input type="text" id="quick-cust-phone" class="form-control" placeholder="Phone Number" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
+              <button type="button" id="btn-save-quick-customer" class="btn btn-primary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px; font-weight: 600;">Save</button>
+              <button type="button" id="btn-cancel-quick-customer" class="btn btn-secondary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px; font-weight: 600;">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Additional Details (Deductions, Material, GST) -->
+          <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px; margin-top: 15px;">
+            
+            <!-- Service Specific Cost Deductions (Conditional) -->
+            <div id="service-specific-fields" style="display: ${initialType === 'service' ? 'block' : 'none'}; margin-bottom: 15px;">
+              <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                  <label class="form-label">Deducted Cost Source</label>
+                  <select id="sale-deduct-source" class="form-control">
+                    <option value="none">None (DTP/Print - 100% Service Charge)</option>
+                    <option value="account">Direct Bank Account</option>
+                    ${walletOptions}
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                  <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
+                  <input type="number" step="0.01" id="sale-deduct-amount-service" class="form-control" value="0.00">
+                </div>
+              </div>
+
+              <!-- Material Deductions (Consumables) -->
+              <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Material Deductions (Consumables)</label>
                 <div id="consumables-list-container" style="display: flex; flex-direction: column; gap: 8px;">
                   <!-- Rows dynamically appended -->
@@ -500,65 +580,23 @@ export function renderTransactions(mountPoint, appInstance) {
               </div>
             </div>
 
-            <div class="form-row" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 15px;">
-              <div class="form-group">
-                <label class="form-label">Deducted Cost Source</label>
-                <select id="sale-deduct-source" class="form-control">
-                  <option value="none">None (DTP/Print - 100% Service Charge)</option>
-                  <option value="account">Direct Bank Account</option>
-                  ${walletOptions}
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
-                <input type="number" step="0.01" id="sale-deduct-amount-service" class="form-control" value="0.00">
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 2: Product Fields (Conditional) -->
-          <div id="product-fields-container" style="display: ${initialType === 'product' ? 'block' : 'none'};">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Select Inventory Product</label>
-                <select id="sale-product-link" class="form-control">
-                  <option value="">-- Choose Product --</option>
-                  ${productOptions}
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Quantity Sold</label>
-                <input type="number" id="sale-product-qty" class="form-control" value="1" min="1">
-              </div>
-            </div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px; margin-top: -5px; padding-left: 2px;">
-              Stock details and wholesale cost will auto-fill from the inventory catalog upon product selection.
-            </div>
-          </div>
-
-          <!-- Common Core Financial Fields -->
-          <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px; margin-top: 10px;">
-            <!-- GST Options Row -->
-            <div class="form-row" style="margin-bottom: 12px; align-items: center;">
-              <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+            <!-- GST Options -->
+            <div class="form-group" style="margin-bottom: 15px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                 <input type="checkbox" id="sale-has-gst" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary);">
                 <label for="sale-has-gst" style="font-size: 11px; font-weight: 600; color: #fff; margin: 0; cursor: pointer; user-select: none;">Apply GST (Optional)</label>
               </div>
-              <div id="gst-config-container" style="display: none; width: 100%; gap: 10px; grid-template-columns: 1fr 1fr;">
-                <div class="form-group" style="margin-bottom:0;">
-                  <select id="sale-gst-rate" class="form-control" style="font-size:11px; padding: 4px 8px; height: 32px;">
-                    <option value="0.18" selected>18% GST (Standard)</option>
-                    <option value="0.12">12% GST</option>
-                    <option value="0.05">5% GST</option>
-                    <option value="0.28">28% GST</option>
-                  </select>
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                  <select id="sale-gst-type" class="form-control" style="font-size:11px; padding: 4px 8px; height: 32px;">
-                    <option value="inclusive" selected>Inclusive (Tax in Bill)</option>
-                    <option value="exclusive">Exclusive (Add Tax on Top)</option>
-                  </select>
-                </div>
+              <div id="gst-config-container" style="display: none; gap: 10px; grid-template-columns: 1fr 1fr; margin-bottom: 10px;">
+                <select id="sale-gst-rate" class="form-control" style="font-size: 11px; height: 32px; padding: 4px 8px;">
+                  <option value="0.18" selected>18% GST (Standard)</option>
+                  <option value="0.12">12% GST</option>
+                  <option value="0.05">5% GST</option>
+                  <option value="0.28">28% GST</option>
+                </select>
+                <select id="sale-gst-type" class="form-control" style="font-size: 11px; height: 32px; padding: 4px 8px;">
+                  <option value="inclusive" selected>Inclusive (Tax in Bill)</option>
+                  <option value="exclusive">Exclusive (Add Tax on Top)</option>
+                </select>
               </div>
             </div>
 
@@ -578,50 +616,8 @@ export function renderTransactions(mountPoint, appInstance) {
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Total Customer Bill Amount (₹)</label>
-                <input type="number" step="0.01" id="sale-amount" class="form-control" placeholder="0.00" required>
-              </div>
-              <div class="form-group" style="position: relative;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                  <label class="form-label" style="margin-bottom: 0;">Customer Link (Optional)</label>
-                  <a href="javascript:void(0);" id="btn-quick-add-customer" style="font-size: 11px; font-weight: 600; color: var(--color-primary); text-decoration: none;">+ Quick Register</a>
-                </div>
-                <select id="sale-customer" class="form-control">
-                  <option value="">-- Unregistered Walk-in --</option>
-                  ${customerOptions}
-                </select>
-              </div>
-            </div>
-
-            <!-- Quick Register Customer Section -->
-            <div id="quick-customer-section" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
-              <h4 style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Quick Register Customer</h4>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <input type="text" id="quick-cust-name" class="form-control" placeholder="Customer Name" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
-                <input type="text" id="quick-cust-phone" class="form-control" placeholder="Phone Number" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
-                <button type="button" id="btn-save-quick-customer" class="btn btn-primary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px; font-weight: 600;">Save</button>
-                <button type="button" id="btn-cancel-quick-customer" class="btn btn-secondary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px; font-weight: 600;">Cancel</button>
-              </div>
-            </div>
-
-            <div class="form-row-3" style="margin-top: 10px;">
-              <div class="form-group">
-                <label class="form-label">Paid By Cash (₹)</label>
-                <input type="number" step="0.01" id="sale-cash" class="form-control" value="0.00">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Paid By UPI / Bank (₹)</label>
-                <input type="number" step="0.01" id="sale-upi" class="form-control" value="0.00">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Add to Credit (₹)</label>
-                <input type="number" step="0.01" id="sale-credit" class="form-control" value="0.00">
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 15px; margin-bottom: 0;">
+            <!-- Profit Preview -->
+            <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label">Calculated Service Charge (Net Profit)</label>
               <div id="sale-profit-preview" style="padding: 10px 14px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: var(--border-radius-sm); color: var(--color-success); font-family: var(--font-display); font-weight:700;">
                 ₹0.00
@@ -652,8 +648,6 @@ export function renderTransactions(mountPoint, appInstance) {
       let currentSaleType = initialType;
       const btnServiceType = document.getElementById('btn-sale-type-service');
       const btnProductType = document.getElementById('btn-sale-type-product');
-      const containerService = document.getElementById('service-fields-container');
-      const containerProduct = document.getElementById('product-fields-container');
 
       const selectProduct = document.getElementById('sale-product-link');
       const inputProductQty = document.getElementById('sale-product-qty');
@@ -743,11 +737,26 @@ export function renderTransactions(mountPoint, appInstance) {
 
       const setSaleType = (type) => {
         currentSaleType = type;
+        
+        const serviceDescGroup = document.getElementById('service-desc-group');
+        const productLinkGroup = document.getElementById('product-link-group');
+        const productQtyGroup = document.getElementById('product-qty-group');
+        const serviceSpecificFields = document.getElementById('service-specific-fields');
+        
+        const descInput = document.getElementById('sale-desc');
+        const prodSelect = document.getElementById('sale-product-link');
+
         if (type === 'service') {
           btnServiceType.className = 'btn btn-sm btn-primary';
           btnProductType.className = 'btn btn-sm btn-secondary';
-          containerService.style.display = 'block';
-          containerProduct.style.display = 'none';
+          
+          if (serviceDescGroup) serviceDescGroup.style.display = 'block';
+          if (productLinkGroup) productLinkGroup.style.display = 'none';
+          if (productQtyGroup) productQtyGroup.style.display = 'none';
+          if (serviceSpecificFields) serviceSpecificFields.style.display = 'block';
+          
+          if (descInput) descInput.required = true;
+          if (prodSelect) prodSelect.required = false;
 
           // Reset product selector to prevent stock deduction
           selectProduct.value = '';
@@ -755,14 +764,21 @@ export function renderTransactions(mountPoint, appInstance) {
         } else {
           btnServiceType.className = 'btn btn-sm btn-secondary';
           btnProductType.className = 'btn btn-sm btn-primary';
-          containerService.style.display = 'none';
-          containerProduct.style.display = 'block';
+          
+          if (serviceDescGroup) serviceDescGroup.style.display = 'none';
+          if (productLinkGroup) productLinkGroup.style.display = 'block';
+          if (productQtyGroup) productQtyGroup.style.display = 'block';
+          if (serviceSpecificFields) serviceSpecificFields.style.display = 'none';
+          
+          if (descInput) descInput.required = false;
+          if (prodSelect) prodSelect.required = true;
 
           // Reset service fields
-          document.getElementById('sale-desc').value = '';
-          document.getElementById('sale-pages-printed').value = '0';
-          document.getElementById('sale-deduct-source').value = 'none';
-          document.getElementById('sale-deduct-amount-service').value = '0.00';
+          if (descInput) descInput.value = '';
+          const deductSource = document.getElementById('sale-deduct-source');
+          if (deductSource) deductSource.value = 'none';
+          const deductAmount = document.getElementById('sale-deduct-amount-service');
+          if (deductAmount) deductAmount.value = '0.00';
 
           // Trigger initial product calculation
           updateProductDetails();
@@ -797,6 +813,9 @@ export function renderTransactions(mountPoint, appInstance) {
       if (inputDeductService) {
         inputDeductService.addEventListener('input', updateProfitMath);
       }
+
+      // Initialize layout and state on load
+      setSaleType(initialType);
 
       // GST Event Listeners
       const hasGstCheckbox = document.getElementById('sale-has-gst');
