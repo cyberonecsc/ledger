@@ -154,6 +154,13 @@ class StateStore {
     if (auth && typeof auth.reloadUsers === 'function') {
       auth.reloadUsers();
     }
+    
+    // Force a one-off database sync refresh to clear stale local timestamp blockages
+    if (localStorage.getItem('cyberone_v2_sync_force_v3') !== 'true') {
+      localStorage.setItem('cyberone_v2_last_modified', '1970-01-01T00:00:00Z');
+      localStorage.setItem('cyberone_v2_sync_force_v3', 'true');
+    }
+    
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
     this.websites = this.getItem('cyberone_v2_websites', INITIAL_WEBSITES);
@@ -452,7 +459,7 @@ class StateStore {
     }
 
     // Always recalculate all balances on startup to guarantee database consistency
-    this.recalculateAllBalances();
+    this.recalculateAllBalances(true);
   }
 
   getSeededInvoices() {
@@ -607,7 +614,7 @@ class StateStore {
   }
 
   // Double-entry automation calculations for the whole chain
-  recalculateAllBalances() {
+  recalculateAllBalances(preventPersist = false) {
     // Sort log dates chronologically
     const sortedDates = Object.keys(this.dailyLogs).sort();
     if (sortedDates.length === 0) return;
@@ -732,7 +739,9 @@ class StateStore {
       previousClosingBalances = log.closingBalances;
     });
 
-    this.persistAll();
+    if (!preventPersist) {
+      this.persistAll();
+    }
   }
 
   // Retrieve current active balances (corresponds to the latest date's closing balances)
