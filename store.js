@@ -156,9 +156,9 @@ class StateStore {
     }
     
     // Force a one-off database sync refresh to clear stale local timestamp blockages
-    if (localStorage.getItem('cyberone_v2_sync_force_v3') !== 'true') {
+    if (localStorage.getItem('cyberone_v2_sync_force_v4') !== 'true') {
       localStorage.setItem('cyberone_v2_last_modified', '1970-01-01T00:00:00Z');
-      localStorage.setItem('cyberone_v2_sync_force_v3', 'true');
+      localStorage.setItem('cyberone_v2_sync_force_v4', 'true');
     }
     
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
@@ -481,8 +481,7 @@ class StateStore {
     localStorage.setItem(key, JSON.stringify(data));
   }
 
-  persistAll() {
-    localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
+  saveToLocalStorage() {
     this.saveItem('cyberone_v2_wallets', this.wallets);
     this.saveItem('cyberone_v2_bank_accounts', this.bankAccounts);
     this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
@@ -495,6 +494,11 @@ class StateStore {
     this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
     this.saveItem('cyberone_v2_center_profile', this.centerProfile);
     this.saveItem('cyberone_v2_websites', this.websites);
+  }
+
+  persistAll() {
+    localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
+    this.saveToLocalStorage();
     
     // Background sync changes to GitHub Pages
     this.syncToGitHubPages();
@@ -741,6 +745,8 @@ class StateStore {
 
     if (!preventPersist) {
       this.persistAll();
+    } else {
+      this.saveToLocalStorage();
     }
   }
 
