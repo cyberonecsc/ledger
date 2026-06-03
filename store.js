@@ -409,6 +409,48 @@ class StateStore {
       this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
     }
 
+    // Migration: Update existing sale transactions to split service charge proportionally
+    let updatedServiceCharges = false;
+    if (this.dailyLogs) {
+      Object.keys(this.dailyLogs).forEach(date => {
+        const log = this.dailyLogs[date];
+        if (log && log.transactions) {
+          log.transactions.forEach(txn => {
+            if (txn.type === 'sale') {
+              const amount = parseFloat(txn.amount || 0);
+              const cost = parseFloat(txn.deductedAmount || 0);
+              const gst = parseFloat(txn.gstAmount || 0);
+              const profit = amount - cost - gst;
+
+              const cash = parseFloat(txn.paidByCash || 0);
+              const upi = parseFloat(txn.paidByUPI || 0);
+              const totalPaid = cash + upi;
+
+              let newScCash = 0;
+              let newScAcc = 0;
+              if (totalPaid > 0) {
+                const cashRatio = cash / totalPaid;
+                newScCash = parseFloat((profit * cashRatio).toFixed(2));
+                newScAcc = parseFloat((profit * (1 - cashRatio)).toFixed(2));
+              } else {
+                newScAcc = parseFloat(profit.toFixed(2));
+              }
+
+              if (txn.serviceChargeToCash !== newScCash || txn.serviceChargeToAccount !== newScAcc) {
+                txn.serviceChargeToCash = newScCash;
+                txn.serviceChargeToAccount = newScAcc;
+                updatedServiceCharges = true;
+              }
+            }
+          });
+        }
+      });
+    }
+    if (updatedServiceCharges) {
+      this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
+      this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
+    }
+
     // Always recalculate all balances on startup to guarantee database consistency
     this.recalculateAllBalances();
   }
@@ -734,11 +776,15 @@ class StateStore {
       const gst = parseFloat(txnData.gstAmount || 0);
       const profit = amount - cost - gst;
 
-      if (txnData.paidByCash > 0) {
-        // If paid by cash, the profit is recognized as Service Charge to Cash
-        serviceChargeToCash = parseFloat(profit.toFixed(2));
+      const cash = parseFloat(txnData.paidByCash || 0);
+      const upi = parseFloat(txnData.paidByUPI || 0);
+      const totalPaid = cash + upi;
+
+      if (totalPaid > 0) {
+        const cashRatio = cash / totalPaid;
+        serviceChargeToCash = parseFloat((profit * cashRatio).toFixed(2));
+        serviceChargeToAccount = parseFloat((profit * (1 - cashRatio)).toFixed(2));
       } else {
-        // Otherwise it goes to account
         serviceChargeToAccount = parseFloat(profit.toFixed(2));
       }
 
@@ -952,8 +998,14 @@ class StateStore {
       const gst = parseFloat(updatedData.gstAmount || 0);
       const profit = amount - cost - gst;
 
-      if (updatedData.paidByCash > 0) {
-        serviceChargeToCash = parseFloat(profit.toFixed(2));
+      const cash = parseFloat(updatedData.paidByCash || 0);
+      const upi = parseFloat(updatedData.paidByUPI || 0);
+      const totalPaid = cash + upi;
+
+      if (totalPaid > 0) {
+        const cashRatio = cash / totalPaid;
+        serviceChargeToCash = parseFloat((profit * cashRatio).toFixed(2));
+        serviceChargeToAccount = parseFloat((profit * (1 - cashRatio)).toFixed(2));
       } else {
         serviceChargeToAccount = parseFloat(profit.toFixed(2));
       }
