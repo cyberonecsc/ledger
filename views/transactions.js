@@ -1194,8 +1194,8 @@ function renderLedgerRows(txns) {
       columns[2] = fmt(t.paidByCash);
       columns[3] = fmt(t.paidByUPI);
       columns[4] = fmt(t.paidByCredit);
-      columns[5] = fmt(t.serviceChargeToAccount);
-      columns[6] = fmt(t.serviceChargeToCash);
+      columns[5] = fmt(t.serviceChargeToCash);
+      columns[6] = fmt(t.serviceChargeToAccount);
 
       // Deduction logic columns
       const source = t.deductedFrom === 'account' ? 'main_bob' : t.deductedFrom;
