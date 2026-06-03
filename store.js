@@ -679,6 +679,7 @@ class StateStore {
     let linkedApplicationId = txnData.applicationId || null;
 
     if (txnData.type === 'sale') {
+      const descLower = (txnData.description || '').toLowerCase();
       const amount = parseFloat(txnData.amount || 0);
       const cost = parseFloat(txnData.deductedAmount || 0);
       const gst = parseFloat(txnData.gstAmount || 0);
@@ -706,7 +707,6 @@ class StateStore {
         });
       } else {
         // Fallback auto-deductions for PVC Lamination pouch and A4 paper if consumables array is not provided
-        const descLower = (txnData.description || '').toLowerCase();
         if (descLower.includes('pvc card') || descLower.includes('pvc lamination')) {
           const pvcPouch = this.products.find(p => p.name.toLowerCase() === 'pvc lamination pouch' || p.sku.toLowerCase() === 'pvc-pouch');
           if (pvcPouch) {
