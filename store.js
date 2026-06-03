@@ -360,6 +360,55 @@ class StateStore {
       });
     }
 
+    // Migration: Clean up all data before June 1, 2026 to start fresh
+    let clearedMay = false;
+    if (this.dailyLogs) {
+      Object.keys(this.dailyLogs).forEach(date => {
+        if (date.startsWith('2026-05-') || date < '2026-06-01') {
+          delete this.dailyLogs[date];
+          clearedMay = true;
+        }
+      });
+    }
+    if (this.openingOverrides) {
+      Object.keys(this.openingOverrides).forEach(date => {
+        if (date.startsWith('2026-05-') || date < '2026-06-01') {
+          delete this.openingOverrides[date];
+          clearedMay = true;
+        }
+      });
+    }
+    if (this.closingOverrides) {
+      Object.keys(this.closingOverrides).forEach(date => {
+        if (date.startsWith('2026-05-') || date < '2026-06-01') {
+          delete this.closingOverrides[date];
+          clearedMay = true;
+        }
+      });
+    }
+    if (this.activityLogs) {
+      const originalLength = this.activityLogs.length;
+      this.activityLogs = this.activityLogs.filter(log => {
+        if (log.timestamp && (log.timestamp.startsWith('2026-05-') || log.timestamp < '2026-06-01T00:00:00')) {
+          return false;
+        }
+        if (log.details && (log.details.includes('2026-05-') || log.details.includes('on date 2026-05-') || log.details.includes('date 2026-05-') || log.details.includes('date 2026-04-'))) {
+          return false;
+        }
+        return true;
+      });
+      if (this.activityLogs.length !== originalLength) {
+        clearedMay = true;
+      }
+    }
+    if (clearedMay) {
+      this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
+      this.saveItem('cyberone_v2_opening_overrides', this.openingOverrides);
+      this.saveItem('cyberone_v2_closing_overrides', this.closingOverrides);
+      this.saveItem('cyberone_v2_activity_logs', this.activityLogs);
+      this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
+    }
+
     // Always recalculate all balances on startup to guarantee database consistency
     this.recalculateAllBalances();
   }
