@@ -194,6 +194,7 @@ class StateStore {
     this.applications = this.getItem('cyberone_v2_applications', INITIAL_APPLICATIONS);
     this.invoices = this.getItem('cyberone_v2_invoices', this.getSeededInvoices());
     this.openingOverrides = this.getItem('cyberone_v2_opening_overrides', {});
+    this.closingOverrides = this.getItem('cyberone_v2_closing_overrides', {});
     this.dailyLogs = this.getItem('cyberone_v2_daily_logs', null);
     
     // Default Center Profile
@@ -420,6 +421,54 @@ class StateStore {
     this.persistAll();
   }
 
+  setClosingOverride(dateString, balances) {
+    if (!this.closingOverrides) this.closingOverrides = {};
+    this.closingOverrides[dateString] = { ...this.closingOverrides[dateString], ...balances };
+    this.saveItem('cyberone_v2_closing_overrides', this.closingOverrides);
+    this.recalculateAllBalances();
+    this.persistAll();
+  }
+
+  resetDatabaseToJuneFirst() {
+    this.dailyLogs = {};
+    this.customers = [];
+    this.applications = [];
+    this.invoices = [];
+    this.activityLogs = [];
+    this.openingOverrides = {};
+    this.closingOverrides = {};
+    
+    this.initialBalances = {
+      cash: 0,
+      petty_cash: 0
+    };
+    
+    this.bankAccounts.forEach(b => {
+      this.initialBalances[b.id] = 0;
+    });
+    this.wallets.forEach(w => {
+      this.initialBalances[w.id] = 0;
+    });
+
+    const cleanDate = '2026-06-01';
+    this.dailyLogs[cleanDate] = {
+      date: cleanDate,
+      openingBalances: { ...this.initialBalances },
+      transactions: [],
+      closingBalances: { ...this.initialBalances }
+    };
+
+    localStorage.setItem('cyberone_v2_active_date', cleanDate);
+
+    this.saveItem('cyberone_v2_opening_overrides', this.openingOverrides);
+    this.saveItem('cyberone_v2_closing_overrides', this.closingOverrides);
+    this.saveItem('cyberone_v2_activity_logs', this.activityLogs);
+    
+    this.persistAll();
+    this.recalculateAllBalances();
+    this.logActivity('System Reset', 'Database reset to a clean June 1, 2026 starting state.');
+  }
+
   updateCenterProfile(profileData) {
     this.centerProfile = {
       ...this.centerProfile,
@@ -573,7 +622,10 @@ class StateStore {
       }
 
       log.closingBalances = balances;
-      previousClosingBalances = balances;
+      if (this.closingOverrides && this.closingOverrides[dateString]) {
+        log.closingBalances = { ...log.closingBalances, ...this.closingOverrides[dateString] };
+      }
+      previousClosingBalances = log.closingBalances;
     });
 
     this.persistAll();
