@@ -619,7 +619,20 @@ class StateStore {
 
       // If it is the first day, its opening balance is either initialized or set manually
       if (idx === 0) {
-        log.openingBalances = { ...this.initialBalances };
+        // Check if there is a closing override for the day before this date (e.g. May 31st closing balance)
+        const parts = dateString.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dateObj = new Date(Date.UTC(y, m, d));
+        dateObj.setUTCDate(dateObj.getUTCDate() - 1);
+        const dayBefore = dateObj.toISOString().split('T')[0];
+
+        if (this.closingOverrides && this.closingOverrides[dayBefore]) {
+          log.openingBalances = { ...this.initialBalances, ...this.closingOverrides[dayBefore] };
+        } else {
+          log.openingBalances = { ...this.initialBalances };
+        }
       } else {
         // Roll forward from the previous day's closing balances
         log.openingBalances = { ...previousClosingBalances };
