@@ -2,7 +2,7 @@
    CYBERONE Center Management Platform - Dashboard View (views/dashboard.js)
    ========================================================================== */
 
-import { store } from '../store.js';
+import { store, getTodayDateString } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderDashboard(mountPoint, appInstance) {
@@ -11,6 +11,7 @@ export function renderDashboard(mountPoint, appInstance) {
 
   // Always use active date from the global application instance
   const activeDate = appInstance.getActiveDate();
+  const todayStr = getTodayDateString();
   const currentMonth = activeDate.substring(0, 7); // Format: "YYYY-MM"
   // Calculate statistics
   const monthStats = store.getMonthlyStats(currentMonth);
