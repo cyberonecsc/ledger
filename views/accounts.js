@@ -937,6 +937,12 @@ export function renderAccounts(mountPoint, appInstance) {
       const id = inp.getAttribute('data-id');
       inp.value = balances[id] !== undefined ? balances[id] : 0;
     });
+
+    // Dynamically update form submit button text
+    const submitBtn = document.querySelector('#form-opening-balances button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.innerText = `Save ${typeVal === 'closing' ? 'Closing' : 'Opening'} Balances`;
+    }
   };
 
   if (dateInp) dateInp.addEventListener('change', updateInputsWithOverride);
