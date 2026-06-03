@@ -806,8 +806,38 @@ export function renderTransactions(mountPoint, appInstance) {
         }
       };
 
+      // Automatic Wallet cost deduction calculation
+      const updateAutoDeductionCost = () => {
+        const deductSourceSelect = document.getElementById('sale-deduct-source');
+        if (!deductSourceSelect) return;
+        const deductSource = deductSourceSelect.value;
+        const gstDetails = getGstDetails();
+        const enteredAmount = gstDetails.billAmount;
+        const deductAmountInput = document.getElementById('sale-deduct-amount-service');
+        if (!deductAmountInput) return;
+ 
+        if (deductSource === 'none' || deductSource === 'account') {
+          return;
+        }
+ 
+        const wallet = store.wallets.find(w => w.id === deductSource);
+        if (wallet) {
+          const rate = wallet.commissionRate || 0;
+          const calculatedCost = enteredAmount * (1 - rate);
+          deductAmountInput.value = calculatedCost.toFixed(2);
+        }
+      };
+
       selectProduct.addEventListener('change', updateProductDetails);
       inputProductQty.addEventListener('input', updateProductDetails);
+
+      const selectDeductSource = document.getElementById('sale-deduct-source');
+      if (selectDeductSource) {
+        selectDeductSource.addEventListener('change', () => {
+          updateAutoDeductionCost();
+          updateProfitMath();
+        });
+      }
 
       const inputDeductService = document.getElementById('sale-deduct-amount-service');
       if (inputDeductService) {
@@ -888,6 +918,7 @@ export function renderTransactions(mountPoint, appInstance) {
         inputCash.value = gstDetails.billAmount.toFixed(2);
         inputUPI.value = '0.00';
         inputCredit.value = '0.00';
+        updateAutoDeductionCost();
         updateProfitMath();
       });
 
