@@ -42,6 +42,9 @@ export function renderAuditLog(mountPoint, appInstance) {
   let opsPage = 1;
   const opsItemsPerPage = 10;
 
+  // State for batch selection
+  const selectedOps = new Set();
+
   // Render main layout
   mountPoint.innerHTML = `
     <!-- Top Nav Tabs -->
@@ -56,6 +59,18 @@ export function renderAuditLog(mountPoint, appInstance) {
 
     <!-- Dynamic Content Area -->
     <div id="audit-tab-content"></div>
+
+    <!-- Floating Batch Action Bar -->
+    <div id="ops-batch-action-bar" class="batch-action-bar">
+      <span style="font-size: 14px; font-weight: 600; color: #fff;"><span id="batch-select-count">0</span> items selected</span>
+      <div style="width: 1px; height: 20px; background: rgba(255, 255, 255, 0.15);"></div>
+      <button id="btn-ops-batch-delete" class="btn btn-sm btn-danger" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 30px; cursor: pointer; border: none; font-weight: 600;">
+        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete Selected
+      </button>
+      <button id="btn-ops-batch-cancel" class="btn btn-sm btn-secondary" style="padding: 8px 16px; border-radius: 30px; cursor: pointer; border: none; font-weight: 600;">
+        Cancel
+      </button>
+    </div>
 
     <!-- Expense Modal Backdrop -->
     <div id="expense-modal-backdrop" class="modal-backdrop">
@@ -80,6 +95,12 @@ export function renderAuditLog(mountPoint, appInstance) {
 
   const switchTab = (tab) => {
     activeTab = tab;
+
+    // Clear selections and hide batch bar when switching tabs
+    selectedOps.clear();
+    const batchBar = document.getElementById('ops-batch-action-bar');
+    if (batchBar) batchBar.classList.remove('show');
+
     navTabs.forEach(btn => {
       if (btn.getAttribute('data-tab') === tab) {
         btn.classList.add('btn-primary');
@@ -344,7 +365,7 @@ export function renderAuditLog(mountPoint, appInstance) {
         (t.description || '').toLowerCase().includes(query) ||
         (t.id || '').toLowerCase().includes(query)
       );
-          // Pagination logic
+      // Pagination logic
       const totalOpsItems = filteredOps.length;
       const totalOpsPages = Math.max(1, Math.ceil(totalOpsItems / opsItemsPerPage));
       if (opsPage > totalOpsPages) opsPage = totalOpsPages;
@@ -355,9 +376,12 @@ export function renderAuditLog(mountPoint, appInstance) {
       
       const pagedOps = filteredOps.slice(opsStartIndex, opsEndIndex);
 
+      // Determine if all visible items on this page are selected
+      const allSelected = pagedOps.length > 0 && pagedOps.every(t => selectedOps.has(t.id));
+
       let rowsHtml = '';
       if (pagedOps.length === 0) {
-        rowsHtml = `<tr><td colspan="7" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No operational logs (expenses, deposits, adjustments) found.</td></tr>`;
+        rowsHtml = `<tr><td colspan="8" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No operational logs (expenses, deposits, adjustments) found.</td></tr>`;
       } else {
         rowsHtml = pagedOps.map(t => {
           let typeBadge = '';
@@ -381,6 +405,7 @@ export function renderAuditLog(mountPoint, appInstance) {
 
           return `
             <tr>
+              <td style="width: 40px; text-align: center;"><input type="checkbox" class="ops-checkbox" data-id="${t.id}" ${selectedOps.has(t.id) ? 'checked' : ''}></td>
               <td><span style="font-size: 12px; white-space: nowrap; font-family: monospace; color: var(--text-muted);">${formatTime(t.timestamp)}</span></td>
               <td><span style="font-family: monospace; font-size: 11px; color: var(--text-muted); font-weight:600;">${t.id}</span></td>
               <td>${typeBadge}</td>
@@ -418,6 +443,7 @@ export function renderAuditLog(mountPoint, appInstance) {
             <table class="custom-table" style="table-layout: fixed; width: 100%;">
               <thead>
                 <tr>
+                  <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllOps" ${allSelected ? 'checked' : ''}></th>
                   <th style="width: 130px;">Date & Time</th>
                   <th style="width: 100px;">ID</th>
                   <th style="width: 90px;">Type</th>
@@ -499,6 +525,7 @@ export function renderAuditLog(mountPoint, appInstance) {
           if (confirm(`Are you sure you want to delete this operational log (${txnId})? This will roll back all bank account, physical cash and inventory adjustments.`)) {
             const deleted = store.deleteTransaction(txn.dateStr, txnId);
             if (deleted) {
+              selectedOps.delete(txnId); // Clear selection for this item
               appInstance.showToast('Log deleted successfully', 'success');
               renderActiveTabContent();
             } else {
@@ -507,6 +534,100 @@ export function renderAuditLog(mountPoint, appInstance) {
           }
         };
       });
+
+      // Update function for batch selection action bar
+      const updateBatchActionBar = () => {
+        const batchBar = document.getElementById('ops-batch-action-bar');
+        const countSpan = document.getElementById('batch-select-count');
+        if (!batchBar || !countSpan) return;
+
+        if (selectedOps.size > 0 && activeTab === 'operations') {
+          countSpan.innerText = selectedOps.size;
+          batchBar.classList.add('show');
+        } else {
+          batchBar.classList.remove('show');
+        }
+      };
+
+      // Select All header checkbox change listener
+      const selectAllCheckbox = document.getElementById('selectAllOps');
+      if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+          const checked = e.target.checked;
+          pagedOps.forEach(t => {
+            if (checked) {
+              selectedOps.add(t.id);
+            } else {
+              selectedOps.delete(t.id);
+            }
+          });
+          renderActiveTabContent();
+        });
+      }
+
+      // Individual checkboxes change listener
+      document.querySelectorAll('.ops-checkbox').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const txnId = e.target.getAttribute('data-id');
+          if (e.target.checked) {
+            selectedOps.add(txnId);
+          } else {
+            selectedOps.delete(txnId);
+          }
+          updateBatchActionBar();
+          if (selectAllCheckbox) {
+            const allChecked = pagedOps.length > 0 && pagedOps.every(t => selectedOps.has(t.id));
+            selectAllCheckbox.checked = allChecked;
+          }
+        });
+      });
+
+      // Batch Delete action click listener
+      const btnBatchDelete = document.getElementById('btn-ops-batch-delete');
+      if (btnBatchDelete) {
+        btnBatchDelete.onclick = () => {
+          if (selectedOps.size === 0) return;
+          
+          if (confirm(`Are you sure you want to delete the ${selectedOps.size} selected operational logs? This will roll back all associated bank account, cash, and stock adjustments.`)) {
+            let successCount = 0;
+            let failureCount = 0;
+            
+            selectedOps.forEach(txnId => {
+              const txn = nonSalesTxns.find(t => t.id === txnId);
+              if (txn) {
+                const deleted = store.deleteTransaction(txn.dateStr, txnId);
+                if (deleted) {
+                  successCount++;
+                } else {
+                  failureCount++;
+                }
+              }
+            });
+            
+            if (successCount > 0) {
+              appInstance.showToast(`Successfully deleted ${successCount} logs`, 'success');
+            }
+            if (failureCount > 0) {
+              appInstance.showToast(`Failed to delete ${failureCount} logs`, 'error');
+            }
+            
+            selectedOps.clear();
+            renderActiveTabContent();
+          }
+        };
+      }
+
+      // Batch Cancel action click listener
+      const btnBatchCancel = document.getElementById('btn-ops-batch-cancel');
+      if (btnBatchCancel) {
+        btnBatchCancel.onclick = () => {
+          selectedOps.clear();
+          renderActiveTabContent();
+        };
+      }
+
+      // Initialize batch action bar state on render
+      updateBatchActionBar();
     }
 
     lucide.createIcons();
