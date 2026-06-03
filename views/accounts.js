@@ -152,8 +152,8 @@ export function renderAccounts(mountPoint, appInstance) {
     <div class="glass-card" style="padding:24px; max-width: 100%; margin-top: 35px;">
       <div class="section-header" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:15px;">
         <div style="flex:1; min-width:200px;">
-          <h3>Initial Opening Balances</h3>
-          <span style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
+          <h3 id="override-section-title">Initial Opening Balances</h3>
+          <span id="override-section-subtitle" style="font-size:12px; color:var(--text-muted);">Set starting balances for all cash, banks and wallets (ledger start)</span>
         </div>
         <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
           <div>
@@ -855,7 +855,8 @@ export function renderAccounts(mountPoint, appInstance) {
           appInstance.showToast('❌ Only owners can perform date overrides.', 'error');
           return;
         }
-        if (auth.currentUser.password !== overridePin) {
+        const ownerUser = auth.getPresetUsers().find(u => u.username.toUpperCase() === 'SHIBURCN');
+        if (!ownerUser || ownerUser.password !== overridePin) {
           appInstance.showToast('❌ Incorrect Owner PIN.', 'error');
           return;
         }
@@ -885,6 +886,58 @@ export function renderAccounts(mountPoint, appInstance) {
       });
     });
   }
+
+  // Dynamic overrides fields syncing:
+  const dateInp = document.getElementById('opening-override-date');
+  const typeInp = document.getElementById('override-type');
+  const sectionTitle = document.getElementById('override-section-title');
+  const sectionSub = document.getElementById('override-section-subtitle');
+
+  const updateInputsWithOverride = () => {
+    const dateVal = dateInp ? dateInp.value : '';
+    const typeVal = typeInp ? typeInp.value : 'opening';
+    
+    let balances = { ...store.initialBalances };
+    
+    if (dateVal) {
+      sectionTitle.innerText = `${typeVal === 'closing' ? 'Closing' : 'Opening'} Balance Override: ${dateVal}`;
+      sectionSub.innerText = `Adjust the ${typeVal} balance figures for the specific date of ${dateVal}`;
+      
+      const overrides = typeVal === 'closing' ? store.closingOverrides : store.openingOverrides;
+      if (overrides && overrides[dateVal]) {
+        balances = { ...balances, ...overrides[dateVal] };
+      } else {
+        const dailyLog = store.dailyLogs[dateVal];
+        if (dailyLog) {
+          balances = typeVal === 'closing' ? { ...dailyLog.closingBalances } : { ...dailyLog.openingBalances };
+        }
+      }
+    } else {
+      sectionTitle.innerText = 'Initial Genesis Opening Balances';
+      sectionSub.innerText = 'Set starting balances for all cash, banks and wallets (ledger start)';
+    }
+
+    const cashInp = document.getElementById('opening-cash');
+    if (cashInp) cashInp.value = balances.cash !== undefined ? balances.cash : 0;
+    
+    const pettyInp = document.getElementById('opening-petty-cash');
+    if (pettyInp) pettyInp.value = balances.petty_cash !== undefined ? balances.petty_cash : 0;
+
+    const bankInputs = document.querySelectorAll('.bank-opening-input');
+    bankInputs.forEach(inp => {
+      const id = inp.getAttribute('data-id');
+      inp.value = balances[id] !== undefined ? balances[id] : 0;
+    });
+
+    const walletInputs = document.querySelectorAll('.wallet-opening-input');
+    walletInputs.forEach(inp => {
+      const id = inp.getAttribute('data-id');
+      inp.value = balances[id] !== undefined ? balances[id] : 0;
+    });
+  };
+
+  if (dateInp) dateInp.addEventListener('change', updateInputsWithOverride);
+  if (typeInp) typeInp.addEventListener('change', updateInputsWithOverride);
 }
 
 export default renderAccounts;
