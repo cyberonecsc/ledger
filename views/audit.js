@@ -142,7 +142,7 @@ export function renderAuditLog(mountPoint, appInstance) {
               <option value="Refreshments">Refreshments / Food</option>
               <option value="Rent">Rent & Taxes</option>
               <option value="Salary">Staff Payouts</option>
-              <option value="Drawings">Owner Drawings (Shibu Draw)</option>
+              <option value="Drawings">Owner Drawings (SHIBU RAMACHANDRAN Draw)</option>
               <option value="Other">Other Miscellaneous</option>
             </select>
           </div>

@@ -95,7 +95,7 @@ const INITIAL_CUSTOMERS = [];
 
 // Initial Staff profiles
 const INITIAL_STAFF = [
-  { id: 'STAFF-01', name: 'Shibu (Owner)', role: 'owner', phone: '9048123456', baseSalary: 35000, isActive: true },
+  { id: 'STAFF-01', name: 'SHIBU RAMACHANDRAN', role: 'owner', phone: '9048123456', baseSalary: 35000, isActive: true },
   { id: 'STAFF-02', name: 'Anil Kumar (Admin)', role: 'admin', phone: '9048111222', baseSalary: 20000, isActive: true },
   { id: 'STAFF-03', name: 'Saritha (Accountant)', role: 'accountant', phone: '9048333444', baseSalary: 18000, isActive: true },
   { id: 'STAFF-04', name: 'Manu (Staff)', role: 'staff', phone: '9048555666', baseSalary: 12000, isActive: true }
@@ -178,15 +178,15 @@ class StateStore {
     // Reconstruct staff list dynamically from active credentials
     const storedStaff = this.getItem('cyberone_v2_staff', INITIAL_STAFF);
     const rawUsers = localStorage.getItem('cyberone_v2_users');
-    const activeUsers = rawUsers ? JSON.parse(rawUsers) : [{ username: 'SHIBURCN', name: 'Shibu (Owner)', role: 'owner', password: 'John@392091' }];
+    const activeUsers = rawUsers ? JSON.parse(rawUsers) : [{ username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: 'STAFF-01' }];
     this.staff = activeUsers.map(user => {
-      const existing = storedStaff.find(s => s.id === user.username || s.id === `STAFF-${user.username}` || s.name === user.name);
+      const existing = storedStaff.find(s => s.id === user.username || s.id === `STAFF-${user.username}` || s.name === user.name || s.id === user.staffId);
       let baseSal = user.baseSalary !== undefined && user.baseSalary !== null ? parseFloat(user.baseSalary) : (user.role === 'owner' ? 35000 : (user.role === 'admin' ? 20000 : (user.role === 'accountant' ? 18000 : 12000)));
       if (existing && (user.baseSalary === undefined || user.baseSalary === null)) {
         baseSal = existing.baseSalary;
       }
       return {
-        id: user.username,
+        id: user.staffId || user.username,
         name: user.name,
         role: user.role,
         phone: user.mobile || (existing ? existing.phone : ''),

@@ -3,6 +3,7 @@
    ========================================================================== */
 
 import { auth } from '../auth.js';
+import { store } from '../store.js';
 
 export function renderLogin(mountPoint, appInstance) {
   let viewMode = 'login'; // 'login', 'signup', 'reset'
@@ -92,6 +93,11 @@ export function renderLogin(mountPoint, appInstance) {
               <div class="form-group">
                 <label class="form-label" for="new-password">Password</label>
                 <input type="password" id="new-password" class="form-control" placeholder="Create password" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reg-id">Registration ID (Centre ID)</label>
+                <input type="text" id="reg-id" class="form-control" placeholder="Enter Centre ID" required>
               </div>
 
               <div class="form-group">
@@ -480,6 +486,15 @@ export function renderLogin(mountPoint, appInstance) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       
+      const regId = document.getElementById('reg-id').value.trim();
+      const centerCode = (store.centerProfile && store.centerProfile.code) ? store.centerProfile.code : '465314670016';
+      if (regId !== centerCode) {
+        errorDiv.style.display = 'flex';
+        errorDiv.innerText = 'Invalid Registration ID (Centre ID). Registration not authorized.';
+        appInstance.showToast('Invalid Registration ID (Centre ID)', 'error');
+        return;
+      }
+
       if (!isEmailVerified) {
         appInstance.showToast('Please verify your email address with OTP first!', 'error');
         return;

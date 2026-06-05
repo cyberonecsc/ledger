@@ -526,7 +526,8 @@ function renderStaffIDCardModal(user, container, backdrop, appInstance) {
             <div>
               <h4 style="font-family: 'Outfit', sans-serif; font-size:15px; font-weight:700; margin:0; color:#0f172a;">${user.name}</h4>
               <span style="font-size:11px; color:#0284c7; font-weight:700; font-family:monospace; text-transform:uppercase;">Role: ${user.role}</span>
-              <div style="font-size: 10px; color:#475569; margin-top:4px;">Username: <strong>@${user.username}</strong></div>
+              <div style="font-size: 10px; color:#475569; margin-top:4px;">Staff ID: <strong>${user.staffId || 'STAFF-01'}</strong></div>
+              <div style="font-size: 10px; color:#475569;">Username: <strong>@${user.username}</strong></div>
               <div style="font-size: 10px; color:#475569;">Mob: <strong>${user.mobile || '—'}</strong></div>
             </div>
           </div>

@@ -261,10 +261,7 @@ export function renderCustomers(mountPoint, appInstance) {
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Operator Staff</label>
                     <select id="visit-staff" class="form-control" required>
-                      <option value="Shibu (Owner)">Shibu (Owner)</option>
-                      <option value="Anil Kumar (Admin)">Anil Kumar (Admin)</option>
-                      <option value="Saritha (Accountant)">Saritha (Accountant)</option>
-                      <option value="Manu (Staff)">Manu (Staff)</option>
+                      ${store.staff.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
                     </select>
                   </div>
                   <div class="form-group" style="display:flex; align-items:center; gap:8px; padding-top:20px; margin-bottom: 0;">

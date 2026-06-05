@@ -52,7 +52,7 @@ const DEFAULT_PRIVILEGES = {
 
 // Seed credentials (Owner account remains for default entry, others removed)
 const PRESET_USERS = [
-  { username: 'SHIBURCN', name: 'Shibu (Owner)', role: 'owner', password: 'John@392091' }
+  { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: 'STAFF-01' }
 ];
 
 class AuthService {
@@ -105,14 +105,17 @@ class AuthService {
       
       let ownerUser = usersList.find(u => u.username.toUpperCase() === 'SHIBURCN');
       if (!ownerUser) {
-        ownerUser = { username: 'SHIBURCN', name: 'Shibu (Owner)', role: 'owner', password: 'John@392091' };
+        ownerUser = { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: 'STAFF-01' };
         usersList.unshift(ownerUser);
       } else {
         // Enforce correct password and name/role
         ownerUser.username = 'SHIBURCN';
         ownerUser.password = 'John@392091';
-        ownerUser.name = 'Shibu (Owner)';
+        ownerUser.name = 'SHIBU RAMACHANDRAN';
         ownerUser.role = 'owner';
+        if (!ownerUser.staffId) {
+          ownerUser.staffId = 'STAFF-01';
+        }
       }
       localStorage.setItem('cyberone_v2_users', JSON.stringify(usersList));
     }
@@ -132,7 +135,8 @@ class AuthService {
         name: user.name,
         username: user.username,
         role: user.role,
-        photo: user.photo || ''
+        photo: user.photo || '',
+        staffId: user.staffId || (user.username.toUpperCase() === 'SHIBURCN' ? 'STAFF-01' : 'STAFF-04')
       };
       localStorage.setItem('cyberone_v2_current_user', JSON.stringify(this.currentUser));
       return { success: true, user: this.currentUser };
@@ -173,12 +177,53 @@ class AuthService {
     return this.users;
   }
 
-  addUser(name, username, password, role, mobile = '', email = '', photo = '', baseSalary = null) {
+  getNextStaffId() {
+    let maxNum = 0;
+    this.users.forEach(u => {
+      if (u.staffId && u.staffId.startsWith('STAFF-')) {
+        const num = parseInt(u.staffId.split('-')[1]);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    });
+    
+    try {
+      const storedStaff = JSON.parse(localStorage.getItem('cyberone_v2_staff') || '[]');
+      storedStaff.forEach(s => {
+        if (s.id && s.id.startsWith('STAFF-')) {
+          const num = parseInt(s.id.split('-')[1]);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    
+    const nextNum = maxNum + 1;
+    return `STAFF-${nextNum < 10 ? '0' + nextNum : nextNum}`;
+  }
+
+  addUser(name, username, password, role, mobile = '', email = '', photo = '', baseSalary = null, staffId = null) {
     if (role === 'owner') return { success: false, message: 'Cannot create another owner' };
     const exists = this.users.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (exists) return { success: false, message: 'Username already exists' };
 
-    const newUser = { name, username, password, role, mobile, email, photo, baseSalary: baseSalary !== null ? parseFloat(baseSalary) : null };
+    const finalStaffId = staffId || this.getNextStaffId();
+
+    const newUser = {
+      name,
+      username,
+      password,
+      role,
+      mobile,
+      email,
+      photo,
+      baseSalary: baseSalary !== null ? parseFloat(baseSalary) : null,
+      staffId: finalStaffId
+    };
     this.users.push(newUser);
     localStorage.setItem('cyberone_v2_users', JSON.stringify(this.users));
     this.triggerStateChange();
