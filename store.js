@@ -755,6 +755,11 @@ class StateStore {
       });
       }
 
+      // Ensure petty cash is never negative (shows zero after consuming all amount)
+      if (balances.petty_cash !== undefined && balances.petty_cash < 0) {
+        balances.petty_cash = 0;
+      }
+
       log.closingBalances = balances;
       if (this.closingOverrides && this.closingOverrides[dateString]) {
         log.closingBalances = { ...log.closingBalances, ...this.closingOverrides[dateString] };
