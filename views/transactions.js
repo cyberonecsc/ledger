@@ -84,7 +84,7 @@ export function renderTransactions(mountPoint, appInstance) {
     <!-- Wide Google Sheet-based Ledger Table -->
     <div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 25px;">
       <div class="table-responsive ledger-table-container">
-        <table class="custom-table" id="ledger-table" style="min-width: 1700px;">
+        <table class="custom-table" id="ledger-table" style="min-width: 1600px;">
           <thead>
             <tr>
               <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-txns" style="cursor: pointer;"></th>
@@ -97,7 +97,6 @@ export function renderTransactions(mountPoint, appInstance) {
               <th>SC Cash</th>
               <th>SC Account</th>
               <th>From Bank</th>
-              <th>From Petty Cash</th>
               <th>From CSC</th>
               <th>From PayNearby</th>
               <th>From APB</th>
@@ -1203,12 +1202,12 @@ function renderLedgerRows(txns) {
   const fmt = (val) => val !== undefined && val !== 0 ? `₹${parseFloat(val).toFixed(2)}` : '—';
 
   if (txns.length === 0) {
-    return `<tr><td colspan="19" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
+    return `<tr><td colspan="18" style="text-align: center; color: var(--text-dimmed); padding: 30px 0;">No transactions logged for this day.</td></tr>`;
   }
 
   return txns.map(t => {
     let typeBadge = '';
-    let columns = Array(16).fill('—');
+    let columns = Array(15).fill('—');
 
     if (t.type === 'sale') {
       typeBadge = `<span class="badge sale">Sale</span>`;
@@ -1223,14 +1222,13 @@ function renderLedgerRows(txns) {
       // Deduction logic columns
       const source = t.deductedFrom === 'account' ? 'main_bob' : t.deductedFrom;
       if (source === 'main_bob') columns[7] = fmt(t.deductedAmount);
-      else if (source === 'petty_cash') columns[8] = fmt(t.deductedAmount);
-      else if (source === 'csc') columns[9] = fmt(t.deductedAmount);
-      else if (source === 'paynearby') columns[10] = fmt(t.deductedAmount);
-      else if (source === 'airtel_pb') columns[11] = fmt(t.deductedAmount);
-      else if (source === 'ibkart') columns[12] = fmt(t.deductedAmount);
-      else if (source === 'bsnl') columns[13] = fmt(t.deductedAmount);
-      else if (source === 'vi') columns[14] = fmt(t.deductedAmount);
-      else if (source === 'airtel') columns[15] = fmt(t.deductedAmount);
+      else if (source === 'csc') columns[8] = fmt(t.deductedAmount);
+      else if (source === 'paynearby') columns[9] = fmt(t.deductedAmount);
+      else if (source === 'airtel_pb') columns[10] = fmt(t.deductedAmount);
+      else if (source === 'ibkart') columns[11] = fmt(t.deductedAmount);
+      else if (source === 'bsnl') columns[12] = fmt(t.deductedAmount);
+      else if (source === 'vi') columns[13] = fmt(t.deductedAmount);
+      else if (source === 'airtel') columns[14] = fmt(t.deductedAmount);
 
     } else if (t.type === 'deposit') {
       typeBadge = `<span class="badge deposit">Deposit</span>`;
@@ -1238,31 +1236,20 @@ function renderLedgerRows(txns) {
       columns[1] = fmt(t.amount);
       
       const source = t.source === 'account' ? 'main_bob' : t.source;
-      // Subtract from source
-      if (source === 'cash') columns[2] = `-${fmt(t.amount)}`;
-      else if (source === 'main_bob') columns[7] = `-${fmt(t.amount)}`;
-      else if (source === 'petty_cash') columns[8] = `-${fmt(t.amount)}`;
-      else if (source === 'csc') columns[9] = `-${fmt(t.amount)}`;
-      else if (source === 'paynearby') columns[10] = `-${fmt(t.amount)}`;
-      else if (source === 'airtel_pb') columns[11] = `-${fmt(t.amount)}`;
-      else if (source === 'ibkart') columns[12] = `-${fmt(t.amount)}`;
-      else if (source === 'bsnl') columns[13] = `-${fmt(t.amount)}`;
-      else if (source === 'vi') columns[14] = `-${fmt(t.amount)}`;
-      else if (source === 'airtel') columns[15] = `-${fmt(t.amount)}`;
-
-      // Add to target
-      const target = t.targetWallet === 'account' ? 'main_bob' : t.targetWallet;
-      if (target === 'cash') columns[2] = `+${fmt(t.amount)}`;
-      else if (target === 'main_bob') columns[7] = `+${fmt(t.amount)}`;
-      else if (target === 'petty_cash') columns[8] = `+${fmt(t.amount)}`;
-      else if (target === 'csc') columns[9] = `+${fmt(t.amount)}`;
-      else if (target === 'paynearby') columns[10] = `+${fmt(t.amount)}`;
-      else if (target === 'airtel_pb') columns[11] = `+${fmt(t.amount)}`;
-      else if (target === 'ibkart') columns[12] = `+${fmt(t.amount)}`;
-      else if (target === 'bsnl') columns[13] = `+${fmt(t.amount)}`;
-      else if (target === 'vi') columns[14] = `+${fmt(t.amount)}`;
-      else if (target === 'airtel') columns[15] = `+${fmt(t.amount)}`;
-
+      if (source === 'cash') {
+        columns[2] = `-${fmt(t.amount)}`;
+        columns[7] = `+${fmt(t.amount)}`;
+      } else {
+        if (source === 'main_bob') columns[7] = fmt(t.amount);
+        const target = t.targetWallet === 'account' ? 'main_bob' : t.targetWallet;
+        if (target === 'csc') columns[8] = `+${fmt(t.amount)}`;
+        else if (target === 'paynearby') columns[9] = `+${fmt(t.amount)}`;
+        else if (target === 'airtel_pb') columns[10] = `+${fmt(t.amount)}`;
+        else if (target === 'ibkart') columns[11] = `+${fmt(t.amount)}`;
+        else if (target === 'bsnl') columns[12] = `+${fmt(t.amount)}`;
+        else if (target === 'vi') columns[13] = `+${fmt(t.amount)}`;
+        else if (target === 'airtel') columns[14] = `+${fmt(t.amount)}`;
+      }
     } else if (t.type === 'expense' || t.type === 'salary') {
       typeBadge = `<span class="badge expense">Expense</span>`;
       columns[0] = t.description;
@@ -1270,15 +1257,13 @@ function renderLedgerRows(txns) {
       const source = t.source === 'account' ? 'main_bob' : t.source;
       if (source === 'cash') columns[2] = `-${fmt(t.amount)}`;
       else if (source === 'main_bob') columns[7] = `-${fmt(t.amount)}`;
-      else if (source === 'petty_cash') columns[8] = `-${fmt(t.amount)}`;
-      else if (source === 'csc') columns[9] = `-${fmt(t.amount)}`;
-      else if (source === 'paynearby') columns[10] = `-${fmt(t.amount)}`;
-      else if (source === 'airtel_pb') columns[11] = `-${fmt(t.amount)}`;
-      else if (source === 'ibkart') columns[12] = `-${fmt(t.amount)}`;
-      else if (source === 'bsnl') columns[13] = `-${fmt(t.amount)}`;
-      else if (source === 'vi') columns[14] = `-${fmt(t.amount)}`;
-      else if (source === 'airtel') columns[15] = `-${fmt(t.amount)}`;
-
+      else if (source === 'csc') columns[8] = `-${fmt(t.amount)}`;
+      else if (source === 'paynearby') columns[9] = `-${fmt(t.amount)}`;
+      else if (source === 'airtel_pb') columns[10] = `-${fmt(t.amount)}`;
+      else if (source === 'ibkart') columns[11] = `-${fmt(t.amount)}`;
+      else if (source === 'bsnl') columns[12] = `-${fmt(t.amount)}`;
+      else if (source === 'vi') columns[13] = `-${fmt(t.amount)}`;
+      else if (source === 'airtel') columns[14] = `-${fmt(t.amount)}`;
     } else if (t.type === 'adjustment') {
       typeBadge = `<span class="badge deposit" style="background:rgba(245,158,11,0.1); color:var(--color-warning);">Adjustment</span>`;
       columns[0] = t.description;
@@ -1287,14 +1272,13 @@ function renderLedgerRows(txns) {
       const sign = (t.diff || 0) >= 0 ? '+' : '';
       if (source === 'cash') columns[2] = `${sign}${fmt(t.diff)}`;
       else if (source === 'main_bob') columns[7] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'petty_cash') columns[8] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'csc') columns[9] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'paynearby') columns[10] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'airtel_pb') columns[11] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'ibkart') columns[12] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'bsnl') columns[13] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'vi') columns[14] = `${sign}${fmt(t.diff)}`;
-      else if (source === 'airtel') columns[15] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'csc') columns[8] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'paynearby') columns[9] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'airtel_pb') columns[10] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'ibkart') columns[11] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'bsnl') columns[12] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'vi') columns[13] = `${sign}${fmt(t.diff)}`;
+      else if (source === 'airtel') columns[14] = `${sign}${fmt(t.diff)}`;
     }
 
     // Only allow editing for sales (the ones loggable via this screen)
@@ -1319,7 +1303,6 @@ function renderLedgerRows(txns) {
         <td>${columns[12]}</td>
         <td>${columns[13]}</td>
         <td>${columns[14]}</td>
-        <td>${columns[15]}</td>
         <td style="text-align: center; white-space: nowrap;">
           ${isEditable ? `
             <button class="btn btn-sm btn-secondary btn-edit-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-info); border: 1px solid rgba(14,165,233,0.15); background: rgba(14,165,233,0.02); margin-right: 4px;">

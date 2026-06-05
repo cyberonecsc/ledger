@@ -389,40 +389,16 @@ export function renderAuditLog(mountPoint, appInstance) {
           
           if (t.type === 'expense') {
             typeBadge = `<span class="badge expense">Expense</span>`;
-            if (t.source === 'cash') sourceName = 'Cash Drawer';
-            else if (t.source === 'petty_cash') sourceName = 'Petty Cash';
-            else if (t.source === 'account' || store.bankAccounts.some(b => b.id === t.source)) sourceName = 'Bank (BOB)';
-            else {
-              const wallet = store.wallets.find(w => w.id === t.source);
-              sourceName = wallet ? wallet.name : t.source;
-            }
+            sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
           } else if (t.type === 'deposit') {
             typeBadge = `<span class="badge deposit">Deposit</span>`;
-            if (t.source === 'cash') sourceName = 'Cash';
-            else if (t.source === 'petty_cash') sourceName = 'Petty Cash';
-            else if (t.source === 'account' || store.bankAccounts.some(b => b.id === t.source)) sourceName = 'Bank (BOB)';
-            else {
-              const wallet = store.wallets.find(w => w.id === t.source);
-              sourceName = wallet ? wallet.name : t.source;
-            }
+            sourceName = t.source === 'cash' ? 'Cash' : (t.source === 'account' ? 'Bank (BOB)' : t.source);
           } else if (t.type === 'salary') {
             typeBadge = `<span class="badge expense" style="background: rgba(220, 38, 38, 0.1); color:#fca5a5;">Salary</span>`;
-            if (t.source === 'cash') sourceName = 'Cash Drawer';
-            else if (t.source === 'petty_cash') sourceName = 'Petty Cash';
-            else if (t.source === 'account' || store.bankAccounts.some(b => b.id === t.source)) sourceName = 'Bank (BOB)';
-            else {
-              const wallet = store.wallets.find(w => w.id === t.source);
-              sourceName = wallet ? wallet.name : t.source;
-            }
+            sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
           } else if (t.type === 'adjustment') {
             typeBadge = `<span class="badge deposit" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning);">Adjustment</span>`;
-            if (t.sourceId === 'cash') sourceName = 'Cash Drawer';
-            else if (t.sourceId === 'petty_cash') sourceName = 'Petty Cash';
-            else if (t.sourceId === 'account' || store.bankAccounts.some(b => b.id === t.sourceId)) sourceName = 'Bank (BOB)';
-            else {
-              const wallet = store.wallets.find(w => w.id === t.sourceId);
-              sourceName = wallet ? wallet.name : t.sourceId;
-            }
+            sourceName = t.sourceId || '-';
           }
 
           const isEditable = (t.type === 'expense');
