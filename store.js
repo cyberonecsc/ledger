@@ -379,7 +379,7 @@ class StateStore {
     }
     if (this.openingOverrides) {
       Object.keys(this.openingOverrides).forEach(date => {
-        if (date.startsWith('2026-05-') || date < '2026-06-01') {
+        if (date.startsWith('2026-05-') || date < '2026-06-03') {
           delete this.openingOverrides[date];
           clearedMay = true;
         }
@@ -387,7 +387,7 @@ class StateStore {
     }
     if (this.closingOverrides) {
       Object.keys(this.closingOverrides).forEach(date => {
-        if (date !== '2026-05-31' && (date.startsWith('2026-05-') || date < '2026-06-01')) {
+        if (date !== '2026-05-31' && (date.startsWith('2026-05-') || date < '2026-06-03')) {
           delete this.closingOverrides[date];
           clearedMay = true;
         }
@@ -414,6 +414,7 @@ class StateStore {
       this.saveItem('cyberone_v2_closing_overrides', this.closingOverrides);
       this.saveItem('cyberone_v2_activity_logs', this.activityLogs);
       this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
+      this.persistAll();
     }
 
     // Migration: Update existing sale transactions to split service charge proportionally
@@ -509,6 +510,24 @@ class StateStore {
 
   updateInitialBalances(balances) {
     this.initialBalances = { ...this.initialBalances, ...balances };
+    
+    // Clear any overrides for June 1st and June 2nd to prevent conflicts
+    let overridesCleared = false;
+    ['2026-06-01', '2026-06-02'].forEach(date => {
+      if (this.openingOverrides && this.openingOverrides[date]) {
+        delete this.openingOverrides[date];
+        overridesCleared = true;
+      }
+      if (this.closingOverrides && this.closingOverrides[date]) {
+        delete this.closingOverrides[date];
+        overridesCleared = true;
+      }
+    });
+    if (overridesCleared) {
+      this.saveItem('cyberone_v2_opening_overrides', this.openingOverrides);
+      this.saveItem('cyberone_v2_closing_overrides', this.closingOverrides);
+    }
+
     this.logActivity('Edit Initial Balances', `Updated initial opening balances: ${JSON.stringify(balances)}`);
     this.persistAll();
     this.recalculateAllBalances();

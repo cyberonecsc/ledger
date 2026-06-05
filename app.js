@@ -75,6 +75,7 @@ class Application {
     this.activeRoute = null;
     this.needsUIRefresh = false;
     this.lastPollTime = 0;
+    this._viewDates = {};
     this.init();
   }
 
@@ -307,11 +308,22 @@ class Application {
   }
 
   getActiveDate() {
-    return localStorage.getItem('cyberone_v2_active_date') || getTodayDateString();
+    if (!this._viewDates) {
+      this._viewDates = {};
+    }
+    const r = this.activeRoute || '#dashboard';
+    if (!this._viewDates[r]) {
+      this._viewDates[r] = getTodayDateString();
+    }
+    return this._viewDates[r];
   }
 
   setActiveDate(dateString) {
-    localStorage.setItem('cyberone_v2_active_date', dateString);
+    if (!this._viewDates) {
+      this._viewDates = {};
+    }
+    const r = this.activeRoute || '#dashboard';
+    this._viewDates[r] = dateString;
     this.showToast(`Selected Date: ${dateString}`, 'info');
     
     // Force re-render of current view to update data
@@ -340,6 +352,13 @@ class Application {
 
     if (path !== '#dashboard') {
       this._dashboardDate = null;
+    }
+
+    // Reset date view if navigated to a different route
+    const oldRoute = this.activeRoute;
+    const pathChanged = (oldRoute !== path);
+    if (pathChanged && this._viewDates) {
+      delete this._viewDates[path];
     }
 
     // Route guards
@@ -896,6 +915,12 @@ class Application {
             const mergedLogs = { ...remoteLogs, ...localLogs };
             
             Object.keys(mergedLogs).forEach(date => {
+              // Delete daily log keys before June 1st
+              if (date.startsWith('2026-05-') || date < '2026-06-01') {
+                delete mergedLogs[date];
+                logChanged = true;
+                return;
+              }
               const localTxns = (localLogs[date] && localLogs[date].transactions) || [];
               const remoteTxns = (remoteLogs[date] && remoteLogs[date].transactions) || [];
               const txnMap = new Map();
@@ -931,6 +956,44 @@ class Application {
               localStorage.setItem(key, remoteRaw);
               changed = true;
             }
+          }
+        } else if (key === 'cyberone_v2_opening_overrides') {
+          try {
+            const localData = JSON.parse(localRaw || '{}');
+            const remoteData = JSON.parse(remoteRaw || '{}');
+            const mergedObj = { ...remoteData, ...localData };
+            let overrideChanged = false;
+            Object.keys(mergedObj).forEach(date => {
+              if (date.startsWith('2026-05-') || date < '2026-06-03') {
+                delete mergedObj[date];
+                overrideChanged = true;
+              }
+            });
+            if (JSON.stringify(localData) !== JSON.stringify(mergedObj) || overrideChanged) {
+              localStorage.setItem(key, JSON.stringify(mergedObj));
+              changed = true;
+            }
+          } catch (e) {
+            console.error("Failed to merge opening overrides", e);
+          }
+        } else if (key === 'cyberone_v2_closing_overrides') {
+          try {
+            const localData = JSON.parse(localRaw || '{}');
+            const remoteData = JSON.parse(remoteRaw || '{}');
+            const mergedObj = { ...remoteData, ...localData };
+            let overrideChanged = false;
+            Object.keys(mergedObj).forEach(date => {
+              if (date !== '2026-05-31' && (date.startsWith('2026-05-') || date < '2026-06-03')) {
+                delete mergedObj[date];
+                overrideChanged = true;
+              }
+            });
+            if (JSON.stringify(localData) !== JSON.stringify(mergedObj) || overrideChanged) {
+              localStorage.setItem(key, JSON.stringify(mergedObj));
+              changed = true;
+            }
+          } catch (e) {
+            console.error("Failed to merge closing overrides", e);
           }
         } else if (key === 'cyberone_v2_activity_logs') {
           // Already merged in the pre-pass
@@ -972,7 +1035,7 @@ class Application {
                 changed = true;
               }
             } else if (localData && typeof localData === 'object' && remoteData && typeof remoteData === 'object') {
-              const mergedObj = { ...localData, ...remoteData };
+              const mergedObj = { ...remoteData, ...localData };
               if (JSON.stringify(localData) !== JSON.stringify(mergedObj)) {
                 localStorage.setItem(key, JSON.stringify(mergedObj));
                 changed = true;
