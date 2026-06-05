@@ -685,7 +685,8 @@ export function renderAccounts(mountPoint, appInstance) {
     
     const sources = [
       { id: 'cash', name: 'Cash In Hand', bal: currentBalances.cash },
-      { id: 'petty_cash', name: 'Petty Cash', bal: currentBalances.petty_cash || 0 }
+      { id: 'petty_cash', name: 'Petty Cash', bal: currentBalances.petty_cash || 0 },
+      { id: 'outside', name: 'Outside Source (External / Capital)', bal: Infinity }
     ];
     bankAccounts.forEach(b => {
       sources.push({ id: b.id, name: b.name, bal: currentBalances[b.id] || 0 });
@@ -696,7 +697,10 @@ export function renderAccounts(mountPoint, appInstance) {
         <div class="form-group">
           <label class="form-label">Source Account</label>
           <select id="deposit-source-id" class="form-control" required>
-            ${sources.map(s => `<option value="${s.id}">${s.name} (Bal: ₹${s.bal.toFixed(2)})</option>`).join('')}
+            ${sources.map(s => {
+              const balStr = s.bal === Infinity ? '—' : `₹${s.bal.toFixed(2)}`;
+              return `<option value="${s.id}">${s.name} (Bal: ${balStr})</option>`;
+            }).join('')}
           </select>
         </div>
 
@@ -732,7 +736,8 @@ export function renderAccounts(mountPoint, appInstance) {
       const selectedSource = selectSource.value;
       const targets = [
         { id: 'cash', name: 'Cash In Hand' },
-        { id: 'petty_cash', name: 'Petty Cash' }
+        { id: 'petty_cash', name: 'Petty Cash' },
+        { id: 'outside', name: 'Outside (External / Drawings)' }
       ];
       bankAccounts.forEach(b => {
         targets.push({ id: b.id, name: `${b.name} (${b.bankName})` });
@@ -746,7 +751,11 @@ export function renderAccounts(mountPoint, appInstance) {
 
       const sourceObj = sources.find(s => s.id === selectedSource);
       if (sourceObj) {
-        inputAmount.max = sourceObj.bal;
+        if (sourceObj.bal === Infinity) {
+          inputAmount.removeAttribute('max');
+        } else {
+          inputAmount.max = sourceObj.bal;
+        }
       }
     };
 
@@ -767,8 +776,8 @@ export function renderAccounts(mountPoint, appInstance) {
         return;
       }
 
-      const sourceName = sourceId === 'cash' ? 'Cash' : (sourceId === 'petty_cash' ? 'Petty Cash' : (bankAccounts.find(b => b.id === sourceId)?.name || 'Bank'));
-      const targetName = targetId === 'cash' ? 'Cash' : (targetId === 'petty_cash' ? 'Petty Cash' : (bankAccounts.find(b => b.id === targetId)?.name || store.wallets.find(w => w.id === targetId)?.name || 'Wallet'));
+      const sourceName = sourceId === 'cash' ? 'Cash' : (sourceId === 'petty_cash' ? 'Petty Cash' : (sourceId === 'outside' ? 'Outside Source' : (bankAccounts.find(b => b.id === sourceId)?.name || 'Bank')));
+      const targetName = targetId === 'cash' ? 'Cash' : (targetId === 'petty_cash' ? 'Petty Cash' : (targetId === 'outside' ? 'Outside (External)' : (bankAccounts.find(b => b.id === targetId)?.name || store.wallets.find(w => w.id === targetId)?.name || 'Wallet')));
 
       store.addTransaction(appInstance.getActiveDate(), {
         type: 'deposit',

@@ -392,7 +392,8 @@ export function renderAuditLog(mountPoint, appInstance) {
             sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
           } else if (t.type === 'deposit') {
             typeBadge = `<span class="badge deposit">Deposit</span>`;
-            sourceName = t.source === 'cash' ? 'Cash' : (t.source === 'account' ? 'Bank (BOB)' : t.source);
+            const bank = store.bankAccounts.find(b => b.id === t.source);
+            sourceName = t.source === 'cash' ? 'Cash' : (t.source === 'petty_cash' ? 'Petty Cash' : (t.source === 'outside' ? 'Outside Source' : (bank ? bank.name : t.source)));
           } else if (t.type === 'salary') {
             typeBadge = `<span class="badge expense" style="background: rgba(220, 38, 38, 0.1); color:#fca5a5;">Salary</span>`;
             sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
