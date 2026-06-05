@@ -14,9 +14,10 @@ export function renderLogin(mountPoint, appInstance) {
 
   const updateCardContent = () => {
     const customLogo = localStorage.getItem('cyberone_v2_custom_logo');
-    const loginLogoHtml = customLogo ? `<img src="${customLogo}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'shield-check\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'">` : `<i data-lucide="shield-check" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>`;
-    const signupLogoHtml = customLogo ? `<img src="${customLogo}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'user-plus\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'">` : `<i data-lucide="user-plus" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>`;
-    const resetLogoHtml = customLogo ? `<img src="${customLogo}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'key-round\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'">` : `<i data-lucide="key-round" class="login-logo" style="width: 48px; height: 48px; display: inline-block;"></i>`;
+    const logoSrc = customLogo || './logo.png';
+    const loginLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'shield-check\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
+    const signupLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'user-plus\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
+    const resetLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'key-round\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
 
     if (viewMode === 'login') {
       // Render Sign In form
