@@ -384,77 +384,6 @@ export function renderDashboard(mountPoint, appInstance) {
           if (totalDiff > 0) totalClosingColor = 'var(--color-success)';
           else if (totalDiff < 0) totalClosingColor = 'var(--color-danger)';
 
-          // Retrieve and format today's transactions list
-          let txnRowsHtml = '';
-          const dayTxns = dailyLog && dailyLog.transactions ? [...dailyLog.transactions].reverse() : [];
-
-          if (dayTxns.length === 0) {
-            txnRowsHtml = `<tr><td colspan="5" style="text-align: center; color: var(--text-dimmed); padding: 20px 0; font-size: 13px;">No transactions logged for this day.</td></tr>`;
-          } else {
-            const formatTime = (ts) => {
-              if (!ts) return '--:--';
-              const d = new Date(ts);
-              let h = d.getHours();
-              const m = String(d.getMinutes()).padStart(2, '0');
-              const ampm = h >= 12 ? 'PM' : 'AM';
-              h = h % 12;
-              h = h ? h : 12;
-              return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
-            };
-
-            txnRowsHtml = dayTxns.map(t => {
-              let typeBadge = '';
-              let flowText = '';
-              const amtVal = parseFloat(t.amount || (t.paidByCash || 0) + (t.paidByUPI || 0));
-
-              // Format time
-              const timeStr = formatTime(t.timestamp);
-
-              if (t.type === 'sale') {
-                typeBadge = `<span class="badge sale" style="font-size: 10px; padding: 2px 6px;">Sale</span>`;
-                const flows = [];
-                if (t.paidByCash) flows.push(`Cash (+${fmt(t.paidByCash)})`);
-                if (t.paidByUPI) {
-                  const bank = store.bankAccounts.find(b => b.id === (t.bankId || 'main_bob'));
-                  flows.push(`${bank ? bank.name : 'Bank'} (+${fmt(t.paidByUPI)})`);
-                }
-                if (t.deductedFrom && t.deductedFrom !== 'none') {
-                  const wallet = store.wallets.find(w => w.id === t.deductedFrom);
-                  flows.push(`${wallet ? wallet.name : t.deductedFrom} (-${fmt(t.deductedAmount)})`);
-                }
-                flowText = flows.join(', ');
-              } else if (t.type === 'deposit') {
-                typeBadge = `<span class="badge deposit" style="font-size: 10px; padding: 2px 6px;">Deposit</span>`;
-                const src = t.source === 'cash' ? 'Cash' : (t.source === 'petty_cash' ? 'Petty Cash' : (store.bankAccounts.find(b => b.id === t.source)?.name || t.source));
-                const tgt = t.targetWallet === 'account' ? 'Bank (BOB)' : (t.targetWallet === 'petty_cash' ? 'Petty Cash' : (store.wallets.find(w => w.id === t.targetWallet)?.name || t.targetWallet));
-                flowText = `${src} &rarr; ${tgt}`;
-              } else if (t.type === 'expense') {
-                typeBadge = `<span class="badge expense" style="font-size: 10px; padding: 2px 6px;">Expense</span>`;
-                const src = t.source === 'cash' ? 'Cash' : (t.source === 'petty_cash' ? 'Petty Cash' : (store.bankAccounts.find(b => b.id === t.source)?.name || t.source));
-                flowText = `From ${src}`;
-              } else if (t.type === 'salary') {
-                typeBadge = `<span class="badge expense" style="background: rgba(220, 38, 38, 0.1); color:#fca5a5; font-size: 10px; padding: 2px 6px;">Salary</span>`;
-                const src = t.source === 'cash' ? 'Cash' : (t.source === 'petty_cash' ? 'Petty Cash' : (store.bankAccounts.find(b => b.id === t.source)?.name || t.source));
-                flowText = `From ${src}`;
-              } else if (t.type === 'adjustment') {
-                typeBadge = `<span class="badge deposit" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning); font-size: 10px; padding: 2px 6px;">Adjustment</span>`;
-                const src = t.sourceId === 'cash' ? 'Cash' : (t.sourceId === 'petty_cash' ? 'Petty Cash' : (store.bankAccounts.find(b => b.id === t.sourceId)?.name || t.sourceId));
-                const diffVal = parseFloat(t.diff || 0);
-                flowText = `${src} (${diffVal >= 0 ? '+' : ''}${fmt(diffVal)})`;
-              }
-
-              return `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.01); height: 32px;">
-                  <td style="padding: 6px 8px; color: var(--text-muted); white-space: nowrap;">${timeStr}</td>
-                  <td style="padding: 6px 8px;">${typeBadge}</td>
-                  <td style="padding: 6px 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${t.description}</strong></td>
-                  <td style="padding: 6px 8px; text-align: right; font-family: var(--font-display); font-weight: 600;">${fmt(amtVal)}</td>
-                  <td style="padding: 6px 8px; padding-left: 15px; color: var(--text-dimmed); font-size: 11px;">${flowText}</td>
-                </tr>
-              `;
-            }).join('');
-          }
-
           return `
             <div class="table-responsive" style="border: none; margin: 0; width: 100%;">
               <table class="custom-table" style="font-size: 13px; border-collapse: collapse; width: 100%;">
@@ -487,31 +416,6 @@ export function renderDashboard(mountPoint, appInstance) {
                   </tr>
                 </tfoot>
               </table>
-            </div>
-
-            <!-- Transaction Logs Section inside the card -->
-            <div style="margin-top: 24px; border-top: 1px solid var(--panel-border); padding-top: 18px; width: 100%;">
-              <h4 style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; font-family: var(--font-display);">
-                <i data-lucide="scroll" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
-                Today's Entries & Movements
-              </h4>
-              
-              <div class="table-responsive" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); margin: 0; width: 100%;">
-                <table class="custom-table" style="font-size: 12px; border-collapse: collapse; width: 100%;">
-                  <thead>
-                    <tr style="border-bottom: 1px solid var(--panel-border); background: rgba(255,255,255,0.01);">
-                      <th style="padding: 8px 10px; font-weight: 600; text-align: left; font-size: 11px; width: 85px;">Time</th>
-                      <th style="padding: 8px 10px; font-weight: 600; text-align: left; font-size: 11px; width: 75px;">Type</th>
-                      <th style="padding: 8px 10px; font-weight: 600; text-align: left; font-size: 11px;">Description</th>
-                      <th style="padding: 8px 10px; font-weight: 600; text-align: right; font-size: 11px; width: 110px;">Amount</th>
-                      <th style="padding: 8px 10px; font-weight: 600; text-align: left; font-size: 11px; padding-left: 15px; width: 220px;">Source / Flow</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${txnRowsHtml}
-                  </tbody>
-                </table>
-              </div>
             </div>
           `;
         })()}
