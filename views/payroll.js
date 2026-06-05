@@ -253,6 +253,15 @@ export function renderPayroll(mountPoint, appInstance) {
               <input type="number" id="edit-salary-net" class="form-control" readonly style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-weight: 700;">
             </div>
           </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Source</label>
+            <select id="edit-salary-source" class="form-control" style="background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--panel-border); outline: none;">
+              <option value="cash">Cash In Hand (Physical Cash)</option>
+              <option value="petty_cash">Petty Cash</option>
+              <option value="account">Bank Account (UPI / Transfer)</option>
+            </select>
+          </div>
           
           <div style="display:flex; gap:10px; margin-top: 20px;">
             <button type="submit" class="btn btn-primary" style="flex-grow:1;">
