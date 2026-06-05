@@ -717,15 +717,21 @@ class StateStore {
           const walletId = txn.targetWallet;
           
           if (txn.source === 'cash') {
-            // Cash Deposit to Bank
-            balances.cash = parseFloat((balances.cash - amt).toFixed(2));
+            // Cash Deposit to Bank - do not decrement cash if target is petty_cash
+            if (walletId !== 'petty_cash') {
+              balances.cash = parseFloat((balances.cash - amt).toFixed(2));
+            }
             const targetId = walletId === 'account' ? 'main_bob' : walletId;
             balances[targetId] = parseFloat(((balances[targetId] || 0) + amt).toFixed(2));
           } else {
             // Transfer from Bank Account to Digital Wallet
             const sourceId = txn.source === 'account' ? 'main_bob' : txn.source;
-            if (balances[sourceId] !== undefined) {
-              balances[sourceId] = parseFloat((sourceId === 'cash' ? balances.cash : balances[sourceId] - amt).toFixed(2));
+            
+            // Do not decrement source if target is petty_cash or if source itself is petty_cash
+            if (sourceId !== 'petty_cash' && walletId !== 'petty_cash') {
+              if (balances[sourceId] !== undefined) {
+                balances[sourceId] = parseFloat((sourceId === 'cash' ? balances.cash : balances[sourceId] - amt).toFixed(2));
+              }
             }
             
             const targetId = walletId === 'account' ? 'main_bob' : walletId;
