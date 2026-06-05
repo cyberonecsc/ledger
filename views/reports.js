@@ -489,16 +489,76 @@ function renderDaybookData(dateString) {
   const log = store.getOrCreateDailyLog(dateString);
 
   // Math totals
-  let cashIn = 0;
-  let upiIn = 0;
-  let expenses = 0;
+  let cashSales = 0;
+  let cashDepositsReceived = 0;
+  let cashExpensesPaid = 0;
+  let cashDepositsPaid = 0;
+  let cashAdjustments = 0;
+
+  let pettyCashDepositsReceived = 0;
+  let pettyCashExpensesPaid = 0;
+  let pettyCashDepositsPaid = 0;
+  let pettyCashAdjustments = 0;
+
+  let upiSales = 0;
+  let bankDepositsReceived = 0;
+  let bankExpensesPaid = 0;
+  let bankDepositsPaid = 0;
+  let bankAdjustments = 0;
 
   log.transactions.forEach(t => {
     if (t.type === 'sale') {
-      cashIn += t.paidByCash || 0;
-      upiIn += t.paidByUPI || 0;
+      cashSales += t.paidByCash || 0;
+      upiSales += t.paidByUPI || 0;
+    } else if (t.type === 'deposit') {
+      const amt = parseFloat(t.amount || 0);
+      const source = t.source === 'account' ? 'main_bob' : t.source;
+      const target = t.targetWallet === 'account' ? 'main_bob' : t.targetWallet;
+
+      const isBankSource = store.bankAccounts.some(b => b.id === source);
+      const isBankTarget = store.bankAccounts.some(b => b.id === target);
+
+      // Handle source subtraction
+      if (source === 'cash') {
+        cashDepositsPaid += amt;
+      } else if (source === 'petty_cash') {
+        pettyCashDepositsPaid += amt;
+      } else if (isBankSource) {
+        bankDepositsPaid += amt;
+      }
+
+      // Handle target addition
+      if (target === 'cash') {
+        cashDepositsReceived += amt;
+      } else if (target === 'petty_cash') {
+        pettyCashDepositsReceived += amt;
+      } else if (isBankTarget) {
+        bankDepositsReceived += amt;
+      }
     } else if (t.type === 'expense' || t.type === 'salary') {
-      expenses += t.amount;
+      const amt = parseFloat(t.amount || 0);
+      const source = t.source === 'account' ? 'main_bob' : t.source;
+      const isBankSource = store.bankAccounts.some(b => b.id === source);
+
+      if (source === 'cash') {
+        cashExpensesPaid += amt;
+      } else if (source === 'petty_cash') {
+        pettyCashExpensesPaid += amt;
+      } else if (isBankSource) {
+        bankExpensesPaid += amt;
+      }
+    } else if (t.type === 'adjustment') {
+      const diff = parseFloat(t.diff || 0);
+      const source = t.sourceId;
+      const isBankSource = store.bankAccounts.some(b => b.id === source);
+
+      if (source === 'cash') {
+        cashAdjustments += diff;
+      } else if (source === 'petty_cash') {
+        pettyCashAdjustments += diff;
+      } else if (isBankSource) {
+        bankAdjustments += diff;
+      }
     }
   });
 
@@ -510,44 +570,169 @@ function renderDaybookData(dateString) {
     closingBankTotal += log.closingBalances[b.id] || 0;
   });
 
-  mount.innerHTML = `
-    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
-      <tr style="border-bottom: 1px solid var(--panel-border);">
-        <td style="padding: 12px 0; font-weight: 600;">Opening Cash Balance (Physical)</td>
-        <td style="padding: 12px 0; text-align: right;">₹${log.openingBalances.cash.toFixed(2)}</td>
-      </tr>
+  const openingPettyCash = log.openingBalances.petty_cash || 0;
+  const closingPettyCash = log.closingBalances.petty_cash || 0;
+
+  let physicalRows = `
+    <tr style="border-bottom: 1px solid var(--panel-border);">
+      <td style="padding: 10px 0; font-weight: 600;">Opening Cash Balance (Physical)</td>
+      <td style="padding: 10px 0; text-align: right;">₹${log.openingBalances.cash.toFixed(2)}</td>
+    </tr>
+    <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-success);">
+      <td style="padding: 10px 0;">+ Today's Cash Received (Sales)</td>
+      <td style="padding: 10px 0; text-align: right;">+₹${cashSales.toFixed(2)}</td>
+    </tr>
+  `;
+  if (cashDepositsReceived > 0) {
+    physicalRows += `
       <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-success);">
-        <td style="padding: 12px 0;">+ Today's Cash Received (Sales)</td>
-        <td style="padding: 12px 0; text-align: right;">+₹${cashIn.toFixed(2)}</td>
+        <td style="padding: 10px 0;">+ Today's Cash Received (Deposits/Transfers)</td>
+        <td style="padding: 10px 0; text-align: right;">+₹${cashDepositsReceived.toFixed(2)}</td>
       </tr>
+    `;
+  }
+  if (cashExpensesPaid > 0) {
+    physicalRows += `
       <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-danger);">
-        <td style="padding: 12px 0;">- Today's Cash Deducted (Expenses)</td>
-        <td style="padding: 12px 0; text-align: right;">-₹${expenses.toFixed(2)}</td>
+        <td style="padding: 10px 0;">- Today's Cash Deducted (Expenses/Salaries)</td>
+        <td style="padding: 10px 0; text-align: right;">-₹${cashExpensesPaid.toFixed(2)}</td>
       </tr>
-      <tr style="font-weight: 700; font-size: 16px; border-bottom: 2px double var(--panel-border);">
-        <td style="padding: 15px 0;">Expected Closing Cash Balance</td>
-        <td style="padding: 15px 0; text-align: right; color: var(--color-success);">₹${log.closingBalances.cash.toFixed(2)}</td>
+    `;
+  }
+  if (cashDepositsPaid > 0) {
+    physicalRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-danger);">
+        <td style="padding: 10px 0;">- Today's Cash Paid (Deposits/Transfers)</td>
+        <td style="padding: 10px 0; text-align: right;">-₹${cashDepositsPaid.toFixed(2)}</td>
       </tr>
-      <tr style="font-size: 12px; color: var(--text-dimmed);">
-        <td style="padding: 10px 0;">*Tally this figure against physical cash in the drawer at store closing.</td>
-        <td></td>
+    `;
+  }
+  if (cashAdjustments !== 0) {
+    const isPositive = cashAdjustments > 0;
+    physicalRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: ${isPositive ? 'var(--color-success)' : 'var(--color-danger)'};">
+        <td style="padding: 10px 0;">${isPositive ? '+' : '-'} Today's Cash Adjustments</td>
+        <td style="padding: 10px 0; text-align: right;">${isPositive ? '+' : ''}₹${cashAdjustments.toFixed(2)}</td>
       </tr>
+    `;
+  }
+  physicalRows += `
+    <tr style="font-weight: 700; font-size: 15px; border-bottom: 2px double var(--panel-border);">
+      <td style="padding: 12px 0;">Expected Closing Cash Balance</td>
+      <td style="padding: 12px 0; text-align: right; color: var(--color-success);">₹${log.closingBalances.cash.toFixed(2)}</td>
+    </tr>
+  `;
+
+  let pettyRows = `
+    <tr style="border-bottom: 1px solid var(--panel-border);">
+      <td style="padding: 8px 0; font-weight: 600;">Opening Petty Cash Balance</td>
+      <td style="padding: 8px 0; text-align: right;">₹${openingPettyCash.toFixed(2)}</td>
+    </tr>
+  `;
+  if (pettyCashDepositsReceived > 0) {
+    pettyRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-success);">
+        <td style="padding: 8px 0;">+ Today's Petty Cash Received (Deposits/Transfers)</td>
+        <td style="padding: 8px 0; text-align: right;">+₹${pettyCashDepositsReceived.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  if (pettyCashExpensesPaid > 0) {
+    pettyRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-danger);">
+        <td style="padding: 8px 0;">- Today's Petty Cash Deducted (Expenses/Salaries)</td>
+        <td style="padding: 8px 0; text-align: right;">-₹${pettyCashExpensesPaid.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  if (pettyCashDepositsPaid > 0) {
+    pettyRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-danger);">
+        <td style="padding: 8px 0;">- Today's Petty Cash Paid (Deposits/Transfers)</td>
+        <td style="padding: 8px 0; text-align: right;">-₹${pettyCashDepositsPaid.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  if (pettyCashAdjustments !== 0) {
+    const isPositive = pettyCashAdjustments > 0;
+    pettyRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: ${isPositive ? 'var(--color-success)' : 'var(--color-danger)'};">
+        <td style="padding: 8px 0;">${isPositive ? '+' : '-'} Today's Petty Cash Adjustments</td>
+        <td style="padding: 8px 0; text-align: right;">${isPositive ? '+' : ''}₹${pettyCashAdjustments.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  pettyRows += `
+    <tr style="font-weight: 700; font-size: 15px; border-bottom: 2px double var(--panel-border);">
+      <td style="padding: 12px 0;">Expected Closing Petty Cash Balance</td>
+      <td style="padding: 12px 0; text-align: right; color: #fb923c;">₹${closingPettyCash.toFixed(2)}</td>
+    </tr>
+  `;
+
+  let bankRows = `
+    <tr style="border-bottom: 1px solid var(--panel-border);">
+      <td style="padding: 8px 0; font-weight: 600;">Opening Bank Balance</td>
+      <td style="padding: 8px 0; text-align: right;">₹${openingBankTotal.toFixed(2)}</td>
+    </tr>
+    <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-info);">
+      <td style="padding: 8px 0;">+ Today's UPI Received (Sales)</td>
+      <td style="padding: 8px 0; text-align: right;">+₹${upiSales.toFixed(2)}</td>
+    </tr>
+  `;
+  if (bankDepositsReceived > 0) {
+    bankRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-success);">
+        <td style="padding: 8px 0;">+ Today's Bank Deposits/Transfers Received</td>
+        <td style="padding: 8px 0; text-align: right;">+₹${bankDepositsReceived.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  if (bankExpensesPaid > 0) {
+    bankRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-danger);">
+        <td style="padding: 8px 0;">- Today's Bank Deducted (Expenses/Salaries)</td>
+        <td style="padding: 8px 0; text-align: right;">-₹${bankExpensesPaid.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  if (bankDepositsPaid > 0) {
+    bankRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-danger);">
+        <td style="padding: 8px 0;">- Today's Bank Deposits/Transfers Paid</td>
+        <td style="padding: 8px 0; text-align: right;">-₹${bankDepositsPaid.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  if (bankAdjustments !== 0) {
+    const isPositive = bankAdjustments > 0;
+    bankRows += `
+      <tr style="border-bottom: 1px solid var(--panel-border); color: ${isPositive ? 'var(--color-success)' : 'var(--color-danger)'};">
+        <td style="padding: 8px 0;">${isPositive ? '+' : '-'} Today's Bank Adjustments</td>
+        <td style="padding: 8px 0; text-align: right;">${isPositive ? '+' : ''}₹${bankAdjustments.toFixed(2)}</td>
+      </tr>
+    `;
+  }
+  bankRows += `
+    <tr style="font-weight: 700; font-size: 15px; border-bottom: 2px double var(--panel-border);">
+      <td style="padding: 12px 0;">Expected Closing Bank Balance</td>
+      <td style="padding: 12px 0; text-align: right; color: var(--color-info);">₹${closingBankTotal.toFixed(2)}</td>
+    </tr>
+  `;
+
+  mount.innerHTML = `
+    <h4 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; color: var(--color-success);">Physical Cash Volume</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
+      ${physicalRows}
     </table>
 
-    <h4 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px;">Bank/UPI Daily Volume</h4>
-    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-      <tr style="border-bottom: 1px solid var(--panel-border);">
-        <td style="padding: 8px 0;">Opening Bank Balance</td>
-        <td style="padding: 8px 0; text-align: right;">₹${openingBankTotal.toFixed(2)}</td>
-      </tr>
-      <tr style="border-bottom: 1px solid var(--panel-border); color: var(--color-info);">
-        <td style="padding: 8px 0;">+ Received via UPI Payments</td>
-        <td style="padding: 8px 0; text-align: right;">+₹${upiIn.toFixed(2)}</td>
-      </tr>
-      <tr style="font-weight:700; border-bottom: 1px solid var(--panel-border);">
-        <td style="padding: 10px 0;">Closing Bank Balance</td>
-        <td style="padding: 10px 0; text-align: right; color:var(--color-info);">₹${closingBankTotal.toFixed(2)}</td>
-      </tr>
+    <h4 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; color: #fb923c;">Petty Cash Volume</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
+      ${pettyRows}
+    </table>
+
+    <h4 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; color: var(--color-info);">Bank & UPI Volume</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
+      ${bankRows}
     </table>
   `;
 
@@ -556,6 +741,8 @@ function renderDaybookData(dateString) {
     daybookChart.innerHTML = generateDaybookSVG(
       log.openingBalances.cash,
       log.closingBalances.cash,
+      openingPettyCash,
+      closingPettyCash,
       openingBankTotal,
       closingBankTotal
     );
@@ -710,8 +897,8 @@ function renderStaffChart() {
   mount.innerHTML = generateStaffSVG(staffData);
 }
 
-function generateDaybookSVG(opCash, clCash, opBank, clBank) {
-  const max = Math.max(opCash, clCash, opBank, clBank, 1000) * 1.15; // 15% padding at top
+function generateDaybookSVG(opCash, clCash, opPettyCash, clPettyCash, opBank, clBank) {
+  const max = Math.max(opCash, clCash, opPettyCash, clPettyCash, opBank, clBank, 1000) * 1.15; // 15% padding at top
   const height = 180;
   const width = 500;
   const paddingLeft = 50;
@@ -724,11 +911,15 @@ function generateDaybookSVG(opCash, clCash, opBank, clBank) {
 
   const hOpCash = getH(opCash);
   const hClCash = getH(clCash);
+  const hOpPetty = getH(opPettyCash);
+  const hClPetty = getH(clPettyCash);
   const hOpBank = getH(opBank);
   const hClBank = getH(clBank);
 
   const tOpCash = getTop(opCash);
   const tClCash = getTop(clCash);
+  const tOpPetty = getTop(opPettyCash);
+  const tClPetty = getTop(clPettyCash);
   const tOpBank = getTop(opBank);
   const tClBank = getTop(clBank);
 
@@ -748,31 +939,45 @@ function generateDaybookSVG(opCash, clCash, opBank, clBank) {
 
       <!-- Cash Bars -->
       <!-- Opening Cash -->
-      <rect x="90" y="${tOpCash}" width="36" height="${hOpCash}" rx="4" fill="url(#grad-cash-op)" style="transition: all 0.5s ease-in-out;" />
-      <text x="108" y="${tOpCash - 6}" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(opCash)}</text>
-      <text x="108" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Opening</text>
+      <rect x="70" y="${tOpCash}" width="24" height="${hOpCash}" rx="4" fill="url(#grad-cash-op)" style="transition: all 0.5s ease-in-out;" />
+      <text x="82" y="${tOpCash - 6}" fill="#f59e0b" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(opCash)}</text>
+      <text x="82" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="8" text-anchor="middle">Opening</text>
       
       <!-- Closing Cash -->
-      <rect x="136" y="${tClCash}" width="36" height="${hClCash}" rx="4" fill="url(#grad-cash-cl)" style="transition: all 0.5s ease-in-out;" />
-      <text x="154" y="${tClCash - 6}" fill="#fb923c" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(clCash)}</text>
-      <text x="154" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Closing</text>
+      <rect x="100" y="${tClCash}" width="24" height="${hClCash}" rx="4" fill="url(#grad-cash-cl)" style="transition: all 0.5s ease-in-out;" />
+      <text x="112" y="${tClCash - 6}" fill="#fb923c" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(clCash)}</text>
+      <text x="112" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="8" text-anchor="middle">Closing</text>
 
       <!-- Label for Cash Group -->
-      <text x="131" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">Physical Cash</text>
+      <text x="97" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">Physical Cash</text>
+
+      <!-- Petty Cash Bars -->
+      <!-- Opening Petty -->
+      <rect x="190" y="${tOpPetty}" width="24" height="${hOpPetty}" rx="4" fill="url(#grad-petty-op)" style="transition: all 0.5s ease-in-out;" />
+      <text x="202" y="${tOpPetty - 6}" fill="#a855f7" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(opPettyCash)}</text>
+      <text x="202" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="8" text-anchor="middle">Opening</text>
+      
+      <!-- Closing Petty -->
+      <rect x="220" y="${tClPetty}" width="24" height="${hClPetty}" rx="4" fill="url(#grad-petty-cl)" style="transition: all 0.5s ease-in-out;" />
+      <text x="232" y="${tClPetty - 6}" fill="#d946ef" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(clPettyCash)}</text>
+      <text x="232" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="8" text-anchor="middle">Closing</text>
+
+      <!-- Label for Petty Cash Group -->
+      <text x="217" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">Petty Cash</text>
 
       <!-- Bank Bars -->
       <!-- Opening Bank -->
-      <rect x="290" y="${tOpBank}" width="36" height="${hOpBank}" rx="4" fill="url(#grad-bank-op)" style="transition: all 0.5s ease-in-out;" />
-      <text x="308" y="${tOpBank - 6}" fill="#06b6d4" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(opBank)}</text>
-      <text x="308" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Opening</text>
+      <rect x="310" y="${tOpBank}" width="24" height="${hOpBank}" rx="4" fill="url(#grad-bank-op)" style="transition: all 0.5s ease-in-out;" />
+      <text x="322" y="${tOpBank - 6}" fill="#06b6d4" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(opBank)}</text>
+      <text x="322" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="8" text-anchor="middle">Opening</text>
       
       <!-- Closing Bank -->
-      <rect x="336" y="${tClBank}" width="36" height="${hClBank}" rx="4" fill="url(#grad-bank-cl)" style="transition: all 0.5s ease-in-out;" />
-      <text x="354" y="${tClBank - 6}" fill="#38bdf8" font-size="10" font-weight="700" text-anchor="middle">₹${Math.round(clBank)}</text>
-      <text x="354" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="9" text-anchor="middle">Closing</text>
+      <rect x="340" y="${tClBank}" width="24" height="${hClBank}" rx="4" fill="url(#grad-bank-cl)" style="transition: all 0.5s ease-in-out;" />
+      <text x="352" y="${tClBank - 6}" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(clBank)}</text>
+      <text x="352" y="${chartHeight + paddingTop + 16}" fill="var(--text-muted)" font-size="8" text-anchor="middle">Closing</text>
 
       <!-- Label for Bank Group -->
-      <text x="331" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">Bank/UPI</text>
+      <text x="337" y="${chartHeight + paddingTop + 30}" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">Bank/UPI</text>
 
       <!-- Gradients Definition -->
       <defs>
@@ -783,6 +988,14 @@ function generateDaybookSVG(opCash, clCash, opBank, clBank) {
         <linearGradient id="grad-cash-cl" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#fb923c" stop-opacity="0.8"/>
           <stop offset="100%" stop-color="#fb923c" stop-opacity="0.2"/>
+        </linearGradient>
+        <linearGradient id="grad-petty-op" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#a855f7" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#a855f7" stop-opacity="0.2"/>
+        </linearGradient>
+        <linearGradient id="grad-petty-cl" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d946ef" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#d946ef" stop-opacity="0.2"/>
         </linearGradient>
         <linearGradient id="grad-bank-op" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.8"/>
