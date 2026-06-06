@@ -3,7 +3,7 @@
    ========================================================================== */
 
 import { auth } from './auth.js';
-import { store, getTodayDateString } from './store.js';
+import { store, getTodayDateString, obfuscateToken } from './store.js';
 
 export function deobfuscateToken(obfuscated) {
   if (!obfuscated) return '';
@@ -227,16 +227,17 @@ class Application {
       }
 
       if (remoteData) {
-        // Compare remote and local last_modified timestamps to prevent overwriting with stale remote content
+        // Compare remote and local last_modified timestamps
         const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
         const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
         
+        let remoteIsOlder = false;
         if (localLastModified && remoteLastModified && new Date(localLastModified) > new Date(remoteLastModified)) {
-          console.log(`Remote data is stale (${remoteLastModified}) compared to local changes (${localLastModified}). Skipping overwrite.`);
-          return;
+          console.log(`Remote data is stale (${remoteLastModified}) compared to local changes (${localLastModified}). We will do a record-only merge.`);
+          remoteIsOlder = true;
         }
 
-        const updated = this.mergeSyncData(remoteData);
+        const updated = this.mergeSyncData(remoteData, remoteIsOlder);
         
         if (updated) {
           console.log("LocalStorage updated with remote database contents");
@@ -844,7 +845,7 @@ class Application {
     setTimeout(cleanUp, 1000);
   }
 
-  mergeSyncData(remoteBackup) {
+  mergeSyncData(remoteBackup, remoteIsOlder = false) {
     let changed = false;
     
     // 1. Merge activity logs first to collect deleted/tombstone entity IDs
@@ -898,6 +899,19 @@ class Application {
     const keys = Object.keys(remoteBackup);
     keys.forEach(key => {
       if (key.startsWith('cyberone_v2_')) {
+        const isRecordKey = [
+          'cyberone_v2_daily_logs',
+          'cyberone_v2_activity_logs',
+          'cyberone_v2_customers',
+          'cyberone_v2_products',
+          'cyberone_v2_applications'
+        ].includes(key);
+
+        if (remoteIsOlder && !isRecordKey) {
+          // Skip settings, configuration, and other simple state keys if remote data is older than local data
+          return;
+        }
+
         const localRaw = localStorage.getItem(key);
         let remoteRaw = remoteBackup[key];
         
@@ -1067,92 +1081,105 @@ class Application {
     return changed;
   }
 
-  syncDatabase() {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (!isLocal) {
-      alert("You are on the online GitHub Pages version. Active database sync can only be initiated from your local server version (e.g. running on http://localhost:8080) to bypass browser cross-origin policy restrictions.\n\nPlease open your local server in a new tab to sync database between local and GitHub versions.");
-      return;
-    }
+  async syncDatabase() {
+    this.showToast('Initiating database synchronization...', 'info');
 
-    this.showToast('Initiating two-way database synchronization...', 'info');
-    
-    let iframe = document.getElementById('cyberone-manual-sync-iframe');
-    if (iframe) iframe.remove();
-    
-    iframe = document.createElement('iframe');
-    iframe.id = 'cyberone-manual-sync-iframe';
-    iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    
-    const self = this;
-    const cleanup = () => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
+    try {
+      let token = localStorage.getItem('cyberone_v2_github_token');
+      if (!token) {
+        token = deobfuscateToken('bm93Zj9MgVRsdzt+dltYPjhdgDxyfmloSHRrdXpxSDtYcjp4cntPYQ==');
+        localStorage.setItem('cyberone_v2_github_token', token);
       }
-      window.removeEventListener('message', handleManualSync);
-    };
+      const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
+      const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
 
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      self.showToast('Sync failed: Connection timed out.', 'error');
-    }, 10000);
+      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`;
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-    function handleManualSync(event) {
-      if (event.origin === 'https://cyberonecsc.github.io') {
-        if (event.data && event.data.type === 'sync_data_response') {
-          clearTimeout(timeoutId);
-          const remoteBackup = event.data.data;
-          const keys = Object.keys(remoteBackup);
-          
-          if (keys.length > 0) {
-            self.mergeSyncData(remoteBackup);
-            
-            const localPayload = {};
-            for (let i = 0; i < localStorage.length; i++) {
-              const k = localStorage.key(i);
-              if (k && k.startsWith('cyberone_v2_')) {
-                localPayload[k] = localStorage.getItem(k);
-              }
-            }
-            
-            iframe.contentWindow.postMessage({
-              type: 'write_sync_data',
-              data: localPayload
-            }, 'https://cyberonecsc.github.io');
-          } else {
-            const localPayload = {};
-            for (let i = 0; i < localStorage.length; i++) {
-              const k = localStorage.key(i);
-              if (k && k.startsWith('cyberone_v2_')) {
-                localPayload[k] = localStorage.getItem(k);
-              }
-            }
-            iframe.contentWindow.postMessage({
-              type: 'write_sync_data',
-              data: localPayload
-            }, 'https://cyberonecsc.github.io');
+      let githubData = null;
+      const response = await fetch(url, { headers });
+      if (response.ok) {
+        const fileData = await response.json();
+        const cleanBase64 = fileData.content.replace(/\s/g, '');
+        const decoded = decodeURIComponent(escape(atob(cleanBase64)));
+        githubData = JSON.parse(decoded);
+        console.log("Sync: Fetched latest data from GitHub REST API");
+      } else {
+        throw new Error(`GitHub fetch failed: ${response.status}`);
+      }
+
+      let localServerData = null;
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocal) {
+        try {
+          const localRes = await fetch('./db.json?t=' + Date.now(), { cache: 'no-store' });
+          if (localRes.ok) {
+            localServerData = await localRes.json();
+            console.log("Sync: Fetched latest data from local server disk");
           }
-        } else if (event.data && event.data.type === 'sync_write_response') {
-          clearTimeout(timeoutId);
-          self.showToast('Two-way database sync completed successfully!', 'success');
-          cleanup();
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+        } catch (e) {
+          console.warn("Sync: Could not fetch local server db.json:", e);
         }
       }
-    }
 
-    window.addEventListener('message', handleManualSync);
+      let changed = false;
+      if (githubData) {
+        changed = this.mergeSyncData(githubData) || changed;
+      }
+      if (localServerData) {
+        changed = this.mergeSyncData(localServerData) || changed;
+      }
 
-    iframe.onload = () => {
-      setTimeout(() => {
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage('request_sync_data', 'https://cyberonecsc.github.io');
+      localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
+
+      if (isLocal) {
+        const payload = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('cyberone_v2_')) {
+            let val = localStorage.getItem(key);
+            if (key === 'cyberone_v2_github_token') {
+              if (!val) continue;
+              val = obfuscateToken(val);
+            }
+            payload[key] = val;
+          }
         }
-      }, 800);
-    };
+        const users = localStorage.getItem('cyberone_v2_users');
+        if (users) {
+          payload['cyberone_v2_users'] = users;
+        }
+
+        const saveRes = await fetch('./api/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (saveRes.ok) {
+          console.log("Sync: Saved merged state to local server");
+        } else {
+          throw new Error("Failed to save merged database to local server");
+        }
+      } else {
+        await store.pushToGitHubAPI();
+      }
+
+      this.showToast('Database synchronization completed successfully!', 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (err) {
+      console.error("Database sync failed:", err);
+      this.showToast(`Sync failed: ${err.message}`, 'error');
+    }
   }
 
   // Automatic Background Data Synchronization from GitHub Pages
