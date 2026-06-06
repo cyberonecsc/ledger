@@ -7,6 +7,16 @@ $port = 8080
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
 
+# Auto-sync with GitHub remote on startup to get latest code updates
+try {
+    Write-Host "Syncing code with GitHub remote..." -ForegroundColor Cyan
+    git fetch origin
+    git reset --hard origin/main
+    Write-Host "Successfully synced code with GitHub main branch!" -ForegroundColor Green
+} catch {
+    Write-Warning "Could not sync code with GitHub remote. Running in offline mode."
+}
+
 try {
     $listener.Start()
 } catch {
