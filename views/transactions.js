@@ -135,8 +135,12 @@ export function renderTransactions(mountPoint, appInstance) {
     <!-- Modals backdrop and containers -->
     <div id="txn-modal-backdrop" class="modal-backdrop">
       <div class="modal-container" style="max-width: 600px;">
-        <div class="modal-header" style="position: relative;">
-          <h4>Record Daily Sale</h4>
+        <div class="modal-header" style="position: relative; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--panel-border); padding-bottom: 12px;">
+          <h4 style="margin: 0;">Record Daily Sale</h4>
+          <div id="txn-type-switch" style="display: flex; gap: 8px; margin-right: 35px;">
+            <button type="button" id="btn-switch-sale" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11px; font-weight: 600;">Sale</button>
+            <button type="button" id="btn-switch-expense" class="btn btn-sm btn-secondary" style="padding: 4px 10px; font-size: 11px; font-weight: 600;">Expense</button>
+          </div>
           <button id="txn-modal-close" class="modal-close" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; outline: none; transition: var(--transition-smooth);">&times;</button>
         </div>
 
@@ -160,6 +164,13 @@ export function renderTransactions(mountPoint, appInstance) {
 
   // Unified modal handlers
   const openAddModal = () => {
+    const typeSwitch = document.getElementById('txn-type-switch');
+    if (typeSwitch) {
+      typeSwitch.style.display = 'flex';
+      document.getElementById('btn-switch-sale').className = 'btn btn-sm btn-primary';
+      document.getElementById('btn-switch-expense').className = 'btn btn-sm btn-secondary';
+    }
+
     const headerTitle = modalBackdrop.querySelector('.modal-header h4');
     if (headerTitle) headerTitle.innerText = 'Record Daily Sale';
 
@@ -168,11 +179,20 @@ export function renderTransactions(mountPoint, appInstance) {
   };
 
   const openEditModal = (txn) => {
-    const headerTitle = modalBackdrop.querySelector('.modal-header h4');
-    if (headerTitle) headerTitle.innerText = `Edit Daily Sale (${txn.id})`;
+    const typeSwitch = document.getElementById('txn-type-switch');
+    if (typeSwitch) typeSwitch.style.display = 'none';
 
-    modalBackdrop.classList.add('show');
-    loadTabForm('sale', txn);
+    const headerTitle = modalBackdrop.querySelector('.modal-header h4');
+    
+    if (txn.type === 'expense') {
+      if (headerTitle) headerTitle.innerText = `Edit Daily Expense (${txn.id})`;
+      modalBackdrop.classList.add('show');
+      loadTabForm('expense', txn);
+    } else {
+      if (headerTitle) headerTitle.innerText = `Edit Daily Sale (${txn.id})`;
+      modalBackdrop.classList.add('show');
+      loadTabForm('sale', txn);
+    }
   };
 
   const closeModal = () => {
@@ -185,6 +205,27 @@ export function renderTransactions(mountPoint, appInstance) {
 
   btnOpenModal.addEventListener('click', openAddModal);
   btnCloseModalX.addEventListener('click', closeModal);
+
+  const btnSwitchSale = document.getElementById('btn-switch-sale');
+  const btnSwitchExpense = document.getElementById('btn-switch-expense');
+
+  if (btnSwitchSale && btnSwitchExpense) {
+    btnSwitchSale.addEventListener('click', () => {
+      btnSwitchSale.className = 'btn btn-sm btn-primary';
+      btnSwitchExpense.className = 'btn btn-sm btn-secondary';
+      const headerTitle = modalBackdrop.querySelector('.modal-header h4');
+      if (headerTitle) headerTitle.innerText = 'Record Daily Sale';
+      loadTabForm('sale');
+    });
+
+    btnSwitchExpense.addEventListener('click', () => {
+      btnSwitchExpense.className = 'btn btn-sm btn-primary';
+      btnSwitchSale.className = 'btn btn-sm btn-secondary';
+      const headerTitle = modalBackdrop.querySelector('.modal-header h4');
+      if (headerTitle) headerTitle.innerText = 'Record Daily Expense';
+      loadTabForm('expense');
+    });
+  }
   // Backdrop click close disabled - modal only closes via Cancel/X button
 
   // Search input handler
@@ -260,8 +301,8 @@ export function renderTransactions(mountPoint, appInstance) {
   const redrawTable = () => {
     const query = searchInput.value.toLowerCase();
     
-    // Filter transactions based on query, showing only sales transactions
-    let filteredTxns = log.transactions.filter(t => t.type === 'sale');
+    // Filter transactions based on query, showing all transactions
+    let filteredTxns = log.transactions;
     if (query) {
       filteredTxns = filteredTxns.filter(t => 
         (t.description || '').toLowerCase().includes(query) ||
@@ -1281,8 +1322,8 @@ function renderLedgerRows(txns) {
       else if (source === 'airtel') columns[14] = `${sign}${fmt(t.diff)}`;
     }
 
-    // Only allow editing for sales (the ones loggable via this screen)
-    const isEditable = (t.type === 'sale');
+    // Only allow editing for sales and expenses (the ones loggable via this screen)
+    const isEditable = (t.type === 'sale' || t.type === 'expense');
 
     return `
       <tr>
