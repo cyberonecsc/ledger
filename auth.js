@@ -52,7 +52,8 @@ const DEFAULT_PRIVILEGES = {
 
 // Seed credentials (Owner account remains for default entry, others removed)
 const PRESET_USERS = [
-  { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: '465314670016' }
+  { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: '465314670016' },
+  { username: 'vyshnavi', name: 'VYSHNAVI', role: 'admin', password: '123456', staffId: 'vyshnavi', mobile: '9072809735', email: '', photo: '', baseSalary: 10000 }
 ];
 
 class AuthService {
