@@ -205,7 +205,13 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
           }
         });
 
-        appInstance.showToast(`Imported ${importedCount} keys successfully! Reloading...`, 'success');
+        // Set last modified to current time so it's considered fresh
+        localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
+
+        // Sync changes to local server disk/GitHub immediately
+        store.syncDatabaseState();
+
+        appInstance.showToast(`Imported ${importedCount} keys. Saving and syncing...`, 'success');
         
         setTimeout(() => {
           window.location.reload();
