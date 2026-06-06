@@ -52,7 +52,7 @@ const DEFAULT_PRIVILEGES = {
 
 // Seed credentials (Owner account remains for default entry, others removed)
 const PRESET_USERS = [
-  { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: 'STAFF-01' }
+  { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: '465314670016' }
 ];
 
 class AuthService {
@@ -105,7 +105,7 @@ class AuthService {
       
       let ownerUser = usersList.find(u => u.username.toUpperCase() === 'SHIBURCN');
       if (!ownerUser) {
-        ownerUser = { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: 'STAFF-01' };
+        ownerUser = { username: 'SHIBURCN', name: 'SHIBU RAMACHANDRAN', role: 'owner', password: 'John@392091', staffId: '465314670016' };
         usersList.unshift(ownerUser);
       } else {
         // Enforce correct password and name/role
@@ -114,7 +114,7 @@ class AuthService {
         ownerUser.name = 'SHIBU RAMACHANDRAN';
         ownerUser.role = 'owner';
         if (!ownerUser.staffId) {
-          ownerUser.staffId = 'STAFF-01';
+          ownerUser.staffId = '465314670016';
         }
       }
       localStorage.setItem('cyberone_v2_users', JSON.stringify(usersList));
@@ -136,7 +136,7 @@ class AuthService {
         username: user.username,
         role: user.role,
         photo: user.photo || '',
-        staffId: user.staffId || (user.username.toUpperCase() === 'SHIBURCN' ? 'STAFF-01' : 'STAFF-04')
+        staffId: user.staffId || (user.username.toUpperCase() === 'SHIBURCN' ? '465314670016' : 'STAFF-04')
       };
       localStorage.setItem('cyberone_v2_current_user', JSON.stringify(this.currentUser));
       return { success: true, user: this.currentUser };
