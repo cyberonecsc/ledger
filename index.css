@@ -1707,6 +1707,8 @@ body.print-thermal .receipt-header {
 .preview-thermal .header-left,
 body.print-thermal .header-left {
   display: block !important;
+  max-width: 100% !important;
+  width: 100% !important;
 }
 
 .preview-thermal .receipt-logo,
