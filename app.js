@@ -263,6 +263,8 @@ class Application {
     } catch (e) {
       console.error("Could not fetch remote database:", e);
       store.setSyncStatus('error');
+    } finally {
+      store.isDatabaseInitialized = true;
     }
   }
 
@@ -900,6 +902,15 @@ class Application {
     const keys = Object.keys(remoteBackup);
     keys.forEach(key => {
       if (key.startsWith('cyberone_v2_')) {
+        if ([
+          'cyberone_v2_current_user',
+          'cyberone_v2_active_date',
+          'cyberone_v2_sidebar_collapsed',
+          'cyberone_v2_last_sync_date',
+          'cyberone_v2_local_snapshots'
+        ].includes(key)) {
+          return;
+        }
         const isRecordKey = [
           'cyberone_v2_daily_logs',
           'cyberone_v2_activity_logs',
@@ -1218,7 +1229,13 @@ class Application {
             let hasChanges = false;
             
             keys.forEach(key => {
-              if (key.startsWith('cyberone_v2_') && key !== 'cyberone_v2_last_sync_date' && key !== 'cyberone_v2_sidebar_collapsed') {
+              if (key.startsWith('cyberone_v2_') && ![
+                'cyberone_v2_current_user',
+                'cyberone_v2_active_date',
+                'cyberone_v2_sidebar_collapsed',
+                'cyberone_v2_last_sync_date',
+                'cyberone_v2_local_snapshots'
+              ].includes(key)) {
                 const localVal = localStorage.getItem(key);
                 if (localVal !== backup[key]) {
                   hasChanges = true;

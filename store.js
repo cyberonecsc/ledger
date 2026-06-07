@@ -122,6 +122,7 @@ const INITIAL_WEBSITES = [
 // Master data structure loading from LocalStorage or initializing
 class StateStore {
   constructor() {
+    this.isDatabaseInitialized = false;
     this.syncStatus = 'synced';
     this.syncListeners = [];
     this.loadState();
@@ -498,6 +499,10 @@ class StateStore {
   }
 
   persistAll() {
+    if (!this.isDatabaseInitialized) {
+      console.log("Sync: Database not initialized yet. Skipping persistAll to avoid overwriting with defaults.");
+      return;
+    }
     localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
     this.saveToLocalStorage();
     
@@ -1638,6 +1643,15 @@ class StateStore {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('cyberone_v2_')) {
+        if ([
+          'cyberone_v2_current_user',
+          'cyberone_v2_active_date',
+          'cyberone_v2_sidebar_collapsed',
+          'cyberone_v2_last_sync_date',
+          'cyberone_v2_local_snapshots'
+        ].includes(key)) {
+          continue;
+        }
         let val = localStorage.getItem(key);
         if (key === 'cyberone_v2_github_token') {
           if (!val) continue; // Skip empty token to prevent overwriting valid remote token
@@ -1720,6 +1734,15 @@ class StateStore {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('cyberone_v2_')) {
+          if ([
+            'cyberone_v2_current_user',
+            'cyberone_v2_active_date',
+            'cyberone_v2_sidebar_collapsed',
+            'cyberone_v2_last_sync_date',
+            'cyberone_v2_local_snapshots'
+          ].includes(key)) {
+            continue;
+          }
           let val = localStorage.getItem(key);
           if (key === 'cyberone_v2_github_token') {
             if (!val) continue; // Skip empty token to prevent overwriting valid remote token
