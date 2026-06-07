@@ -114,7 +114,7 @@ class Application {
     setInterval(() => {
       let token = localStorage.getItem('cyberone_v2_github_token');
     if (!token) {
-      token = deobfuscateToken('bm93Zj9MgVRsdzt+dltYPjhdgDxyfmloSHRrdXpxSDtYcjp4cntPYQ==');
+      token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
       localStorage.setItem('cyberone_v2_github_token', token);
     }
       
@@ -136,8 +136,8 @@ class Application {
     document.addEventListener('focusout', () => {
       setTimeout(() => {
         if (this.needsUIRefresh && !this.isUserInteracting()) {
-          if (this.activeRoute === '#accounts') {
-            console.log("On accounts page, deferring UI reload to prevent resetting input fields.");
+          if (this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
+            console.log("On accounts or settings page, deferring UI reload to prevent resetting input fields.");
             return;
           }
           console.log("User finished interaction. Triggering pending UI reload.");
@@ -150,8 +150,8 @@ class Application {
     document.addEventListener('click', () => {
       setTimeout(() => {
         if (this.needsUIRefresh && !this.isUserInteracting()) {
-          if (this.activeRoute === '#accounts') {
-            console.log("On accounts page, deferring UI reload to prevent resetting input fields.");
+          if (this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
+            console.log("On accounts or settings page, deferring UI reload to prevent resetting input fields.");
             return;
           }
           console.log("User finished clicking. Triggering pending UI reload.");
@@ -171,7 +171,7 @@ class Application {
   async loadDatabaseFromGitHub() {
     let token = localStorage.getItem('cyberone_v2_github_token');
     if (!token) {
-      token = deobfuscateToken('bm93Zj9MgVRsdzt+dltYPjhdgDxyfmloSHRrdXpxSDtYcjp4cntPYQ==');
+      token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
       localStorage.setItem('cyberone_v2_github_token', token);
     }
     const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
@@ -250,8 +250,8 @@ class Application {
           }
           
           // Safeguard active typing/modals before reloading the UI
-          if (this.isUserInteracting() || this.activeRoute === '#accounts') {
-            console.log("Database updated in background, but user is interacting or on Accounts page. Deferring UI reload.");
+          if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
+            console.log("Database updated in background, but user is interacting or on Accounts/Settings page. Deferring UI reload.");
             this.needsUIRefresh = true;
           } else {
             console.log("Database updated in background. Triggering UI reload.");
@@ -1099,7 +1099,7 @@ class Application {
     try {
       let token = localStorage.getItem('cyberone_v2_github_token');
       if (!token) {
-        token = deobfuscateToken('bm93Zj9MgVRsdzt+dltYPjhdgDxyfmloSHRrdXpxSDtYcjp4cntPYQ==');
+        token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
         localStorage.setItem('cyberone_v2_github_token', token);
       }
       const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';

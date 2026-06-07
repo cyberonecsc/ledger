@@ -1695,7 +1695,7 @@ class StateStore {
   async pushToGitHubAPI() {
     let token = localStorage.getItem('cyberone_v2_github_token');
     if (!token) {
-      token = deobfuscateToken('bm93Zj9MgVRsdzt+dltYPjhdgDxyfmloSHRrdXpxSDtYcjp4cntPYQ==');
+      token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
       localStorage.setItem('cyberone_v2_github_token', token);
     }
     const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
