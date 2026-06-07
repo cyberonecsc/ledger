@@ -276,7 +276,7 @@ export function renderInvoices(mountPoint, appInstance) {
         </table>
 
         <div style="text-align:center; font-size: 10px; color:#555; border-top:1px dashed #ddd; padding-top:15px; margin-top:30px;">
-          Thank you for choosing CYBERONE CSC. Keep this copy for certificate references.
+          Thank you for choosing CYBERONE CSC. Keep this copy for future reference.
         </div>
       </div>
 

@@ -523,7 +523,7 @@ export function renderTransactions(mountPoint, appInstance) {
         </table>
 
         <div style="text-align:center; font-size: 9px; color:#555; border-top:1px dashed #ddd; padding-top:10px; margin-top:15px; font-style: italic;">
-          Thank you for choosing CYBERONE CSC. Keep this copy for certificate references.
+          Thank you for choosing CYBERONE CSC. Keep this copy for future reference.
         </div>
       </div>
 
