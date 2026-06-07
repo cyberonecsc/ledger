@@ -383,7 +383,7 @@ export function renderInvoices(mountPoint, appInstance) {
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row-3">
           <div class="form-group">
             <label class="form-label">Due Date</label>
             <input type="date" id="inv-due" class="form-control" required>
@@ -394,6 +394,13 @@ export function renderInvoices(mountPoint, appInstance) {
               <option value="0.18" selected>CGST+SGST (18%)</option>
               <option value="0.05">CGST+SGST (5%)</option>
               <option value="0.00">Zero Tax Exemption (0%)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Payment Status</label>
+            <select id="inv-status" class="form-control">
+              <option value="sent" selected>Sent / Unpaid</option>
+              <option value="paid">Paid / Settled</option>
             </select>
           </div>
         </div>
@@ -474,6 +481,11 @@ export function renderInvoices(mountPoint, appInstance) {
           firstRow.querySelector('.item-rate').value = txn.amount;
           firstRow.querySelector('.item-qty').value = 1;
         }
+        // Auto-set status to paid since it is imported from a completed transaction
+        const statusField = document.getElementById('inv-status');
+        if (statusField) {
+          statusField.value = 'paid';
+        }
         recalculateInvoiceTotals();
       }
     });
@@ -552,7 +564,7 @@ export function renderInvoices(mountPoint, appInstance) {
         discount: 0,
         total: grandTotal,
         dueDate: dueField.value,
-        status: 'sent',
+        status: document.getElementById('inv-status').value,
         createdAt: localActiveDate
       });
 
