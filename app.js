@@ -415,7 +415,8 @@ class Application {
 
     // 1. Page Mount Guard - only render layout frame if not already present
     const appContainer = document.getElementById('app-container');
-    if (appContainer) {
+    const pageMount = document.getElementById('page-mount');
+    if (appContainer && pageMount) {
       // Update active highlight classes on sidebar items
       const items = appContainer.querySelectorAll('.sidebar-item');
       items.forEach(item => {
