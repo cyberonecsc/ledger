@@ -167,7 +167,20 @@ export function renderSettings(mountPoint, appInstance) {
     // Trigger immediate disk save and git push
     store.persistAll();
 
-    appInstance.showToast('Custom logo saved successfully! Refresh to see changes.', 'success');
+    // Dynamically update the logo on the current page to avoid full reload
+    const sidebarLogo = document.getElementById('sidebar-logo-img');
+    const headerLogo = document.getElementById('header-logo-img');
+    const newSrc = logoUrl || './logo.png';
+    if (sidebarLogo) {
+      sidebarLogo.src = newSrc;
+      sidebarLogo.style.display = 'block';
+    }
+    if (headerLogo) {
+      headerLogo.src = newSrc;
+      headerLogo.style.display = 'block';
+    }
+
+    appInstance.showToast('Custom logo saved successfully!', 'success');
   });
 }
 

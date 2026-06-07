@@ -474,7 +474,7 @@ class Application {
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
           <div class="sidebar-logo" style="display:flex; align-items:center; gap:10px; position:relative;">
-            <img src="./logo.png" alt="logo" style="width:28px; height:28px; object-fit:contain;" onerror="this.style.display='none';">
+            <img id="sidebar-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:28px; height:28px; object-fit:contain;" onerror="this.style.display='none';">
             <h1>CYBERONE CSC</h1>
             <button id="sidebar-toggle" style="position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--color-primary); border: 1px solid var(--panel-border); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.5); outline:none; transition: var(--transition-smooth);">
               <i data-lucide="${isCollapsed ? 'chevron-right' : 'chevron-left'}" style="width: 12px; height: 12px;"></i>
@@ -569,7 +569,7 @@ class Application {
               <button id="mobile-menu-toggle" class="mobile-only-flex" style="display: none; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); color: #fff; width: 34px; height: 34px; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: var(--transition-smooth); margin-right: 4px;">
                 <i data-lucide="menu" style="width: 18px; height: 18px;"></i>
               </button>
-              <img src="./logo.png" alt="logo" style="width:38px; height:38px; object-fit:contain;" onerror="this.style.display='none';">
+              <img id="header-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:38px; height:38px; object-fit:contain;" onerror="this.style.display='none';">
               <div class="page-title">
                 <h2 id="page-heading-title">CYBERONE CSC</h2>
                 <p id="page-heading-sub">Operations & Ledger Management</p>
