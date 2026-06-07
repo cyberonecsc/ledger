@@ -88,6 +88,7 @@ export function renderTransactions(mountPoint, appInstance) {
           <thead>
             <tr>
               <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-txns" style="cursor: pointer;"></th>
+              <th style="text-align: center; width: 110px;">Actions</th>
               <th>Type</th>
               <th>Description</th>
               <th>Amount</th>
@@ -104,7 +105,6 @@ export function renderTransactions(mountPoint, appInstance) {
               <th>From BSNL</th>
               <th>From VI</th>
               <th>From Airtel</th>
-              <th style="text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody id="ledger-tbody">
@@ -1506,6 +1506,21 @@ function renderLedgerRows(txns) {
     return `
       <tr>
         <td style="text-align: center; vertical-align: middle;"><input type="checkbox" class="select-txn-checkbox" data-id="${t.id}" style="cursor: pointer;"></td>
+        <td style="text-align: center; white-space: nowrap;">
+          ${t.type === 'sale' ? `
+            <button class="btn btn-sm btn-secondary btn-view-txn-receipt" data-id="${t.id}" style="padding: 4px; color: var(--color-success); border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.02); margin-right: 4px;" title="Print Receipt">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+            </button>
+          ` : ''}
+          ${isEditable ? `
+            <button class="btn btn-sm btn-secondary btn-edit-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-info); border: 1px solid rgba(14,165,233,0.15); background: rgba(14,165,233,0.02); margin-right: 4px;">
+              <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+            </button>
+          ` : ''}
+          <button class="btn btn-sm btn-secondary btn-delete-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-danger); border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.02);">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </td>
         <td>${typeBadge}</td>
         <td><strong>${columns[0]}</strong></td>
         <td>${columns[1]}</td>
@@ -1522,21 +1537,6 @@ function renderLedgerRows(txns) {
         <td>${columns[12]}</td>
         <td>${columns[13]}</td>
         <td>${columns[14]}</td>
-        <td style="text-align: center; white-space: nowrap;">
-          ${t.type === 'sale' ? `
-            <button class="btn btn-sm btn-secondary btn-view-txn-receipt" data-id="${t.id}" style="padding: 4px; color: var(--color-success); border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.02); margin-right: 4px;" title="Print Receipt">
-              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
-            </button>
-          ` : ''}
-          ${isEditable ? `
-            <button class="btn btn-sm btn-secondary btn-edit-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-info); border: 1px solid rgba(14,165,233,0.15); background: rgba(14,165,233,0.02); margin-right: 4px;">
-              <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
-            </button>
-          ` : ''}
-          <button class="btn btn-sm btn-secondary btn-delete-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-danger); border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.02);">
-            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-          </button>
-        </td>
       </tr>
     `;
   }).join('');

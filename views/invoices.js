@@ -56,13 +56,13 @@ export function renderInvoices(mountPoint, appInstance) {
         <table class="custom-table">
           <thead>
             <tr>
+              <th style="text-align: center; width: 140px;">Actions</th>
               <th>Invoice No</th>
               <th>Citizen / Client</th>
               <th>Issue Date</th>
               <th>Due Date</th>
               <th>Total Amount</th>
               <th>Status</th>
-              <th style="text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody id="inv-tbody">
@@ -127,6 +127,11 @@ export function renderInvoices(mountPoint, appInstance) {
         
         return `
           <tr>
+            <td style="text-align: center;">
+              <button class="btn btn-sm btn-secondary btn-view-invoice" data-id="${inv.id}">
+                <i data-lucide="printer" style="width: 14px; height: 14px; margin-right:4px;"></i> View Receipt
+              </button>
+            </td>
             <td><code>${inv.invoiceNumber}</code></td>
             <td><strong>${client ? client.name : 'Walk-in'}</strong></td>
             <td>${inv.createdAt}</td>
@@ -138,11 +143,6 @@ export function renderInvoices(mountPoint, appInstance) {
                 <option value="paid" ${inv.status === 'paid' ? 'selected' : ''}>Paid / Settled</option>
                 <option value="cancelled" ${inv.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
               </select>
-            </td>
-            <td style="text-align: center;">
-              <button class="btn btn-sm btn-secondary btn-view-invoice" data-id="${inv.id}">
-                <i data-lucide="printer" style="width: 14px; height: 14px; margin-right:4px;"></i> View Receipt
-              </button>
             </td>
           </tr>
         `;
