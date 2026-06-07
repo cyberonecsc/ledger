@@ -148,6 +148,13 @@ export function renderTransactions(mountPoint, appInstance) {
         <div id="txn-form-mount"></div>
       </div>
     </div>
+
+    <!-- Receipt Preview Modal Backdrop -->
+    <div id="receipt-modal-backdrop" class="modal-backdrop">
+      <div class="modal-container" id="receipt-modal-container" style="max-width: 650px;">
+        <!-- Dynamic receipt content mounts here -->
+      </div>
+    </div>
   `;
 
   // Set titles in header
@@ -412,8 +419,179 @@ export function renderTransactions(mountPoint, appInstance) {
     }
   };
 
+  // View printable receipt helper
+  const openReceiptPreview = (t) => {
+    const customers = store.customers;
+    const client = customers.find(c => c.id === t.customerId);
+    
+    // Generate virtual invoice variables
+    const taxRate = t.hasGst ? (t.gstRate || 0.18) : 0.00;
+    const subtotal = t.taxableAmount || t.amount;
+    const taxAmount = t.gstAmount || 0;
+    
+    const invNo = t.id.replace('TXN-', 'REC-');
+
+    const container = document.getElementById('receipt-modal-container');
+    const backdrop = document.getElementById('receipt-modal-backdrop');
+    const closeModal = () => backdrop.classList.remove('show');
+
+    container.innerHTML = `
+      <div class="modal-header" style="border-bottom:1px solid var(--panel-border); padding-bottom:10px;">
+        <h4 style="font-family:var(--font-display); font-size: 16px; margin: 0;">Transaction Receipt Details</h4>
+        <button id="rec-modal-close" class="modal-close" style="display: block !important; background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer;">&times;</button>
+      </div>
+
+      <div id="printable-invoice-receipt" class="preview-normal" style="padding: 15px; background: #fff; color: #000; border-radius: var(--border-radius-sm);">
+        <div class="receipt-header" style="display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; text-align: left;">
+          <div class="header-left" style="display: flex; gap: 8px; align-items: flex-start; max-width: 65%;">
+            <img class="receipt-logo" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width: 40px; height: 40px; object-fit: contain;" onerror="this.style.display='none';">
+            <div class="company-info" style="display: flex; flex-direction: column; gap: 2px;">
+              <h3 style="font-size: 14px; margin: 0; color: #1e1b4b; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">${store.centerProfile.name}</h3>
+              <div style="font-size: 9px; font-weight: 700; color: #4338ca; display: flex; gap: 4px; align-items: center; margin-bottom: 2px;">
+                <span>CODE: ${store.centerProfile.code}</span>
+                ${store.centerProfile.gstin ? `<span>|</span><span>GSTIN: ${store.centerProfile.gstin}</span>` : ''}
+              </div>
+              <p style="margin: 0; font-size: 9px; color: #4b5563; line-height: 1.3;">
+                ${store.centerProfile.address}, ${store.centerProfile.city}, ${store.centerProfile.state} - ${store.centerProfile.pin}
+              </p>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 9px; color: #1f2937; font-weight: 500; margin-top: 2px;">
+                <span>📞 ${store.centerProfile.mobile}</span>
+                <span>•</span>
+                <span>✉️ ${store.centerProfile.email}</span>
+              </div>
+            </div>
+          </div>
+          <div class="header-right" style="text-align: right; min-width: 30%;">
+            <h2 class="doc-type-title" style="margin: 0 0 5px 0; font-size: 18px; color: #10b981; font-weight: 800; text-transform: uppercase;">Receipt</h2>
+            <table class="meta-details-table" style="font-size: 10px; margin-left: auto; text-align: right; border-collapse: collapse; line-height: 1.3;">
+              <tr>
+                <td style="color: #6b7280; padding-right: 5px;">Receipt No:</td>
+                <td style="font-weight: 600; font-family: monospace;">${invNo}</td>
+              </tr>
+              <tr>
+                <td style="color: #6b7280; padding-right: 5px;">Citizen:</td>
+                <td style="font-weight: 600;">${client ? client.name : 'Walk-in'}</td>
+              </tr>
+              <tr>
+                <td style="color: #6b7280; padding-right: 5px;">Date:</td>
+                <td style="font-weight: 600;">${activeDate}</td>
+              </tr>
+              <tr>
+                <td style="color: #6b7280; padding-right: 5px;">Mode:</td>
+                <td style="font-weight: 700; text-transform: uppercase; color: #10b981;">
+                  ${t.paidByUPI > 0 ? 'UPI' : t.paidByCash > 0 ? 'CASH' : t.paidByCredit > 0 ? 'CREDIT' : 'SETTLED'}
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; border-top:1px solid #000; border-bottom:1px solid #000; font-size: 11px; margin-top: 10px; line-height: 1.4;">
+          <thead>
+            <tr style="border-bottom:1px solid #ddd; background: rgba(0,0,0,0.02);">
+              <th style="text-align: left; padding: 6px 4px; font-weight: 600;">Description</th>
+              <th style="text-align: center; padding: 6px 4px; width:40px; font-weight: 600;">Qty</th>
+              <th style="text-align: right; padding: 6px 4px; width:70px; font-weight: 600;">Rate</th>
+              <th style="text-align: right; padding: 6px 4px; width:80px; font-weight: 600;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 6px 4px; text-align: left;">${t.description}</td>
+              <td style="text-align: center; padding: 6px 4px;">${t.quantity || 1}</td>
+              <td style="text-align: right; padding: 6px 4px;">₹${(subtotal / (t.quantity || 1)).toFixed(2)}</td>
+              <td style="text-align: right; padding: 6px 4px;">₹${subtotal.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table style="width: 50%; border-collapse: collapse; margin-left: auto; font-size:10px; margin-bottom:15px; line-height: 1.3;">
+          <tr>
+            <td style="padding:2px 0; text-align: left; color: #6b7280;">Subtotal:</td>
+            <td style="text-align: right; padding:2px 0; font-weight: 500;">₹${subtotal.toFixed(2)}</td>
+          </tr>
+          ${t.hasGst ? `
+          <tr>
+            <td style="padding:2px 0; text-align: left; color: #6b7280;">GST (${(taxRate * 100).toFixed(0)}%):</td>
+            <td style="text-align: right; padding:2px 0; font-weight: 500;">₹${taxAmount.toFixed(2)}</td>
+          </tr>
+          ` : ''}
+          <tr style="font-weight:700; font-size:12px; border-top:1px solid #000;">
+            <td style="padding:4px 0; text-align: left; color: #000;">Total Paid:</td>
+            <td style="text-align: right; padding:4px 0; color:#0891b2; font-size: 13px;">₹${t.amount.toFixed(2)}</td>
+          </tr>
+        </table>
+
+        <div style="text-align:center; font-size: 9px; color:#555; border-top:1px dashed #ddd; padding-top:10px; margin-top:15px; font-style: italic;">
+          Thank you for choosing CYBERONE CSC. Keep this copy for certificate references.
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid var(--panel-border); padding-top:15px;" class="no-print">
+        <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Print Layout:</span>
+        <div style="display:flex; gap:5px;">
+          <button id="btn-rec-format-normal" class="btn btn-xs btn-primary" style="font-size:10px; padding: 4px 8px;">A4 Normal</button>
+          <button id="btn-rec-format-thermal" class="btn btn-xs btn-secondary" style="font-size:10px; padding: 4px 8px;">80mm Thermal</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:15px;" class="no-print">
+        <button id="btn-print-rec" class="btn btn-primary" style="flex-grow:1;">
+          <i data-lucide="printer" style="width:16px; height:16px;"></i> Print Receipt
+        </button>
+        <button id="btn-download-rec" class="btn btn-secondary" style="flex-grow:1;">
+          <i data-lucide="download" style="width:16px; height:16px;"></i> Download PDF
+        </button>
+        <button id="btn-close-rec" class="btn btn-secondary">Close</button>
+      </div>
+    `;
+
+    lucide.createIcons();
+    document.getElementById('rec-modal-close').addEventListener('click', closeModal);
+    document.getElementById('btn-close-rec').addEventListener('click', closeModal);
+    backdrop.classList.add('show');
+
+    let printFormat = 'normal';
+    const btnFormatNormal = document.getElementById('btn-rec-format-normal');
+    const btnFormatThermal = document.getElementById('btn-rec-format-thermal');
+    const receiptContainer = document.getElementById('printable-invoice-receipt');
+
+    btnFormatNormal.addEventListener('click', () => {
+      printFormat = 'normal';
+      receiptContainer.className = 'preview-normal';
+      btnFormatNormal.classList.replace('btn-secondary', 'btn-primary');
+      btnFormatThermal.classList.replace('btn-primary', 'btn-secondary');
+    });
+
+    btnFormatThermal.addEventListener('click', () => {
+      printFormat = 'thermal';
+      receiptContainer.className = 'preview-thermal';
+      btnFormatThermal.classList.replace('btn-secondary', 'btn-primary');
+      btnFormatNormal.classList.replace('btn-primary', 'btn-secondary');
+    });
+
+    document.getElementById('btn-print-rec').addEventListener('click', () => {
+      appInstance.printElement(printFormat);
+    });
+
+    document.getElementById('btn-download-rec').addEventListener('click', () => {
+      appInstance.downloadElementAsPDF('printable-invoice-receipt', `Receipt_${invNo}.pdf`, printFormat === 'thermal');
+    });
+  };
+
   // Bind click handlers for edit/delete icons in rows
   const bindRowActions = () => {
+    // Receipt action handler
+    document.querySelectorAll('.btn-view-txn-receipt').forEach(btn => {
+      btn.onclick = (e) => {
+        const txnId = e.currentTarget.getAttribute('data-id');
+        const txn = log.transactions.find(t => t.id === txnId);
+        if (txn) {
+          openReceiptPreview(txn);
+        }
+      };
+    });
+
     // Delete action handler
     document.querySelectorAll('.btn-delete-txn').forEach(btn => {
       btn.onclick = (e) => {
@@ -1345,6 +1523,11 @@ function renderLedgerRows(txns) {
         <td>${columns[13]}</td>
         <td>${columns[14]}</td>
         <td style="text-align: center; white-space: nowrap;">
+          ${t.type === 'sale' ? `
+            <button class="btn btn-sm btn-secondary btn-view-txn-receipt" data-id="${t.id}" style="padding: 4px; color: var(--color-success); border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.02); margin-right: 4px;" title="Print Receipt">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+            </button>
+          ` : ''}
           ${isEditable ? `
             <button class="btn btn-sm btn-secondary btn-edit-txn" data-id="${t.id}" style="padding: 4px; color: var(--color-info); border: 1px solid rgba(14,165,233,0.15); background: rgba(14,165,233,0.02); margin-right: 4px;">
               <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
