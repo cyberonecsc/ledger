@@ -51,6 +51,8 @@
 
     /* --- Selection Welcome Screen --- */
     .welcome-screen {
+      position: relative;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -159,6 +161,8 @@
 
     /* --- POS Workspace Layout --- */
     .pos-workspace {
+      position: relative;
+      z-index: 10;
       display: none; /* Toggled via JS */
       grid-template-columns: 1fr 380px;
       height: 100vh;
@@ -590,7 +594,7 @@
     }
 
     .pay-mode-select {
-      background: rgba(255,255,255,0.03);
+      background: var(--panel-dark);
       border: 1px solid var(--panel-border);
       color: var(--text-main);
       border-radius: 12px;
@@ -691,23 +695,23 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.8);
-      z-index: -9999; /* Force rendering behind everything when closed */
-      display: flex;
+      z-index: 99999 !important; /* Force rendering in front of everything */
+      display: none; /* Completely remove from layout and rendering tree when closed */
       align-items: center;
       justify-content: center;
       opacity: 0;
-      visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s, z-index 0s 0.25s;
+      /* Promote to GPU composite layer to prevent rendering engine artifacts/clipping */
+      transform: translate3d(0, 0, 0) !important;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     .drawer-overlay.show {
-      z-index: 99999 !important; /* Force rendering in front of hardware-accelerated layers when open */
-      opacity: 1;
-      visibility: visible;
+      display: flex !important; /* Added to render tree when active */
       pointer-events: auto;
-      transform: translate3d(0, 0, 0); /* Force GPU composite layer promotion */
-      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s, z-index 0s 0s;
+      animation: overlayFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
     .drawer-modal {
@@ -718,13 +722,22 @@
       max-width: 420px;
       width: 90%;
       text-align: center;
-      transform: scale(0.9);
-      transition: var(--transition-smooth);
+      transform: scale(0.95);
       box-shadow: 0 0 50px rgba(16, 185, 129, 0.3);
     }
 
     .drawer-overlay.show .drawer-modal {
-      transform: scale(1);
+      animation: modalScaleUp 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes overlayFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalScaleUp {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
     .drawer-icon-anim {
@@ -832,8 +845,11 @@
       border-color: var(--color-primary) !important;
       color: #fff !important;
     }
-    /* Class to completely remove inactive screens from browser rendering pipeline */
-    .hidden-screen {
+    /* Class to completely remove inactive screens and all their descendants from browser rendering pipeline.
+       This destroys compositor layers (including backdrop-filters and will-change animations) of hidden screens,
+       preventing browser rendering engine leaks/ghosting. */
+    .hidden-screen,
+    .hidden-screen * {
       display: none !important;
       visibility: hidden !important;
       opacity: 0 !important;
@@ -842,6 +858,14 @@
       overflow: hidden !important;
       position: absolute !important;
       pointer-events: none !important;
+      transform: none !important;
+      will-change: auto !important;
+      transition: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      z-index: -99999 !important;
+    }
+    .hidden-screen {
       transform: translate3d(-9999px, -9999px, 0) !important;
     }
   </style>
@@ -902,7 +926,7 @@
             <i data-lucide="user" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
             <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-right: 5px;">Citizen:</span>
             <!-- Custom Styled Select Dropdown -->
-            <select id="pos-customer-select" style="background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); color: var(--text-main); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; outline: none; flex: 1; max-width: 250px; cursor: pointer;">
+            <select id="pos-customer-select" style="background: var(--panel-dark); border: 1px solid var(--panel-border); color: var(--text-main); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; outline: none; flex: 1; max-width: 250px; cursor: pointer;">
               <option value="walkin">Walk-in Customer</option>
               <!-- Populated dynamically -->
             </select>
@@ -994,7 +1018,7 @@
               <!-- Cash Received -->
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size: 9px; font-weight: 600; color: var(--text-dimmed);">Paid by Cash</label>
-                <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
+                <div style="display:flex; align-items:center; background: var(--panel-dark); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
                   <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-right: 4px;">₹</span>
                   <input type="number" step="any" id="pay-cash-amount" value="0.00" style="background:transparent; border:none; color:#fff; font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
                 </div>
@@ -1002,7 +1026,7 @@
               <!-- UPI/Online Received -->
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size: 9px; font-weight: 600; color: var(--text-dimmed);">Paid by UPI</label>
-                <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
+                <div style="display:flex; align-items:center; background: var(--panel-dark); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
                   <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-right: 4px;">₹</span>
                   <input type="number" step="any" id="pay-upi-amount" value="0.00" style="background:transparent; border:none; color:#fff; font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
                 </div>
@@ -1013,7 +1037,7 @@
             <div id="cash-tendered-section" style="display: none; grid-template-columns: 1.2fr 1fr; gap: 8px; border-top: 1px dashed var(--panel-border); padding-top: 8px; margin-top: 2px;">
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size: 9px; font-weight: 600; color: var(--text-dimmed);">Cash Tendered (From Customer)</label>
-                <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
+                <div style="display:flex; align-items:center; background: var(--panel-dark); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
                   <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-right: 4px;">₹</span>
                   <input type="number" step="any" id="cash-tendered-amount" placeholder="0.00" style="background:transparent; border:none; color:#fff; font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
                 </div>
@@ -1117,15 +1141,15 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       <form id="pos-add-customer-form" style="text-align: left; display:flex; flex-direction:column; gap:12px; margin-bottom: 20px;">
         <div style="display:flex; flex-direction:column; gap:4px;">
           <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Full Name</label>
-          <input type="text" id="new-cust-name" required placeholder="e.g. Ramesh Kumar" style="background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
+          <input type="text" id="new-cust-name" required placeholder="e.g. Ramesh Kumar" style="background: var(--panel-dark); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
         </div>
         <div style="display:flex; flex-direction:column; gap:4px;">
           <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Phone Number</label>
-          <input type="tel" id="new-cust-phone" required pattern="[0-9]{10}" placeholder="10-digit mobile" style="background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
+          <input type="tel" id="new-cust-phone" required pattern="[0-9]{10}" placeholder="10-digit mobile" style="background: var(--panel-dark); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
         </div>
         <div style="display:flex; flex-direction:column; gap:4px;">
           <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Initial Credit Balance (Optional)</label>
-          <input type="number" id="new-cust-credit" placeholder="₹0.00" value="0" min="0" style="background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
+          <input type="number" id="new-cust-credit" placeholder="₹0.00" value="0" min="0" style="background: var(--panel-dark); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
         </div>
         
         <div style="display:flex; gap:10px; margin-top: 10px;">
@@ -1164,7 +1188,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
               <i data-lucide="trending-up" style="width:16px; height:16px; color:var(--color-primary);"></i>
               <span style="font-size:12px; font-weight:600; color:#fff;">Grid Arrangement Mode</span>
             </div>
-            <select id="tile-sort-mode" style="background:rgba(0,0,0,0.25); border:1px solid var(--panel-border); color:#fff; padding:6px 12px; border-radius:8px; outline:none; font-size:11px; cursor:pointer; font-weight:700;">
+            <select id="tile-sort-mode" style="background:var(--panel-dark); border:1px solid var(--panel-border); color:#fff; padding:6px 12px; border-radius:8px; outline:none; font-size:11px; cursor:pointer; font-weight:700;">
               <option value="usage">Most Used First (Dynamic)</option>
               <option value="manual">Manual Sorting (Reorder List)</option>
             </select>
@@ -1176,11 +1200,11 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
             <form id="add-tile-form" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
               <div style="grid-column: span 2; display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Service Label / Name</label>
-                <input type="text" id="tile-label" required placeholder="e.g. Birth Certificate" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px;">
+                <input type="text" id="tile-label" required placeholder="e.g. Birth Certificate" style="background:var(--panel-dark); border: 1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px;">
               </div>
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Category</label>
-                <select id="tile-cat" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
+                <select id="tile-cat" style="background:var(--panel-dark); border: 1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
                   <option value="g2c">G2C Services</option>
                   <option value="utility">Recharges & Utility</option>
                   <option value="aeps">AEPS Cash Out</option>
@@ -1189,7 +1213,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
               </div>
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Icon Type</label>
-                <select id="tile-icon" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
+                <select id="tile-icon" style="background:var(--panel-dark); border: 1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
                   <option value="file-text">Document</option>
                   <option value="printer">Printer</option>
                   <option value="phone">Phone / Mobile</option>
@@ -1203,11 +1227,11 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
               </div>
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Charge Customer (₹)</label>
-                <input type="number" id="tile-price" required value="60" min="0" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; font-weight:700;">
+                <input type="number" id="tile-price" required value="60" min="0" style="background:var(--panel-dark); border: 1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; font-weight:700;">
               </div>
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Default Deduction Source</label>
-                <select id="tile-deduct-source" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
+                <select id="tile-deduct-source" style="background:var(--panel-dark); border: 1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
                   <option value="none">None (DTP/Print)</option>
                   <option value="csc">CSC Wallet</option>
                   <option value="paynearby">PayNearby Wallet</option>
@@ -1216,7 +1240,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
               </div>
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Default Cost Deducted (₹)</label>
-                <input type="number" id="tile-deduct-amount" required value="15" min="0" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; font-weight:700;">
+                <input type="number" id="tile-deduct-amount" required value="15" min="0" style="background:var(--panel-dark); border: 1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; font-weight:700;">
               </div>
               <div style="grid-column: span 2; display:flex; justify-content:flex-end; margin-top: 5px;">
                 <button type="submit" style="background:var(--color-primary); border:none; color:#fff; padding:10px 20px; border-radius:8px; font-weight:700; cursor:pointer; font-size:12px; transition: var(--transition-smooth); width: 100%;">Add Service Tile</button>
@@ -1456,11 +1480,11 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       row.className = 'pos-deduction-row';
       row.style.cssText = 'display: grid; grid-template-columns: 1fr 100px 32px; gap: 8px; align-items: center; margin-bottom: 4px;';
       row.innerHTML = `
-        <select class="pos-deduction-select" style="background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); color: #fff; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 600; outline: none; cursor: pointer;">
+        <select class="pos-deduction-select" style="background: var(--panel-dark); border: 1px solid var(--panel-border); color: #fff; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 600; outline: none; cursor: pointer;">
           <option value="none">None (No Deduction)</option>
           ${WALLETS.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
         </select>
-        <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 8px; height: 35px;">
+        <div style="display:flex; align-items:center; background: var(--panel-dark); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 8px; height: 35px;">
           <span style="font-size: 11px; color: var(--color-success); font-weight: 700; margin-right: 4px;">₹</span>
           <input type="number" step="any" class="pos-deduction-amount" value="${parseFloat(amount).toFixed(2)}" style="background:transparent; border:none; color: var(--color-success); font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
         </div>
