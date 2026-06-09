@@ -729,6 +729,14 @@
       100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
+    @keyframes pulseIndigo {
+      0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+
+    .tx-log-badge.credit { background: rgba(239, 68, 68, 0.1); color: var(--color-danger); }
+
     .drawer-modal h2 {
       font-size: 20px;
       margin-bottom: 10px;
@@ -834,12 +842,36 @@
       </div>
 
       <!-- Customer Section -->
-      <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <i data-lucide="user" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
-          <span style="font-size: 13px; font-weight: 600;">Walk-in Customer</span>
+      <div style="background: rgba(18, 24, 38, 0.5); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 200px;">
+            <i data-lucide="user" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-right: 5px;">Citizen:</span>
+            <!-- Custom Styled Select Dropdown -->
+            <select id="pos-customer-select" style="background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); color: var(--text-main); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; outline: none; flex: 1; max-width: 250px; cursor: pointer;">
+              <option value="walkin">Walk-in Customer</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btn-quick-add-customer" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: var(--color-primary); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; display:flex; align-items:center; gap:4px; transition: var(--transition-smooth);">
+              <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Register Citizen
+            </button>
+            <span style="font-size: 11px; color: var(--text-dimmed); margin-left: 10px;">Operator: SHIBU</span>
+          </div>
         </div>
-        <span style="font-size: 11px; color: var(--text-dimmed);">Active Session Operator: SHIBU (Owner)</span>
+        
+        <!-- Active Selected Customer Details -->
+        <div id="selected-customer-info" style="display: none; border-top: 1px dashed var(--panel-border); padding-top: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; gap: 15px; font-size: 11px; color: var(--text-muted);">
+            <span><strong style="color:var(--text-main);">Phone:</strong> <span id="lbl-cust-phone">-</span></span>
+            <span><strong style="color:var(--text-main);">ID:</strong> <span id="lbl-cust-id">-</span></span>
+          </div>
+          <div style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.1); color: var(--color-warning); border: 1px solid rgba(245, 158, 11, 0.2);" id="lbl-cust-credit-badge">
+            Outstanding Credit: ₹0.00
+          </div>
+        </div>
       </div>
 
       <!-- Categories Navigation -->
@@ -932,6 +964,37 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     </div>
   </div>
 
+  <!-- 4. Quick Customer Registration Overlay -->
+  <div id="customer-modal-overlay" class="drawer-overlay">
+    <div class="drawer-modal" style="max-width: 480px; border-color: var(--color-primary); box-shadow: 0 0 50px var(--color-primary-glow);">
+      <div class="drawer-icon-anim" style="background: rgba(99, 102, 241, 0.1); color: var(--color-primary); animation: pulseIndigo 1.5s infinite;">
+        <i data-lucide="user-plus" style="width: 40px; height: 40px;"></i>
+      </div>
+      <h2>Register New Citizen</h2>
+      <p style="margin-bottom: 15px;">Add their profile to log transactions and enable store credit accounts.</p>
+      
+      <form id="pos-add-customer-form" style="text-align: left; display:flex; flex-direction:column; gap:12px; margin-bottom: 20px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Full Name</label>
+          <input type="text" id="new-cust-name" required placeholder="e.g. Ramesh Kumar" style="background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Phone Number</label>
+          <input type="tel" id="new-cust-phone" required pattern="[0-9]{10}" placeholder="10-digit mobile" style="background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Initial Credit Balance (Optional)</label>
+          <input type="number" id="new-cust-credit" placeholder="₹0.00" value="0" min="0" style="background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: #fff; padding: 10px; border-radius: 8px; outline: none; font-size: 13px;">
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-top: 10px;">
+          <button type="button" id="close-customer-modal" class="btn-close-modal" style="background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: var(--text-main); flex: 1;">Cancel</button>
+          <button type="submit" class="btn-close-modal" style="background: var(--color-primary); flex: 1;">Save Citizen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Core Javascript Logic -->
   <script>
     // Services Database Array
@@ -952,11 +1015,19 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
 
     // Mock Recent Transactions Log Data
     let recentTransactions = [
-      { id: 'TXN-901', desc: 'e-District Certificate (x1)', amount: 60, time: '2 mins ago', mode: 'Cash' },
-      { id: 'TXN-902', desc: 'Black & White Printout (x4)', amount: 40, time: '8 mins ago', mode: 'Cash' },
-      { id: 'TXN-903', desc: 'Aadhaar Demographic Update (x1)', amount: 100, time: '15 mins ago', mode: 'Online' },
-      { id: 'TXN-904', desc: 'PAN Card Application (x1)', amount: 120, time: '22 mins ago', mode: 'Wallet' },
-      { id: 'TXN-905', desc: 'Mobile Recharge Plan (x1)', amount: 299, time: '40 mins ago', mode: 'Online' }
+      { id: 'TXN-901', desc: 'Ramesh Kumar - e-District Certificate (x1)', amount: 60, time: '2 mins ago', mode: 'Cash' },
+      { id: 'TXN-902', desc: 'Walk-in Customer - Black & White Printout (x4)', amount: 40, time: '8 mins ago', mode: 'Cash' },
+      { id: 'TXN-903', desc: 'Walk-in Customer - Aadhaar Demographic Update (x1)', amount: 100, time: '15 mins ago', mode: 'Online' },
+      { id: 'TXN-904', desc: 'Vijay Das - PAN Card Application (x1)', amount: 120, time: '22 mins ago', mode: 'Credit' },
+      { id: 'TXN-905', desc: 'Walk-in Customer - Mobile Recharge Plan (x1)', amount: 299, time: '40 mins ago', mode: 'Online' }
+    ];
+
+    // Mock Customers Database
+    let customers = [
+      { id: 'CUST-001', name: 'Ramesh Kumar', phone: '9072809735', credit: 120 },
+      { id: 'CUST-002', name: 'Anjali Nair', phone: '9446801234', credit: 0 },
+      { id: 'CUST-003', name: 'Vijay Das', phone: '9895011223', credit: 450 },
+      { id: 'CUST-004', name: 'Sujatha Pillai', phone: '9562410293', credit: 15 }
     ];
 
     // State
@@ -980,11 +1051,26 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const closeDrawerModalBtn = document.getElementById('close-drawer-modal');
     const categoryBtns = document.querySelectorAll('.category-btn');
 
+    // Customer Elements
+    const customerSelect = document.getElementById('pos-customer-select');
+    const customerInfo = document.getElementById('selected-customer-info');
+    const lblCustPhone = document.getElementById('lbl-cust-phone');
+    const lblCustId = document.getElementById('lbl-cust-id');
+    const lblCustCreditBadge = document.getElementById('lbl-cust-credit-badge');
+    const btnQuickAddCustomer = document.getElementById('btn-quick-add-customer');
+    const customerModalOverlay = document.getElementById('customer-modal-overlay');
+    const closeCustomerModalBtn = document.getElementById('close-customer-modal');
+    const posAddCustomerForm = document.getElementById('pos-add-customer-form');
+    const newCustName = document.getElementById('new-cust-name');
+    const newCustPhone = document.getElementById('new-cust-phone');
+    const newCustCredit = document.getElementById('new-cust-credit');
+
     // --- Navigation Handlers ---
     cardPosMode.addEventListener('click', () => {
       selectionScreen.style.display = 'none';
       posScreen.style.display = 'grid';
       renderGrid('all');
+      populateCustomers();
     });
 
     cardAdminMode.addEventListener('click', () => {
@@ -1004,6 +1090,88 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         const cat = btn.getAttribute('data-cat');
         renderGrid(cat);
       });
+    });
+
+    // --- Customer Selection & Registration Handlers ---
+    
+    // Populate Customer Dropdown
+    function populateCustomers() {
+      // Keep Walk-in Customer as default
+      customerSelect.innerHTML = '<option value="walkin">Walk-in Customer</option>';
+      customers.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.innerText = `${c.name} (${c.phone})`;
+        customerSelect.appendChild(opt);
+      });
+      lucide.createIcons();
+    }
+
+    // Customer Dropdown Change Handler
+    customerSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'walkin') {
+        customerInfo.style.display = 'none';
+        // Remove Credit payment option if active
+        if (paymentModeSelect.value === 'Credit') {
+          paymentModeSelect.value = 'Cash';
+        }
+        const optCredit = document.getElementById('opt-credit');
+        if (optCredit) optCredit.remove();
+      } else {
+        const cust = customers.find(c => c.id === val);
+        if (cust) {
+          lblCustPhone.innerText = cust.phone;
+          lblCustId.innerText = cust.id;
+          lblCustCreditBadge.innerText = `Outstanding Credit: ₹${cust.credit.toFixed(2)}`;
+          customerInfo.style.display = 'flex';
+
+          // Inject Store Credit option dynamically into payment selector
+          let optCredit = document.getElementById('opt-credit');
+          if (!optCredit) {
+            optCredit = document.createElement('option');
+            optCredit.id = 'opt-credit';
+            optCredit.value = 'Credit';
+            optCredit.style.color = 'var(--color-danger)';
+            optCredit.innerText = 'Store Credit (Pay Later)';
+            paymentModeSelect.appendChild(optCredit);
+          }
+        }
+      }
+    });
+
+    // Register Citizen Modal toggling
+    btnQuickAddCustomer.addEventListener('click', () => {
+      customerModalOverlay.classList.add('show');
+    });
+
+    closeCustomerModalBtn.addEventListener('click', () => {
+      customerModalOverlay.classList.remove('show');
+      posAddCustomerForm.reset();
+    });
+
+    // Submit New Customer
+    posAddCustomerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = newCustName.value.trim();
+      const phone = newCustPhone.value.trim();
+      const creditVal = parseFloat(newCustCredit.value);
+      const credit = isNaN(creditVal) ? 0 : creditVal;
+
+      if (!name || !phone) return;
+
+      const newId = `CUST-${String(customers.length + 1).padStart(3, '0')}`;
+      const newCust = { id: newId, name, phone, credit };
+      customers.push(newCust);
+
+      // Repopulate and select new citizen
+      populateCustomers();
+      customerSelect.value = newId;
+      customerSelect.dispatchEvent(new Event('change'));
+
+      // Close modal
+      customerModalOverlay.classList.remove('show');
+      posAddCustomerForm.reset();
     });
 
     // --- POS Logic & Rendering ---
@@ -1193,10 +1361,24 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       const mode = paymentModeSelect.value;
       const descText = descriptionParts.join(', ');
 
+      // Resolve selected customer
+      const custVal = customerSelect.value;
+      let customerName = 'Walk-in Customer';
+      if (custVal !== 'walkin') {
+        const cust = customers.find(c => c.id === custVal);
+        if (cust) {
+          customerName = cust.name;
+          if (mode === 'Credit') {
+            cust.credit += total;
+            lblCustCreditBadge.innerText = `Outstanding Credit: ₹${cust.credit.toFixed(2)}`;
+          }
+        }
+      }
+
       // Add to mock recent transactions log
       recentTransactions.unshift({
         id: `TXN-${Math.floor(100 + Math.random() * 900)}`,
-        desc: descText,
+        desc: `${customerName} - ${descText}`,
         amount: total,
         time: 'Just now',
         mode: mode
