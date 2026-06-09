@@ -196,12 +196,29 @@ class Application {
         const response = await fetch(url, { headers });
         if (response.ok) {
           const fileData = await response.json();
-          // Remove all whitespace/newlines from base64 content before running atob() to prevent parser exceptions
-          const cleanBase64 = fileData.content.replace(/\s/g, '');
-          const decoded = decodeURIComponent(escape(atob(cleanBase64)));
-          remoteData = JSON.parse(decoded);
-          console.log("Database successfully fetched directly from GitHub REST API");
-          store.setSyncStatus('synced');
+          let base64Content = fileData.content || "";
+          
+          if (!base64Content && fileData.sha) {
+            console.log(`db.json exceeds 1 MB. Fetching content via Git Data Blobs API (SHA: ${fileData.sha})...`);
+            const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
+            const blobRes = await fetch(blobUrl, { headers });
+            if (blobRes.ok) {
+              const blobData = await blobRes.json();
+              base64Content = blobData.content || "";
+            } else {
+              console.warn(`Git Data Blobs API fetch failed: ${blobRes.status}`);
+            }
+          }
+
+          if (base64Content) {
+            const cleanBase64 = base64Content.replace(/\s/g, '');
+            const decoded = decodeURIComponent(escape(atob(cleanBase64)));
+            remoteData = JSON.parse(decoded);
+            console.log("Database successfully fetched directly from GitHub REST API");
+            store.setSyncStatus('synced');
+          } else {
+            console.warn("Could not retrieve content for db.json from GitHub REST API");
+          }
         } else {
           console.warn(`GitHub REST API content fetch returned non-200: ${response.status}`);
         }
@@ -1130,10 +1147,28 @@ class Application {
       const response = await fetch(url, { headers });
       if (response.ok) {
         const fileData = await response.json();
-        const cleanBase64 = fileData.content.replace(/\s/g, '');
-        const decoded = decodeURIComponent(escape(atob(cleanBase64)));
-        githubData = JSON.parse(decoded);
-        console.log("Sync: Fetched latest data from GitHub REST API");
+        let base64Content = fileData.content || "";
+        
+        if (!base64Content && fileData.sha) {
+          console.log(`Sync: db.json exceeds 1 MB. Fetching via Git Data Blobs API (SHA: ${fileData.sha})...`);
+          const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
+          const blobRes = await fetch(blobUrl, { headers });
+          if (blobRes.ok) {
+            const blobData = await blobRes.json();
+            base64Content = blobData.content || "";
+          } else {
+            throw new Error(`Git Data Blobs API fetch failed: ${blobRes.status}`);
+          }
+        }
+
+        if (base64Content) {
+          const cleanBase64 = base64Content.replace(/\s/g, '');
+          const decoded = decodeURIComponent(escape(atob(cleanBase64)));
+          githubData = JSON.parse(decoded);
+          console.log("Sync: Fetched latest data from GitHub REST API");
+        } else {
+          throw new Error("Could not retrieve contents for db.json from GitHub REST API");
+        }
       } else {
         throw new Error(`GitHub fetch failed: ${response.status}`);
       }
