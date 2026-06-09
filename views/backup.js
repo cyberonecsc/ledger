@@ -3,6 +3,7 @@
    ========================================================================== */
 
 import { store } from '../store.js';
+import { firebaseService } from '../firebase.js';
 
 export function renderBackupRestore(mountPoint, appInstance) {
   mountPoint.innerHTML = `
@@ -58,6 +59,41 @@ export function renderBackupRestore(mountPoint, appInstance) {
         </div>
 
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Sync Credentials</button>
+      </form>
+    </div>
+
+    <!-- Firebase Realtime Database Sync Configurations -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Firebase Realtime Database Sync</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Enable instant real-time synchronization via WebSockets (Alternative to GitHub API)</span>
+      </div>
+      <form id="form-firebase-sync">
+        <div class="form-group" style="margin-bottom:15px;">
+          <label class="form-label" style="font-size:11px;">Firebase Config JSON</label>
+          <textarea id="firebase-config" class="form-control" style="font-size:12px; font-family: monospace; height: 120px;" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "...",
+  "databaseURL": "https://...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' required>${localStorage.getItem('cyberone_v2_firebase_config') || ''}</textarea>
+          <span style="font-size:10px; color:var(--text-dimmed); margin-top: 4px; display:block;">
+            *Paste the entire `firebaseConfig` JSON object from your Firebase Web App Console.
+          </span>
+        </div>
+        
+        <div style="display:flex; flex-wrap: wrap; gap:10px; margin-top: 15px;">
+          <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Firebase Config</button>
+          <button type="button" id="btn-firebase-migrate" class="btn btn-sm btn-success" style="width:220px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            <i data-lucide="upload-cloud" style="width: 14px; height: 14px;"></i> Migrate Data to Firebase
+          </button>
+          <button type="button" id="btn-firebase-clear" class="btn btn-sm btn-secondary" style="width:180px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.2); color: #ef4444;">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Clear Config
+          </button>
+        </div>
       </form>
     </div>
 
@@ -378,6 +414,105 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
 
       appInstance.showToast('GitHub Sync parameters saved & synced!', 'success');
     });
+  }
+
+  // Firebase Sync Save Handler
+  const formFirebaseSync = document.getElementById('form-firebase-sync');
+  if (formFirebaseSync) {
+    formFirebaseSync.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const configStr = document.getElementById('firebase-config').value.trim();
+      
+      try {
+        if (configStr) {
+          // Validate JSON format
+          JSON.parse(configStr);
+          localStorage.setItem('cyberone_v2_firebase_config', configStr);
+        } else {
+          localStorage.removeItem('cyberone_v2_firebase_config');
+        }
+        
+        appInstance.showToast('Firebase configurations saved successfully!', 'success');
+        
+        // Wait and reload to initialize Firebase
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (err) {
+        appInstance.showToast('Invalid Firebase Config JSON format!', 'error');
+      }
+    });
+
+    const btnFirebaseClear = document.getElementById('btn-firebase-clear');
+    if (btnFirebaseClear) {
+      btnFirebaseClear.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear your Firebase configuration?')) {
+          localStorage.removeItem('cyberone_v2_firebase_config');
+          firebaseService.unsubscribe();
+          appInstance.showToast('Firebase configuration cleared.', 'success');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
+      });
+    }
+
+    const btnFirebaseMigrate = document.getElementById('btn-firebase-migrate');
+    if (btnFirebaseMigrate) {
+      btnFirebaseMigrate.addEventListener('click', async () => {
+        const configStr = localStorage.getItem('cyberone_v2_firebase_config');
+        if (!configStr) {
+          appInstance.showToast('Please save your Firebase configuration first!', 'error');
+          return;
+        }
+
+        // Initialize if not already done
+        if (!firebaseService.isInitialized()) {
+          firebaseService.initialize(configStr);
+        }
+
+        if (!firebaseService.isInitialized()) {
+          appInstance.showToast('Could not initialize Firebase. Check your config JSON.', 'error');
+          return;
+        }
+
+        appInstance.showToast('Migrating local data to Firebase...', 'info');
+
+        // Compile payload
+        const payload = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('cyberone_v2_')) {
+            if ([
+              'cyberone_v2_current_user',
+              'cyberone_v2_active_date',
+              'cyberone_v2_sidebar_collapsed',
+              'cyberone_v2_last_sync_date',
+              'cyberone_v2_local_snapshots',
+              'cyberone_v2_firebase_config'
+            ].includes(key)) {
+              continue;
+            }
+            payload[key] = localStorage.getItem(key);
+          }
+        }
+        const users = localStorage.getItem('cyberone_v2_users');
+        if (users) {
+          payload['cyberone_v2_users'] = users;
+        }
+
+        // Add last modified timestamp
+        payload['cyberone_v2_last_modified'] = new Date().toISOString();
+        localStorage.setItem('cyberone_v2_last_modified', payload['cyberone_v2_last_modified']);
+
+        const success = await firebaseService.saveData(store.centerProfile.code, payload);
+        if (success) {
+          appInstance.showToast('Data migration to Firebase completed successfully!', 'success');
+        } else {
+          appInstance.showToast('Data migration failed. Check network or database rules.', 'error');
+        }
+      });
+    }
   }
 }
 
