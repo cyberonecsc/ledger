@@ -4,7 +4,7 @@
 
 import { auth } from './auth.js';
 import { store, getTodayDateString, obfuscateToken } from './store.js';
-import { firebaseService } from './firebase.js';
+import { firebaseService, DEFAULT_FIREBASE_CONFIG } from './firebase.js';
 
 export function deobfuscateToken(obfuscated) {
   if (!obfuscated) return '';
@@ -107,8 +107,13 @@ class Application {
     // Load database from GitHub Pages db.json relative location on boot
     await this.loadDatabaseFromGitHub();
 
-    // Initialize Firebase if configuration is present
+    // Initialize Firebase configuration if not already present
     let firebaseConfig = localStorage.getItem('cyberone_v2_firebase_config');
+    if (!firebaseConfig) {
+      firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
+      localStorage.setItem('cyberone_v2_firebase_config', firebaseConfig);
+    }
+
     if (firebaseConfig) {
       firebaseService.initialize(firebaseConfig);
       if (firebaseService.isInitialized()) {
