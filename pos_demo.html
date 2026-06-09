@@ -39,7 +39,8 @@
     body {
       background: var(--bg-dark);
       color: var(--text-main);
-      overflow-x: hidden;
+      overflow: hidden;
+      height: 100vh;
       min-height: 100vh;
     }
 
@@ -160,7 +161,9 @@
     .pos-workspace {
       display: none; /* Toggled via JS */
       grid-template-columns: 1fr 380px;
-      min-height: 100vh;
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
       background: var(--bg-dark);
     }
 
@@ -298,6 +301,9 @@
       justify-content: center;
       gap: 10px;
       min-height: 110px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      will-change: transform;
     }
 
     .pos-grid-btn:hover {
