@@ -10,11 +10,11 @@ export function renderBackupRestore(mountPoint, appInstance) {
     <!-- Database Backup & Sync Config -->
     <div class="glass-card" style="padding:24px; max-width: 700px;">
       <div class="section-header" style="margin-bottom:15px;">
-        <h3>Database Backup & Sync</h3>
-        <span style="font-size:12px; color:var(--text-muted);">Synchronize ledger data between GitHub Pages and your local server</span>
+        <h3>Database Backup & Restore</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Export or import ledger data backups</span>
       </div>
       <p style="font-size: 13px; line-height: 1.5; color: var(--text-muted); margin-bottom: 20px;">
-        As browsers isolate local storage by site address, data entered on your GitHub live website is separate from your local server. Use this tool to export a backup file from GitHub and import it here to make your daily balance sheets match perfectly.
+        Use this tool to export a backup file of your ledger data or import an existing backup file to restore your settings and transaction logs.
       </p>
       <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
         <button id="btn-export-backup" class="btn btn-sm btn-success" style="display: inline-flex; align-items: center; gap: 8px;">
@@ -26,40 +26,7 @@ export function renderBackupRestore(mountPoint, appInstance) {
           </button>
           <input type="file" id="input-import-backup" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;">
         </div>
-        <button id="btn-github-sync" class="btn btn-sm btn-info" style="display: inline-flex; align-items: center; gap: 8px; background: #8b5cf6; border-color: #8b5cf6;">
-          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Sync Database
-        </button>
       </div>
-    </div>
-
-    <!-- GitHub Auto-Sync Settings Config -->
-    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
-      <div class="section-header" style="margin-bottom:15px;">
-        <h3>GitHub Auto-Sync Configurations</h3>
-        <span style="font-size:12px; color:var(--text-muted);">Enable remote sync for when you access the portal from other devices</span>
-      </div>
-      <form id="form-github-sync">
-        <div class="form-group" style="margin-bottom:15px;">
-          <label class="form-label" style="font-size:11px;">GitHub Personal Access Token (PAT)</label>
-          <input type="password" id="github-token" class="form-control" value="${localStorage.getItem('cyberone_v2_github_token') || ''}" style="font-size:12px;" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-          <span style="font-size:10px; color:var(--text-dimmed); margin-top: 4px; display:block;">
-            *Required for updating database when accessed on remote locations (GitHub Pages).
-          </span>
-        </div>
-        
-        <div class="form-row" style="margin-bottom:20px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:11px;">Repository Path</label>
-            <input type="text" id="github-repo" class="form-control" value="${localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger'}" style="font-size:12px;" required>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" style="font-size:11px;">Target Branch</label>
-            <input type="text" id="github-branch" class="form-control" value="${localStorage.getItem('cyberone_v2_github_branch') || 'main'}" style="font-size:12px;" required>
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Sync Credentials</button>
-      </form>
     </div>
 
     <!-- Firebase Realtime Database Sync Configurations -->
@@ -187,7 +154,7 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
 
   // Set titles in header
   document.getElementById('page-heading-title').innerText = 'Database Backup & Restore';
-  document.getElementById('page-heading-sub').innerText = 'Export backups, sync between localhost and online, or configure checkpoints';
+  document.getElementById('page-heading-sub').innerText = 'Export backups, configure automatic checkpoints, or import data';
 
   lucide.createIcons();
 
@@ -260,13 +227,6 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
     reader.readAsText(file);
   });
 
-  // Sync Database handler delegating to application instance
-  const btnSync = document.getElementById('btn-github-sync');
-  if (btnSync) {
-    btnSync.addEventListener('click', () => {
-      appInstance.syncDatabase();
-    });
-  }
 
   // Auto-backup configuration form setup
   const backupConfig = store.getAutoBackupConfig();
@@ -392,29 +352,6 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
     }
   }
 
-  // GitHub Sync Save Handler
-  const formGithubSync = document.getElementById('form-github-sync');
-  if (formGithubSync) {
-    formGithubSync.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const token = document.getElementById('github-token').value.trim();
-      const repo = document.getElementById('github-repo').value.trim();
-      const branch = document.getElementById('github-branch').value.trim();
-
-      if (token) {
-        localStorage.setItem('cyberone_v2_github_token', token);
-      } else {
-        localStorage.removeItem('cyberone_v2_github_token');
-      }
-      localStorage.setItem('cyberone_v2_github_repo', repo);
-      localStorage.setItem('cyberone_v2_github_branch', branch);
-
-      // Trigger immediate disk save and git push
-      store.persistAll();
-
-      appInstance.showToast('GitHub Sync parameters saved & synced!', 'success');
-    });
-  }
 
   // Firebase Sync Save Handler
   const formFirebaseSync = document.getElementById('form-firebase-sync');

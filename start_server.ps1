@@ -7,15 +7,6 @@ $port = 8080
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
 
-# Auto-sync with GitHub remote on startup to get latest code updates
-try {
-    Write-Host "Syncing code with GitHub remote..." -ForegroundColor Cyan
-    git fetch origin
-    git reset --hard origin/main
-    Write-Host "Successfully synced code with GitHub main branch!" -ForegroundColor Green
-} catch {
-    Write-Warning "Could not sync code with GitHub remote. Running in offline mode."
-}
 
 try {
     $listener.Start()
@@ -58,32 +49,6 @@ while ($listener.IsListening) {
                 
                 $dbPath = Join-Path $PSScriptRoot "db.json"
                 [System.IO.File]::WriteAllText($dbPath, $body)
-                
-                # Run background Git push job and log results
-                Start-Job -ScriptBlock {
-                    param($repoPath)
-                    cd $repoPath
-                    $logFile = Join-Path $repoPath "git_sync.log"
-                    Get-Date | Out-File $logFile -Append
-                    
-                    # Back up our latest merged database state
-                    $tempDbPath = [System.IO.Path]::GetTempFileName()
-                    Copy-Item "db.json" $tempDbPath -Force
-                    
-                    # Fetch origin and hard reset our local branch to match origin/main
-                    # This cleanly clears any local commits or push conflicts
-                    git fetch origin 2>&1 | Out-File $logFile -Append
-                    git reset --hard origin/main 2>&1 | Out-File $logFile -Append
-                    
-                    # Overwrite db.json with our merged version
-                    Copy-Item $tempDbPath "db.json" -Force
-                    Remove-Item $tempDbPath -ErrorAction SilentlyContinue
-                    
-                    # Add, commit, and push
-                    git add db.json 2>&1 | Out-File $logFile -Append
-                    git commit -m "Auto-sync database update" 2>&1 | Out-File $logFile -Append
-                    git push origin main 2>&1 | Out-File $logFile -Append
-                } -ArgumentList $PSScriptRoot | Out-Null
                 
                 $response.ContentType = "application/json"
                 $response.AddHeader("Access-Control-Allow-Origin", "*")

@@ -5,39 +5,6 @@
 import { auth } from './auth.js';
 import { firebaseService } from './firebase.js';
 
-export function obfuscateToken(token) {
-  if (!token) return '';
-  // Custom shift obfuscation to bypass GitHub secret scanning
-  const shifted = token.split('').map(char => {
-    return String.fromCharCode(char.charCodeAt(0) + 7);
-  }).join('');
-  return btoa(shifted);
-}
-
-export function deobfuscateToken(obfuscated) {
-  if (!obfuscated) return '';
-  try {
-    const decoded = atob(obfuscated);
-    
-    // 1. Try custom shift-7 deobfuscation
-    const shiftedBack = decoded.split('').map(char => {
-      return String.fromCharCode(char.charCodeAt(0) - 7);
-    }).join('');
-    if (shiftedBack.startsWith('ghp_') || shiftedBack.startsWith('github_pat_')) {
-      return shiftedBack;
-    }
-    
-    // 2. Fallback to old reverse deobfuscation
-    const reversed = decoded.split('').reverse().join('');
-    if (reversed.startsWith('ghp_') || reversed.startsWith('github_pat_')) {
-      return reversed;
-    }
-    
-    return decoded;
-  } catch (e) {
-    return obfuscated;
-  }
-}
 
 // Helper to get today's date in YYYY-MM-DD format
 export function getTodayDateString() {
@@ -524,7 +491,10 @@ class StateStore {
             'cyberone_v2_sidebar_collapsed',
             'cyberone_v2_last_sync_date',
             'cyberone_v2_local_snapshots',
-            'cyberone_v2_firebase_config'
+            'cyberone_v2_firebase_config',
+            'cyberone_v2_github_token',
+            'cyberone_v2_github_repo',
+            'cyberone_v2_github_branch'
           ].includes(key)) {
             continue;
           }
@@ -554,11 +524,7 @@ class StateStore {
           }
         });
     } else {
-      // 2. Otherwise fall back to GitHub and local server disk sync
-      // Background sync changes to GitHub Pages
-      this.syncToGitHubPages();
-      
-      // Auto-sync database changes
+      // 2. Otherwise fall back to local server disk sync
       this.syncDatabaseState();
     }
   }
@@ -1514,46 +1480,6 @@ class StateStore {
     return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   }
 
-  syncToGitHubPages() {
-    if (!this.isLocalhost()) return;
-    if (!document.body) {
-      window.addEventListener('DOMContentLoaded', () => this.syncToGitHubPages());
-      return;
-    }
-    let iframe = document.getElementById('cyberone-sync-iframe');
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'cyberone-sync-iframe';
-      iframe.style.display = 'none';
-      iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
-      document.body.appendChild(iframe);
-    }
-    
-    const sendData = () => {
-      const payload = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('cyberone_v2_')) {
-          payload[key] = localStorage.getItem(key);
-        }
-      }
-      if (iframe.contentWindow) {
-        iframe.contentWindow.postMessage({
-          type: 'write_sync_data',
-          data: payload
-        }, 'https://cyberonecsc.github.io');
-      }
-    };
-
-    if (iframe.dataset.loaded === 'true') {
-      sendData();
-    } else {
-      iframe.onload = () => {
-        iframe.dataset.loaded = 'true';
-        sendData();
-      };
-    }
-  }
 
   getLocalSnapshots() {
     const data = localStorage.getItem('cyberone_v2_local_snapshots');
@@ -1721,15 +1647,14 @@ class StateStore {
           'cyberone_v2_active_date',
           'cyberone_v2_sidebar_collapsed',
           'cyberone_v2_last_sync_date',
-          'cyberone_v2_local_snapshots'
+          'cyberone_v2_local_snapshots',
+          'cyberone_v2_github_token',
+          'cyberone_v2_github_repo',
+          'cyberone_v2_github_branch'
         ].includes(key)) {
           continue;
         }
         let val = localStorage.getItem(key);
-        if (key === 'cyberone_v2_github_token') {
-          if (!val) continue; // Skip empty token to prevent overwriting valid remote token
-          val = obfuscateToken(val);
-        }
         payload[key] = val;
       }
     }
@@ -1738,7 +1663,7 @@ class StateStore {
       payload['cyberone_v2_users'] = users;
     }
 
-    // Try relative endpoint first. Works on localhost and any local LAN IP of the server.
+    // Try relative endpoint. Works on localhost and any local LAN IP of the server.
     fetch('./api/save', {
       method: 'POST',
       headers: {
@@ -1754,109 +1679,13 @@ class StateStore {
       }
     })
     .then(data => {
-      console.log('Successfully saved to local server database & pushed to Git:', data);
+      console.log('Successfully saved to local server database:', data);
       this.setSyncStatus('synced');
     })
     .catch(err => {
-      // If relative save fails, it means we are on a remote client (GitHub Pages)
-      // and should sync directly to GitHub via the REST API using the PAT token.
-      console.log('Relative server save failed/not supported. Syncing via GitHub REST API:', err);
-      this.pushToGitHubAPI();
-    });
-  }
-
-  async pushToGitHubAPI() {
-    let token = localStorage.getItem('cyberone_v2_github_token');
-    if (!token) {
-      token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
-      localStorage.setItem('cyberone_v2_github_token', token);
-    }
-    const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
-    const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
-
-    if (!token) {
-      console.warn('GitHub Personal Access Token is missing. Remote edits will not persist!');
+      console.log('Relative server save failed/not supported:', err);
       this.setSyncStatus('offline');
-      if (window.AppInstance && typeof window.AppInstance.showToast === 'function') {
-        window.AppInstance.showToast('Warning: GitHub Token missing in settings. Changes will not sync!', 'error');
-      }
-      return;
-    }
-
-    try {
-      this.setSyncStatus('syncing');
-      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`;
-      const fileRes = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-
-      let sha = '';
-      if (fileRes.ok) {
-        const fileData = await fileRes.json();
-        sha = fileData.sha;
-      } else {
-        console.error('Failed to fetch existing db.json details from GitHub REST API');
-        this.setSyncStatus('error');
-        return;
-      }
-
-      const payload = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('cyberone_v2_')) {
-          if ([
-            'cyberone_v2_current_user',
-            'cyberone_v2_active_date',
-            'cyberone_v2_sidebar_collapsed',
-            'cyberone_v2_last_sync_date',
-            'cyberone_v2_local_snapshots'
-          ].includes(key)) {
-            continue;
-          }
-          let val = localStorage.getItem(key);
-          if (key === 'cyberone_v2_github_token') {
-            if (!val) continue; // Skip empty token to prevent overwriting valid remote token
-            val = obfuscateToken(val);
-          }
-          payload[key] = val;
-        }
-      }
-      const users = localStorage.getItem('cyberone_v2_users');
-      if (users) {
-        payload['cyberone_v2_users'] = users;
-      }
-
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-      const putUrl = url.split('?')[0]; // Clean PUT URL without ref query parameter
-      const putRes = await fetch(putUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: 'Auto-sync database update from remote portal',
-          content: content,
-          sha: sha,
-          branch: branch
-        })
-      });
-
-      if (putRes.ok) {
-        console.log('Saved state to GitHub via REST API!');
-        this.setSyncStatus('synced');
-      } else {
-        console.error('Failed to push to GitHub via API:', await putRes.text());
-        this.setSyncStatus('error');
-      }
-    } catch (e) {
-      console.error('Error pushing to GitHub REST API:', e);
-      this.setSyncStatus('error');
-    }
+    });
   }
 }
 

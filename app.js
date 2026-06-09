@@ -3,33 +3,9 @@
    ========================================================================== */
 
 import { auth } from './auth.js';
-import { store, getTodayDateString, obfuscateToken } from './store.js';
+import { store, getTodayDateString } from './store.js';
 import { firebaseService, DEFAULT_FIREBASE_CONFIG } from './firebase.js';
 
-export function deobfuscateToken(obfuscated) {
-  if (!obfuscated) return '';
-  try {
-    const decoded = atob(obfuscated);
-    
-    // 1. Try custom shift-7 deobfuscation
-    const shiftedBack = decoded.split('').map(char => {
-      return String.fromCharCode(char.charCodeAt(0) - 7);
-    }).join('');
-    if (shiftedBack.startsWith('ghp_') || shiftedBack.startsWith('github_pat_')) {
-      return shiftedBack;
-    }
-    
-    // 2. Fallback to old reverse deobfuscation
-    const reversed = decoded.split('').reverse().join('');
-    if (reversed.startsWith('ghp_') || reversed.startsWith('github_pat_')) {
-      return reversed;
-    }
-    
-    return decoded;
-  } catch (e) {
-    return obfuscated;
-  }
-}
 
 // Import View Modules
 import { renderLogin } from './views/login.js';
@@ -104,8 +80,8 @@ class Application {
       this.updateSyncBadge(status);
     });
 
-    // Load database from GitHub Pages db.json relative location on boot
-    await this.loadDatabaseFromGitHub();
+    // Load database from local server db.json relative location on boot
+    await this.loadDatabase();
 
     // Initialize Firebase configuration if not already present
     let firebaseConfig = localStorage.getItem('cyberone_v2_firebase_config');
@@ -162,24 +138,18 @@ class Application {
     setInterval(() => {
       // Skip polling if Firebase Realtime Sync is active
       if (firebaseService.isInitialized()) return;
-
-      let token = localStorage.getItem('cyberone_v2_github_token');
-    if (!token) {
-      token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
-      localStorage.setItem('cyberone_v2_github_token', token);
-    }
       
       // Skip if tab is hidden
       if (document.visibilityState !== 'visible') return;
 
       const now = Date.now();
       const lastPoll = this.lastPollTime || 0;
-      const pollInterval = token ? 15000 : 60000; // 15s if token is present, 60s if not
+      const pollInterval = 30000; // Poll local server every 30s
 
       if (now - lastPoll >= pollInterval) {
         this.lastPollTime = now;
-        console.log(`Live-polling latest data from GitHub API (interval: ${pollInterval / 1000}s)...`);
-        this.loadDatabaseFromGitHub();
+        console.log("Live-polling latest data from local server...");
+        this.loadDatabase();
       }
     }, 1000);
 
@@ -219,79 +189,24 @@ class Application {
     this.handleRouting();
   }
 
-  async loadDatabaseFromGitHub() {
-    let token = localStorage.getItem('cyberone_v2_github_token');
-    if (!token) {
-      token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
-      localStorage.setItem('cyberone_v2_github_token', token);
-    }
-    const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
-    const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
+  async loadDatabase() {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     try {
       let remoteData = null;
 
-      // Always try fetching from the GitHub REST API first (even without a token)
-      // to bypass GitHub Pages CDN caching and deployment delays.
-      // We append a cache-busting timestamp to avoid local/proxy caching.
-      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`;
-      const headers = {
-        'Accept': 'application/vnd.github.v3+json'
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      try {
-        const response = await fetch(url, { headers });
-        if (response.ok) {
-          const fileData = await response.json();
-          let base64Content = fileData.content || "";
-          
-          if (!base64Content && fileData.sha) {
-            console.log(`db.json exceeds 1 MB. Fetching content via Git Data Blobs API (SHA: ${fileData.sha})...`);
-            const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
-            const blobRes = await fetch(blobUrl, { headers });
-            if (blobRes.ok) {
-              const blobData = await blobRes.json();
-              base64Content = blobData.content || "";
-            } else {
-              console.warn(`Git Data Blobs API fetch failed: ${blobRes.status}`);
-            }
-          }
-
-          if (base64Content) {
-            const cleanBase64 = base64Content.replace(/\s/g, '');
-            const decoded = decodeURIComponent(escape(atob(cleanBase64)));
-            remoteData = JSON.parse(decoded);
-            console.log("Database successfully fetched directly from GitHub REST API");
-            store.setSyncStatus('synced');
-          } else {
-            console.warn("Could not retrieve content for db.json from GitHub REST API");
-          }
-        } else {
-          console.warn(`GitHub REST API content fetch returned non-200: ${response.status}`);
+      const response = await fetch('./db.json?t=' + Date.now(), {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
-      } catch (apiErr) {
-        console.warn("Could not call GitHub REST API directly:", apiErr);
-      }
-
-      // If we couldn't fetch from GitHub API, fallback to relative fetch
-      if (!remoteData) {
-        const response = await fetch('./db.json?t=' + Date.now(), {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
-        });
-        if (response.ok) {
-          remoteData = await response.json();
-          console.log("Database fetched from relative db.json path");
-          store.setSyncStatus(token ? 'synced' : 'offline');
-        }
+      });
+      if (response.ok) {
+        remoteData = await response.json();
+        console.log("Database fetched from relative db.json path");
+        store.setSyncStatus(isLocalhost ? 'synced' : 'offline');
       }
 
       if (remoteData) {
@@ -308,7 +223,7 @@ class Application {
         const updated = this.mergeSyncData(remoteData, remoteIsOlder);
         
         if (updated) {
-          console.log("LocalStorage updated with remote database contents");
+          console.log("LocalStorage updated with local database contents");
           store.loadState();
           auth.reloadUsers(); // Refresh in-memory user list so newly synced accounts work for login
           
@@ -329,7 +244,7 @@ class Application {
         }
       }
     } catch (e) {
-      console.error("Could not fetch remote database:", e);
+      console.error("Could not fetch local database:", e);
       store.setSyncStatus('error');
     } finally {
       store.isDatabaseInitialized = true;

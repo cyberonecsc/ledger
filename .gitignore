@@ -11,3 +11,6 @@ $RECYCLE.BIN/
 
 # Log files
 *.log
+
+# Scratch scripts
+scratch/
