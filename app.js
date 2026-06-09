@@ -131,6 +131,12 @@ class Application {
               store.loadState();
               auth.reloadUsers();
               
+              // Also write to local server disk if running on localhost
+              const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+              if (isLocalhost) {
+                store.syncDatabaseState();
+              }
+              
               if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
                 this.needsUIRefresh = true;
               } else {

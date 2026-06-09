@@ -537,6 +537,12 @@ class StateStore {
           if (success) {
             console.log("Firebase: Saved database state successfully");
             this.setSyncStatus('synced');
+            
+            // Also write to local server disk if running on localhost
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (isLocal) {
+              this.syncDatabaseState();
+            }
           } else {
             console.error("Firebase: Database save failed");
             this.setSyncStatus('error');
