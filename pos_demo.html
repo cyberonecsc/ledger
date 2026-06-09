@@ -908,7 +908,7 @@
           <button id="btn-pos-settings" class="btn-back">
             <i data-lucide="settings" style="width: 14px; height: 14px;"></i> POS Settings
           </button>
-          <div class="pos-title">Quick Sales POS</div>
+          <div class="pos-title">Quick Sales POS <span style="font-size: 10px; color: var(--text-dimmed); font-weight: normal; margin-left: 5px;" id="pos-version-tag">v2.5-dom-cleared</span></div>
         </div>
         <div class="drawer-status-badge">
           <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>
@@ -1384,6 +1384,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       if (cardPosMode) {
         cardPosMode.addEventListener('click', () => {
           selectionScreen.innerHTML = ''; // Completely empty the DOM to destroy compositor layers
+          console.log("DEBUG: selectionScreen innerHTML cleared. Length:", selectionScreen.innerHTML.length);
           selectionScreen.classList.add('hidden-screen');
           posScreen.classList.remove('hidden-screen');
           selectionScreen.style.display = 'none';
