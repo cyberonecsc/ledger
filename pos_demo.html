@@ -670,6 +670,7 @@
     .tx-log-badge.cash { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
     .tx-log-badge.online { background: rgba(99, 102, 241, 0.1); color: var(--color-primary); }
     .tx-log-badge.wallet { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
+    .tx-log-badge.split { background: rgba(139, 92, 246, 0.1); color: #a78bfa; }
 
     /* --- Cash Drawer Overlay Simulation --- */
     .drawer-overlay {
@@ -905,7 +906,7 @@
           <div class="cart-empty-state">No services selected yet. Click any button in the grid above.</div>
         </div>
 
-        <!-- Cart Summary and Actions -->
+        <!-- Cart Summary, Deductions and Payments received split -->
         <div class="cart-summary">
           <div class="summary-row">
             <span class="summary-label">Selected Count:</span>
@@ -916,7 +917,50 @@
             <span id="cart-total-amount" class="summary-value summary-total">₹0.00</span>
           </div>
 
-          <div class="cart-actions">
+          <!-- Portal Cost Deduction Section -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); display:flex; align-items:center; gap:6px;">
+              <i data-lucide="wallet" style="width: 13px; height: 13px; color: var(--color-warning);"></i>
+              Portal Cost Deduction (Cost of Service)
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px;">
+              <select id="deduct-source" style="background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); color: #fff; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 600; outline: none; cursor: pointer;">
+                <option value="none">None (DTP/Print - 100% Profit)</option>
+              </select>
+              <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 8px;">
+                <span style="font-size: 11px; color: var(--color-success); font-weight: 700; margin-right: 4px;">₹</span>
+                <input type="number" step="any" id="deduct-amount" value="0.00" style="background:transparent; border:none; color: var(--color-success); font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Payment Splits Section -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); display:flex; align-items:center; gap:6px;">
+              <i data-lucide="split" style="width: 13px; height: 13px; color: var(--color-primary);"></i>
+              Payment Received Split (Cash vs UPI)
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <!-- Cash Received -->
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size: 9px; font-weight: 600; color: var(--text-dimmed);">Paid by Cash</label>
+                <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-right: 4px;">₹</span>
+                  <input type="number" step="any" id="pay-cash-amount" value="0.00" style="background:transparent; border:none; color:#fff; font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
+                </div>
+              </div>
+              <!-- UPI/Online Received -->
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size: 9px; font-weight: 600; color: var(--text-dimmed);">Paid by UPI</label>
+                <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 8px;">
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-right: 4px;">₹</span>
+                  <input type="number" step="any" id="pay-upi-amount" value="0.00" style="background:transparent; border:none; color:#fff; font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cart-actions" style="margin-top: 5px;">
             <select id="payment-mode" class="pay-mode-select">
               <option value="Cash">Cash Payment</option>
               <option value="Online">Online / UPI</option>
@@ -1030,6 +1074,13 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       { id: 'CUST-004', name: 'Sujatha Pillai', phone: '9562410293', credit: 15 }
     ];
 
+    // Mock Wallets Database
+    const WALLETS = [
+      { id: 'csc', name: 'CSC Wallet (Digital Seva)', rate: 0.015 },
+      { id: 'paynearby', name: 'PayNearby Agent Wallet', rate: 0.0125 },
+      { id: 'sbi_bank', name: 'SBI Bank Account', rate: 0.0 }
+    ];
+
     // State
     let cart = [];
 
@@ -1065,12 +1116,19 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const newCustPhone = document.getElementById('new-cust-phone');
     const newCustCredit = document.getElementById('new-cust-credit');
 
+    // Deduction & Payment Split Elements
+    const deductSourceSelect = document.getElementById('deduct-source');
+    const deductAmountInput = document.getElementById('deduct-amount');
+    const payCashAmountInput = document.getElementById('pay-cash-amount');
+    const payUpiAmountInput = document.getElementById('pay-upi-amount');
+
     // --- Navigation Handlers ---
     cardPosMode.addEventListener('click', () => {
       selectionScreen.style.display = 'none';
       posScreen.style.display = 'grid';
       renderGrid('all');
       populateCustomers();
+      populateWallets();
     });
 
     cardAdminMode.addEventListener('click', () => {
@@ -1093,6 +1151,91 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     });
 
     // --- Customer Selection & Registration Handlers ---
+
+    // Populate Wallets
+    function populateWallets() {
+      deductSourceSelect.innerHTML = '<option value="none">None (DTP/Print - 100% Profit)</option>';
+      WALLETS.forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w.id;
+        opt.innerText = w.name;
+        deductSourceSelect.appendChild(opt);
+      });
+    }
+
+    // Auto-calculate cost when deduction source changes
+    deductSourceSelect.addEventListener('change', () => {
+      const val = deductSourceSelect.value;
+      if (val === 'none') {
+        deductAmountInput.value = '0.00';
+      } else {
+        const wallet = WALLETS.find(w => w.id === val);
+        if (wallet) {
+          const total = parseFloat(cartTotalAmount.innerText.replace('₹', '')) || 0;
+          const calculatedCost = total * (1 - wallet.rate);
+          deductAmountInput.value = calculatedCost.toFixed(2);
+        }
+      }
+    });
+
+    // Automatic Split Payment calculations
+    payCashAmountInput.addEventListener('input', () => {
+      const total = parseFloat(cartTotalAmount.innerText.replace('₹', '')) || 0;
+      const cash = parseFloat(payCashAmountInput.value) || 0;
+      const upi = Math.max(0, total - cash);
+      payUpiAmountInput.value = upi.toFixed(2);
+      updatePaymentTemplateLabel(cash, upi, total);
+    });
+
+    payUpiAmountInput.addEventListener('input', () => {
+      const total = parseFloat(cartTotalAmount.innerText.replace('₹', '')) || 0;
+      const upi = parseFloat(payUpiAmountInput.value) || 0;
+      const cash = Math.max(0, total - upi);
+      payCashAmountInput.value = cash.toFixed(2);
+      updatePaymentTemplateLabel(cash, upi, total);
+    });
+
+    function updatePaymentTemplateLabel(cash, upi, total) {
+      if (Math.abs(cash - total) < 0.01) {
+        paymentModeSelect.value = 'Cash';
+      } else if (Math.abs(upi - total) < 0.01) {
+        paymentModeSelect.value = 'Online';
+      } else {
+        let optSplit = document.getElementById('opt-split');
+        if (!optSplit) {
+          optSplit = document.createElement('option');
+          optSplit.id = 'opt-split';
+          optSplit.value = 'Split';
+          optSplit.innerText = 'Custom Split Pay';
+          paymentModeSelect.appendChild(optSplit);
+        }
+        paymentModeSelect.value = 'Split';
+      }
+    }
+
+    // Snapping template listener
+    paymentModeSelect.addEventListener('change', () => {
+      const total = parseFloat(cartTotalAmount.innerText.replace('₹', '')) || 0;
+      if (paymentModeSelect.value !== 'Split') {
+        const optSplit = document.getElementById('opt-split');
+        if (optSplit) optSplit.remove();
+      }
+      autoSyncPaymentInputs(total);
+    });
+
+    function autoSyncPaymentInputs(total) {
+      const mode = paymentModeSelect.value;
+      if (mode === 'Cash') {
+        payCashAmountInput.value = total.toFixed(2);
+        payUpiAmountInput.value = '0.00';
+      } else if (mode === 'Online') {
+        payUpiAmountInput.value = total.toFixed(2);
+        payCashAmountInput.value = '0.00';
+      } else if (mode === 'Credit') {
+        payCashAmountInput.value = '0.00';
+        payUpiAmountInput.value = '0.00';
+      }
+    }
     
     // Populate Customer Dropdown
     function populateCustomers() {
@@ -1283,6 +1426,19 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       });
       cartItemCount.innerText = `${count} ${count === 1 ? 'item' : 'items'}`;
       cartTotalAmount.innerText = `₹${total.toFixed(2)}`;
+
+      // Update automatic cost deduction
+      const deductSource = deductSourceSelect.value;
+      if (deductSource !== 'none') {
+        const wallet = WALLETS.find(w => w.id === deductSource);
+        if (wallet) {
+          const calculatedCost = total * (1 - wallet.rate);
+          deductAmountInput.value = calculatedCost.toFixed(2);
+        }
+      }
+
+      // Sync cash & UPI inputs to active template total
+      autoSyncPaymentInputs(total);
     }
 
     // Render Cart HTML
@@ -1375,13 +1531,28 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         }
       }
 
+      const deductVal = deductSourceSelect.value;
+      const deductCost = parseFloat(deductAmountInput.value) || 0;
+      let deductName = 'None';
+      if (deductVal !== 'none') {
+        const wallet = WALLETS.find(w => w.id === deductVal);
+        if (wallet) deductName = wallet.name;
+      }
+
+      const cashPaid = parseFloat(payCashAmountInput.value) || 0;
+      const upiPaid = parseFloat(payUpiAmountInput.value) || 0;
+
       // Add to mock recent transactions log
       recentTransactions.unshift({
         id: `TXN-${Math.floor(100 + Math.random() * 900)}`,
         desc: `${customerName} - ${descText}`,
         amount: total,
         time: 'Just now',
-        mode: mode
+        mode: mode,
+        cashPaid: cashPaid,
+        upiPaid: upiPaid,
+        deductName: deductName,
+        deductCost: deductCost
       });
 
       // Clear the Cart
@@ -1405,14 +1576,33 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       recentTransactions.forEach(tx => {
         const card = document.createElement('div');
         card.className = 'tx-log-card';
+
+        let paymentInfo = '';
+        if (tx.mode === 'Split') {
+          paymentInfo = `<span style="font-size: 10px; color: var(--text-muted);">Paid: Cash ₹${tx.cashPaid.toFixed(2)} + UPI ₹${tx.upiPaid.toFixed(2)}</span>`;
+        } else if (tx.cashPaid > 0 && tx.upiPaid > 0) {
+          paymentInfo = `<span style="font-size: 10px; color: var(--text-muted);">Paid: Cash ₹${tx.cashPaid.toFixed(2)} + UPI ₹${tx.upiPaid.toFixed(2)}</span>`;
+        } else {
+          paymentInfo = `<span style="font-size: 10px; color: var(--text-muted);">Paid via ${tx.mode}</span>`;
+        }
+
+        let costInfo = '';
+        if (tx.deductCost > 0) {
+          costInfo = `<div style="font-size: 10px; color: var(--color-warning); margin-top: 2px;">Deducted: ₹${tx.deductCost.toFixed(2)} from ${tx.deductName}</div>`;
+        }
+
         card.innerHTML = `
           <div class="tx-log-row">
             <span class="tx-log-desc" title="${tx.desc}">${tx.desc}</span>
             <span class="tx-log-amount">₹${tx.amount.toFixed(2)}</span>
           </div>
-          <div class="tx-log-row" style="align-items: center;">
+          <div class="tx-log-row" style="align-items: center; margin-top: 2px;">
             <span class="tx-log-time">${tx.time}</span>
             <span class="tx-log-badge ${tx.mode.toLowerCase()}">${tx.mode}</span>
+          </div>
+          <div style="margin-top: 4px; border-top: 1px dotted var(--panel-border); padding-top: 4px; display: flex; flex-direction: column;">
+            ${paymentInfo}
+            ${costInfo}
           </div>
         `;
         recentTxList.appendChild(card);
