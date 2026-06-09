@@ -794,6 +794,20 @@
         padding-top: 30px;
       }
     }
+
+    .settings-tab {
+      transition: var(--transition-smooth);
+    }
+    .settings-tab:hover {
+      color: var(--color-primary) !important;
+    }
+    .tile-rearrange-btn {
+      transition: var(--transition-smooth);
+    }
+    .tile-rearrange-btn:hover:not([disabled]) {
+      color: var(--color-primary) !important;
+      transform: scale(1.2);
+    }
   </style>
 </head>
 <body>
@@ -833,6 +847,9 @@
         <div class="pos-header-left">
           <button id="btn-goto-selection" class="btn-back">
             <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Selection
+          </button>
+          <button id="btn-pos-settings" class="btn-back">
+            <i data-lucide="settings" style="width: 14px; height: 14px;"></i> POS Settings
           </button>
           <div class="pos-title">Quick Sales POS</div>
         </div>
@@ -1039,23 +1056,127 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     </div>
   </div>
 
+  <!-- 5. POS Settings Panel Overlay -->
+  <div id="settings-modal-overlay" class="drawer-overlay">
+    <div class="drawer-modal" style="max-width: 600px; width: 95%; text-align: left; max-height: 90vh; display:flex; flex-direction:column; padding: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--panel-border); padding-bottom: 12px; margin-bottom: 15px;">
+        <h2 style="font-size: 20px; font-family: 'Space Grotesk', sans-serif; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="settings" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+          POS Terminal Preferences
+        </h2>
+        <button id="close-settings-modal" style="background:transparent; border:none; color:var(--text-muted); font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+
+      <!-- Settings Tabs -->
+      <div style="display:flex; gap:10px; margin-bottom: 15px; border-bottom: 1px solid var(--panel-border); padding-bottom: 10px;">
+        <button class="settings-tab active" data-tab="tiles" style="background:transparent; border:none; color:var(--color-primary); font-weight:700; padding:6px 12px; cursor:pointer; font-size:13px; border-bottom: 2px solid var(--color-primary); outline:none;">Manage Tiles</button>
+        <button class="settings-tab" data-tab="themes" style="background:transparent; border:none; color:var(--text-muted); font-weight:600; padding:6px 12px; cursor:pointer; font-size:13px; outline:none;">Themes & Colors</button>
+      </div>
+
+      <!-- Settings Content Container -->
+      <div id="settings-content" style="flex:1; overflow-y:auto; padding-right:5px; display:flex; flex-direction:column; gap:15px;">
+        
+        <!-- Tab 1: Manage Tiles Content -->
+        <div id="tab-tiles-content" style="display:flex; flex-direction:column; gap:15px;">
+          <!-- Add new tile form -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); padding:15px; border-radius:12px;">
+            <h4 style="font-size:13px; margin-bottom:10px; color:var(--color-primary); font-weight:700;">Add New Quick Access Service Tile</h4>
+            <form id="add-tile-form" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div style="grid-column: span 2; display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Service Label / Name</label>
+                <input type="text" id="tile-label" required placeholder="e.g. Birth Certificate" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px;">
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Category</label>
+                <select id="tile-cat" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
+                  <option value="g2c">G2C Services</option>
+                  <option value="utility">Recharges & Utility</option>
+                  <option value="aeps">AEPS Cash Out</option>
+                  <option value="printing">Print & Copy</option>
+                </select>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Icon Type</label>
+                <select id="tile-icon" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
+                  <option value="file-text">Document</option>
+                  <option value="printer">Printer</option>
+                  <option value="phone">Phone / Mobile</option>
+                  <option value="credit-card">Credit Card</option>
+                  <option value="wallet">Wallet</option>
+                  <option value="globe">Globe / Online</option>
+                  <option value="zap">Electricity / Zap</option>
+                  <option value="tv">TV / DTH</option>
+                  <option value="contact">Identity Card</option>
+                </select>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Charge Customer (₹)</label>
+                <input type="number" id="tile-price" required value="60" min="0" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; font-weight:700;">
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Default Deduction Source</label>
+                <select id="tile-deduct-source" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; cursor:pointer;">
+                  <option value="none">None (DTP/Print)</option>
+                  <option value="csc">CSC Wallet</option>
+                  <option value="paynearby">PayNearby Wallet</option>
+                  <option value="sbi_bank">SBI Bank Account</option>
+                </select>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; color:var(--text-muted); font-weight:600;">Default Cost Deducted (₹)</label>
+                <input type="number" id="tile-deduct-amount" required value="15" min="0" style="background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:#fff; padding:8px; border-radius:6px; outline:none; font-size:12px; font-weight:700;">
+              </div>
+              <div style="grid-column: span 2; display:flex; justify-content:flex-end; margin-top: 5px;">
+                <button type="submit" style="background:var(--color-primary); border:none; color:#fff; padding:10px 20px; border-radius:8px; font-weight:700; cursor:pointer; font-size:12px; transition: var(--transition-smooth); width: 100%;">Add Service Tile</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Existing tiles list with edit/delete & rearrange options -->
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <h4 style="font-size:12px; color:var(--text-muted); font-weight:700;">Existing Service Tiles & Arrangement</h4>
+            <div id="pos-tiles-manager-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; padding-right:5px;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: POS Themes Content -->
+        <div id="tab-themes-content" style="display:none; grid-template-columns:1fr 1fr; gap:12px; padding-bottom: 20px;">
+          <!-- Themes cards will be populated dynamically -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Core Javascript Logic -->
   <script>
     // Services Database Array
-    const SERVICES = [
-      { id: 'S1', label: 'e-District Certificate', price: 60, category: 'g2c', icon: 'file-text' },
-      { id: 'S2', label: 'PAN Card Application', price: 120, category: 'g2c', icon: 'credit-card' },
-      { id: 'S3', label: 'Passport Application', price: 300, category: 'g2c', icon: 'globe' },
-      { id: 'S4', label: 'Aadhaar Demographic Update', price: 100, category: 'g2c', icon: 'fingerprint' },
-      { id: 'S5', label: 'Black & White Printout', price: 10, category: 'printing', icon: 'printer' },
-      { id: 'S6', label: 'Color Photo Print', price: 30, category: 'printing', icon: 'image' },
-      { id: 'S7', label: 'Lamination Service', price: 40, category: 'printing', icon: 'layers' },
-      { id: 'S8', label: 'Mobile Recharge Plan', price: 299, category: 'utility', icon: 'phone' },
-      { id: 'S9', label: 'KSEB Electricity Bill Payment', price: 20, category: 'utility', icon: 'zap' },
-      { id: 'S10', label: 'AEPS Cash Withdrawal', price: 15, category: 'aeps', icon: 'wallet' },
-      { id: 'S11', label: 'DTH TV Recharge', price: 250, category: 'utility', icon: 'tv' },
-      { id: 'S12', label: 'PVC Identity Card Print', price: 70, category: 'printing', icon: 'contact' }
+    let SERVICES = [
+      { id: 'S1', label: 'e-District Certificate', price: 60, category: 'g2c', icon: 'file-text', defaultDeductSource: 'csc', defaultDeductAmount: 15 },
+      { id: 'S2', label: 'PAN Card Application', price: 120, category: 'g2c', icon: 'credit-card', defaultDeductSource: 'csc', defaultDeductAmount: 107 },
+      { id: 'S3', label: 'Passport Application', price: 300, category: 'g2c', icon: 'globe', defaultDeductSource: 'sbi_bank', defaultDeductAmount: 150 },
+      { id: 'S4', label: 'Aadhaar Demographic Update', price: 100, category: 'g2c', icon: 'fingerprint', defaultDeductSource: 'csc', defaultDeductAmount: 50 },
+      { id: 'S5', label: 'Black & White Printout', price: 10, category: 'printing', icon: 'printer', defaultDeductSource: 'none', defaultDeductAmount: 0 },
+      { id: 'S6', label: 'Color Photo Print', price: 30, category: 'printing', icon: 'image', defaultDeductSource: 'none', defaultDeductAmount: 0 },
+      { id: 'S7', label: 'Lamination Service', price: 40, category: 'printing', icon: 'layers', defaultDeductSource: 'none', defaultDeductAmount: 0 },
+      { id: 'S8', label: 'Mobile Recharge Plan', price: 299, category: 'utility', icon: 'phone', defaultDeductSource: 'csc', defaultDeductAmount: 294.50 },
+      { id: 'S9', label: 'KSEB Electricity Bill Payment', price: 20, category: 'utility', icon: 'zap', defaultDeductSource: 'none', defaultDeductAmount: 0 },
+      { id: 'S10', label: 'AEPS Cash Withdrawal', price: 15, category: 'aeps', icon: 'wallet', defaultDeductSource: 'paynearby', defaultDeductAmount: 0 },
+      { id: 'S11', label: 'DTH TV Recharge', price: 250, category: 'utility', icon: 'tv', defaultDeductSource: 'csc', defaultDeductAmount: 246.25 },
+      { id: 'S12', label: 'PVC Identity Card Print', price: 70, category: 'printing', icon: 'contact', defaultDeductSource: 'none', defaultDeductAmount: 0 }
     ];
+
+    // Load services from localStorage if present to preserve custom arrangements
+    const savedServices = localStorage.getItem('cyberone_v2_pos_services');
+    if (savedServices) {
+      try {
+        SERVICES = JSON.parse(savedServices);
+      } catch (e) {
+        console.error("Failed to parse saved POS tiles", e);
+      }
+    }
 
     // Mock Recent Transactions Log Data
     let recentTransactions = [
@@ -1122,6 +1243,21 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const payCashAmountInput = document.getElementById('pay-cash-amount');
     const payUpiAmountInput = document.getElementById('pay-upi-amount');
 
+    // POS Settings elements
+    const btnPosSettings = document.getElementById('btn-pos-settings');
+    const settingsModalOverlay = document.getElementById('settings-modal-overlay');
+    const closeSettingsModalBtn = document.getElementById('close-settings-modal');
+    const settingsTabBtns = document.querySelectorAll('.settings-tab');
+    const tabTilesContent = document.getElementById('tab-tiles-content');
+    const tabThemesContent = document.getElementById('tab-themes-content');
+    const addTileForm = document.getElementById('add-tile-form');
+    const tileLabelInput = document.getElementById('tile-label');
+    const tileCatSelect = document.getElementById('tile-cat');
+    const tileIconSelect = document.getElementById('tile-icon');
+    const tilePriceInput = document.getElementById('tile-price');
+    const tileDeductSourceSelect = document.getElementById('tile-deduct-source');
+    const tileDeductAmountInput = document.getElementById('tile-deduct-amount');
+
     // --- Navigation Handlers ---
     cardPosMode.addEventListener('click', () => {
       selectionScreen.style.display = 'none';
@@ -1130,6 +1266,62 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       populateCustomers();
       populateWallets();
     });
+
+    // Theme Data definition
+    const THEMES = {
+      indigo: {
+        '--bg-dark': '#090d16',
+        '--panel-dark': '#121826',
+        '--color-primary': '#6366f1',
+        '--color-primary-glow': 'rgba(99, 102, 241, 0.35)',
+        '--color-success': '#10b981',
+        '--color-success-glow': 'rgba(16, 185, 129, 0.25)',
+      },
+      emerald: {
+        '--bg-dark': '#06130e',
+        '--panel-dark': '#0c221a',
+        '--color-primary': '#10b981',
+        '--color-primary-glow': 'rgba(16, 185, 129, 0.35)',
+        '--color-success': '#34d399',
+        '--color-success-glow': 'rgba(52, 211, 153, 0.25)',
+      },
+      amber: {
+        '--bg-dark': '#171105',
+        '--panel-dark': '#291e0a',
+        '--color-primary': '#f59e0b',
+        '--color-primary-glow': 'rgba(245, 158, 11, 0.35)',
+        '--color-success': '#10b981',
+        '--color-success-glow': 'rgba(16, 185, 129, 0.25)',
+      },
+      cobalt: {
+        '--bg-dark': '#020e24',
+        '--panel-dark': '#081c3e',
+        '--color-primary': '#2563eb',
+        '--color-primary-glow': 'rgba(37, 99, 235, 0.35)',
+        '--color-success': '#10b981',
+        '--color-success-glow': 'rgba(16, 185, 129, 0.25)',
+      }
+    };
+
+    const themeTabs = [
+      { name: 'Midnight Indigo', key: 'indigo', primary: '#6366f1', bg: '#090d16' },
+      { name: 'Emerald Forest', key: 'emerald', primary: '#10b981', bg: '#06130e' },
+      { name: 'Amber Gold', key: 'amber', primary: '#f59e0b', bg: '#171105' },
+      { name: 'Slate Classic', key: 'cobalt', primary: '#2563eb', bg: '#020e24' }
+    ];
+
+    function applyTheme(name) {
+      const theme = THEMES[name];
+      if (!theme) return;
+      Object.keys(theme).forEach(key => {
+        document.documentElement.style.setProperty(key, theme[key]);
+      });
+      localStorage.setItem('cyberone_v2_pos_theme', name);
+    }
+
+    // Apply theme on load
+    const savedTheme = localStorage.getItem('cyberone_v2_pos_theme') || 'indigo';
+    applyTheme(savedTheme);
 
     cardAdminMode.addEventListener('click', () => {
       alert("Redirect simulation: In the fully integrated version, this will take you to your original Management Dashboard view!");
@@ -1317,6 +1509,196 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       posAddCustomerForm.reset();
     });
 
+    // --- POS Settings Handlers & Theme Logic ---
+    btnPosSettings.addEventListener('click', () => {
+      settingsModalOverlay.classList.add('show');
+      renderTileManager();
+    });
+
+    closeSettingsModalBtn.addEventListener('click', () => {
+      settingsModalOverlay.classList.remove('show');
+    });
+
+    // Settings Tab Switcher
+    settingsTabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        settingsTabBtns.forEach(b => {
+          b.classList.remove('active');
+          b.style.color = 'var(--text-muted)';
+          b.style.borderBottom = 'none';
+        });
+        btn.classList.add('active');
+        btn.style.color = 'var(--color-primary)';
+        btn.style.borderBottom = '2px solid var(--color-primary)';
+
+        const tab = btn.getAttribute('data-tab');
+        if (tab === 'tiles') {
+          tabTilesContent.style.display = 'flex';
+          tabThemesContent.style.display = 'none';
+          renderTileManager();
+        } else if (tab === 'themes') {
+          tabTilesContent.style.display = 'none';
+          tabThemesContent.style.display = 'grid';
+          renderThemes();
+        }
+      });
+    });
+
+    // Add New Tile Form Submit
+    addTileForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const label = tileLabelInput.value.trim();
+      const category = tileCatSelect.value;
+      const icon = tileIconSelect.value;
+      const price = parseFloat(tilePriceInput.value) || 0;
+      const defaultDeductSource = tileDeductSourceSelect.value;
+      const defaultDeductAmount = parseFloat(tileDeductAmountInput.value) || 0;
+
+      if (!label) return;
+
+      const newService = {
+        id: `S-${Date.now()}`,
+        label,
+        price,
+        category,
+        icon,
+        defaultDeductSource,
+        defaultDeductAmount
+      };
+
+      SERVICES.push(newService);
+      localStorage.setItem('cyberone_v2_pos_services', JSON.stringify(SERVICES));
+
+      addTileForm.reset();
+      tilePriceInput.value = "60";
+      tileDeductAmountInput.value = "15";
+
+      const activeCatBtn = document.querySelector('.category-btn.active');
+      const activeCat = activeCatBtn ? activeCatBtn.getAttribute('data-cat') : 'all';
+      renderGrid(activeCat);
+      renderTileManager();
+    });
+
+    // Render Tile Manager List
+    function renderTileManager() {
+      const listContainer = document.getElementById('pos-tiles-manager-list');
+      listContainer.innerHTML = '';
+      SERVICES.forEach((service, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = `
+          background: rgba(255,255,255,0.02);
+          border: 1px solid var(--panel-border);
+          border-radius: 8px;
+          padding: 8px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        `;
+        
+        let deductInfo = '';
+        if (service.defaultDeductSource !== 'none') {
+          deductInfo = ` | Cost: ₹${service.defaultDeductAmount} (${service.defaultDeductSource.toUpperCase()})`;
+        } else {
+          deductInfo = ` | Cost: ₹0 (100% Profit)`;
+        }
+
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+            <i data-lucide="${service.icon}" style="width:16px; height:16px; color:var(--color-primary); flex-shrink:0;"></i>
+            <div style="min-width:0; flex:1;">
+              <div style="font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff;">${service.label}</div>
+              <div style="font-size:10px; color:var(--text-dimmed);">${service.category.toUpperCase()} | Price: ₹${service.price}${deductInfo}</div>
+            </div>
+          </div>
+          
+          <div style="display:flex; align-items:center; gap:6px;">
+            <!-- Rearrange buttons -->
+            <button class="tile-rearrange-btn" onclick="moveTile(${index}, -1)" title="Move Up" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex;" ${index === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>
+              <i data-lucide="chevron-up" style="width:14px; height:14px;"></i>
+            </button>
+            <button class="tile-rearrange-btn" onclick="moveTile(${index}, 1)" title="Move Down" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex;" ${index === SERVICES.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>
+              <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+            </button>
+            <!-- Delete button -->
+            <button onclick="deleteTile(${index})" title="Delete Tile" style="background:transparent; border:none; color:var(--color-danger); cursor:pointer; padding:4px; display:flex; margin-left:5px;">
+              <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+            </button>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    // Rearrange tile
+    window.moveTile = function(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= SERVICES.length) return;
+      const temp = SERVICES[index];
+      SERVICES[index] = SERVICES[targetIndex];
+      SERVICES[targetIndex] = temp;
+      
+      localStorage.setItem('cyberone_v2_pos_services', JSON.stringify(SERVICES));
+
+      const activeCatBtn = document.querySelector('.category-btn.active');
+      const activeCat = activeCatBtn ? activeCatBtn.getAttribute('data-cat') : 'all';
+      renderGrid(activeCat);
+      renderTileManager();
+    };
+
+    // Delete tile
+    window.deleteTile = function(index) {
+      if (confirm(`Are you sure you want to delete the "${SERVICES[index].label}" tile?`)) {
+        SERVICES.splice(index, 1);
+        localStorage.setItem('cyberone_v2_pos_services', JSON.stringify(SERVICES));
+        
+        const activeCatBtn = document.querySelector('.category-btn.active');
+        const activeCat = activeCatBtn ? activeCatBtn.getAttribute('data-cat') : 'all';
+        renderGrid(activeCat);
+        renderTileManager();
+      }
+    };
+
+    // Render Theme Cards
+    function renderThemes() {
+      const container = document.getElementById('tab-themes-content');
+      container.innerHTML = '';
+      themeTabs.forEach(t => {
+        const activeTheme = localStorage.getItem('cyberone_v2_pos_theme') || 'indigo';
+        const isSelected = activeTheme === t.key;
+        const card = document.createElement('div');
+        card.style.cssText = `
+          background: ${t.bg};
+          border: 2px solid ${isSelected ? t.primary : 'var(--panel-border)'};
+          border-radius: 12px;
+          padding: 15px;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          box-shadow: ${isSelected ? '0 0 15px ' + t.primary + '33' : 'none'};
+          transition: var(--transition-smooth);
+        `;
+        card.innerHTML = `
+          <div style="font-weight:700; font-size:12px; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+            ${t.name}
+            ${isSelected ? `<i data-lucide="check-circle" style="width:14px; height:14px; color:${t.primary};"></i>` : ''}
+          </div>
+          <div style="display:flex; gap:6px;">
+            <div style="width:20px; height:20px; border-radius:50%; background:${t.primary};"></div>
+            <div style="width:20px; height:20px; border-radius:50%; background:${t.bg}; border:1px solid ${t.primary};"></div>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          applyTheme(t.key);
+          renderThemes();
+        });
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
     // --- POS Logic & Rendering ---
 
     // Render Quick Service Button Grid
@@ -1338,6 +1720,33 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       lucide.createIcons();
     }
 
+    // Automatic wallet cost deduction calculation based on cart items
+    function autoDeductCalculation() {
+      // Find the first item in the cart that has a default deduction source other than 'none'
+      let activeDeductItem = cart.find(item => {
+        const service = SERVICES.find(s => s.id === item.id);
+        return service && service.defaultDeductSource && service.defaultDeductSource !== 'none';
+      });
+
+      if (activeDeductItem) {
+        const service = SERVICES.find(s => s.id === activeDeductItem.id);
+        deductSourceSelect.value = service.defaultDeductSource;
+        
+        // Sum up default cost deduction of all items in the cart
+        let totalDeductCost = 0;
+        cart.forEach(item => {
+          const s = SERVICES.find(srv => srv.id === item.id);
+          if (s && s.defaultDeductSource === service.defaultDeductSource) {
+            totalDeductCost += item.qty * s.defaultDeductAmount;
+          }
+        });
+        deductAmountInput.value = totalDeductCost.toFixed(2);
+      } else {
+        deductSourceSelect.value = 'none';
+        deductAmountInput.value = '0.00';
+      }
+    }
+
     // Add Item to Cart
     function addToCart(service) {
       const existing = cart.find(item => item.id === service.id);
@@ -1352,6 +1761,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         });
       }
       renderCart();
+      autoDeductCalculation(); // Automatically fill wallet cost deductions on service select!
     }
 
     // Remove Item from Cart
@@ -1558,6 +1968,8 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       // Clear the Cart
       cart = [];
       renderCart();
+      deductSourceSelect.value = 'none';
+      deductAmountInput.value = '0.00';
 
       // Render updated transactions log list
       renderTransactions();
