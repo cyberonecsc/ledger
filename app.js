@@ -123,7 +123,7 @@ class Application {
 
       const now = Date.now();
       const lastPoll = this.lastPollTime || 0;
-      const pollInterval = token ? 5000 : 60000; // 5s if token is present, 60s if not
+      const pollInterval = token ? 15000 : 60000; // 15s if token is present, 60s if not
 
       if (now - lastPoll >= pollInterval) {
         this.lastPollTime = now;
@@ -959,16 +959,29 @@ class Application {
               const remoteTxns = (remoteLogs[date] && remoteLogs[date].transactions) || [];
               const txnMap = new Map();
               
-              remoteTxns.forEach(t => {
-                if (t && t.id && !deletedTransactionIds.has(t.id)) {
-                  txnMap.set(t.id, t);
-                }
-              });
-              localTxns.forEach(t => {
-                if (t && t.id && !deletedTransactionIds.has(t.id)) {
-                  txnMap.set(t.id, t);
-                }
-              });
+              if (remoteIsOlder) {
+                remoteTxns.forEach(t => {
+                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                    txnMap.set(t.id, t);
+                  }
+                });
+                localTxns.forEach(t => {
+                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                    txnMap.set(t.id, t);
+                  }
+                });
+              } else {
+                localTxns.forEach(t => {
+                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                    txnMap.set(t.id, t);
+                  }
+                });
+                remoteTxns.forEach(t => {
+                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                    txnMap.set(t.id, t);
+                  }
+                });
+              }
               
               const mergedTxns = Array.from(txnMap.values());
               if (mergedLogs[date]) {
@@ -995,7 +1008,7 @@ class Application {
           try {
             const localData = JSON.parse(localRaw || '{}');
             const remoteData = JSON.parse(remoteRaw || '{}');
-            const mergedObj = { ...remoteData, ...localData };
+            const mergedObj = remoteIsOlder ? { ...remoteData, ...localData } : { ...localData, ...remoteData };
             let overrideChanged = false;
             Object.keys(mergedObj).forEach(date => {
               if (date.startsWith('2026-05-') || date < '2026-06-03') {
@@ -1014,7 +1027,7 @@ class Application {
           try {
             const localData = JSON.parse(localRaw || '{}');
             const remoteData = JSON.parse(remoteRaw || '{}');
-            const mergedObj = { ...remoteData, ...localData };
+            const mergedObj = remoteIsOlder ? { ...remoteData, ...localData } : { ...localData, ...remoteData };
             let overrideChanged = false;
             Object.keys(mergedObj).forEach(date => {
               if (date !== '2026-05-31' && (date.startsWith('2026-05-') || date < '2026-06-03')) {
@@ -1059,7 +1072,7 @@ class Application {
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
                     if (key === 'cyberone_v2_applications' && deletedApplicationIds.has(k)) return;
                     const existing = map.get(k);
-                    map.set(k, existing ? { ...existing, ...item } : item);
+                    map.set(k, existing ? (remoteIsOlder ? { ...item, ...existing } : { ...existing, ...item }) : item);
                   }
                 }
               });
@@ -1069,7 +1082,7 @@ class Application {
                 changed = true;
               }
             } else if (localData && typeof localData === 'object' && remoteData && typeof remoteData === 'object') {
-              const mergedObj = { ...remoteData, ...localData };
+              const mergedObj = remoteIsOlder ? { ...remoteData, ...localData } : { ...localData, ...remoteData };
               if (JSON.stringify(localData) !== JSON.stringify(mergedObj)) {
                 localStorage.setItem(key, JSON.stringify(mergedObj));
                 changed = true;
