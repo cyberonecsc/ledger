@@ -677,7 +677,7 @@
     .tx-log-badge.wallet { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
     .tx-log-badge.split { background: rgba(139, 92, 246, 0.1); color: #a78bfa; }
 
-    /* --- Cash Drawer Overlay Simulation --- */
+    /* --- Overlay Simulation (Cash Drawer, Citizen Register, settings) --- */
     .drawer-overlay {
       position: fixed;
       top: 0;
@@ -690,12 +690,14 @@
       align-items: center;
       justify-content: center;
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
-      transition: var(--transition-smooth);
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s;
     }
 
     .drawer-overlay.show {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
     }
 
@@ -1337,6 +1339,9 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     // --- Navigation Handlers ---
     cardPosMode.addEventListener('click', () => {
       selectionScreen.style.display = 'none';
+      selectionScreen.style.visibility = 'hidden';
+      selectionScreen.style.height = '0';
+      selectionScreen.style.overflow = 'hidden';
       posScreen.style.display = 'grid';
       renderGrid('all');
       populateCustomers();
@@ -1406,6 +1411,9 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     btnGotoSelection.addEventListener('click', () => {
       posScreen.style.display = 'none';
       selectionScreen.style.display = 'flex';
+      selectionScreen.style.visibility = 'visible';
+      selectionScreen.style.height = 'auto';
+      selectionScreen.style.overflow = 'visible';
     });
 
     // Category Grid Toggling
