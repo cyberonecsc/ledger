@@ -1324,8 +1324,6 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     // Elements
     const selectionScreen = document.getElementById('selection-screen');
     const posScreen = document.getElementById('pos-screen');
-    const cardPosMode = document.getElementById('card-pos-mode');
-    const cardAdminMode = document.getElementById('card-admin-mode');
     const btnGotoSelection = document.getElementById('btn-goto-selection');
     const gridContainer = document.getElementById('quick-access-grid');
     const cartItemsList = document.getElementById('cart-items-list');
@@ -1379,18 +1377,38 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const tileSortModeSelect = document.getElementById('tile-sort-mode');
 
     // --- Navigation Handlers ---
-    cardPosMode.addEventListener('click', () => {
-      selectionScreen.classList.add('hidden-screen');
-      posScreen.classList.remove('hidden-screen');
-      selectionScreen.style.display = 'none';
-      selectionScreen.style.visibility = 'hidden';
-      selectionScreen.style.height = '0';
-      selectionScreen.style.overflow = 'hidden';
-      posScreen.style.display = 'grid';
-      renderGrid('all');
-      populateCustomers();
-      populateWallets();
-    });
+    // Save Selection Screen Content to prevent compositor layer leaks in Chromium
+    const welcomeScreenContent = selectionScreen.innerHTML;
+
+    function bindWelcomeScreenListeners() {
+      const cardPosMode = document.getElementById('card-pos-mode');
+      const cardAdminMode = document.getElementById('card-admin-mode');
+      
+      if (cardPosMode) {
+        cardPosMode.addEventListener('click', () => {
+          selectionScreen.innerHTML = ''; // Completely empty the DOM to destroy compositor layers
+          selectionScreen.classList.add('hidden-screen');
+          posScreen.classList.remove('hidden-screen');
+          selectionScreen.style.display = 'none';
+          selectionScreen.style.visibility = 'hidden';
+          selectionScreen.style.height = '0';
+          selectionScreen.style.overflow = 'hidden';
+          posScreen.style.display = 'grid';
+          renderGrid('all');
+          populateCustomers();
+          populateWallets();
+        });
+      }
+      
+      if (cardAdminMode) {
+        cardAdminMode.addEventListener('click', () => {
+          alert("Redirect simulation: In the fully integrated version, this will take you to your original Management Dashboard view!");
+        });
+      }
+    }
+
+    // Bind on load
+    bindWelcomeScreenListeners();
 
     // Theme Data definition
     const THEMES = {
@@ -1448,11 +1466,12 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const savedTheme = localStorage.getItem('cyberone_v2_pos_theme') || 'indigo';
     applyTheme(savedTheme);
 
-    cardAdminMode.addEventListener('click', () => {
-      alert("Redirect simulation: In the fully integrated version, this will take you to your original Management Dashboard view!");
-    });
+
 
     btnGotoSelection.addEventListener('click', () => {
+      selectionScreen.innerHTML = welcomeScreenContent; // Restore DOM content
+      bindWelcomeScreenListeners(); // Re-bind selection cards listeners
+      
       posScreen.classList.add('hidden-screen');
       selectionScreen.classList.remove('hidden-screen');
       posScreen.style.display = 'none';
@@ -1460,6 +1479,8 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       selectionScreen.style.visibility = 'visible';
       selectionScreen.style.height = 'auto';
       selectionScreen.style.overflow = 'visible';
+      
+      lucide.createIcons();
     });
 
     // Category Grid Toggling
