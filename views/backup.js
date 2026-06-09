@@ -81,7 +81,7 @@ export function renderBackupRestore(mountPoint, appInstance) {
   "appId": "..."
 }' required>${localStorage.getItem('cyberone_v2_firebase_config') || ''}</textarea>
           <span style="font-size:10px; color:var(--text-dimmed); margin-top: 4px; display:block;">
-            *Paste the entire `firebaseConfig` JSON object from your Firebase Web App Console.
+            *Paste the entire 'firebaseConfig' JSON object from your Firebase Web App Console.
           </span>
         </div>
         
