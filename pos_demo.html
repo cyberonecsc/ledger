@@ -691,20 +691,23 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.8);
-      z-index: 9999;
+      z-index: -9999; /* Force rendering behind everything when closed */
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s;
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s, z-index 0s 0.25s;
     }
 
     .drawer-overlay.show {
+      z-index: 99999 !important; /* Force rendering in front of hardware-accelerated layers when open */
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
+      transform: translate3d(0, 0, 0); /* Force GPU composite layer promotion */
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s, z-index 0s 0s;
     }
 
     .drawer-modal {
@@ -829,6 +832,18 @@
       border-color: var(--color-primary) !important;
       color: #fff !important;
     }
+    /* Class to completely remove inactive screens from browser rendering pipeline */
+    .hidden-screen {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      height: 0 !important;
+      width: 0 !important;
+      overflow: hidden !important;
+      position: absolute !important;
+      pointer-events: none !important;
+      transform: translate3d(-9999px, -9999px, 0) !important;
+    }
   </style>
 </head>
 <body>
@@ -861,7 +876,7 @@
   </div>
 
   <!-- 2. POS Workspace Screen -->
-  <div id="pos-screen" class="pos-workspace">
+  <div id="pos-screen" class="pos-workspace hidden-screen">
     <!-- Main Left Panel -->
     <div class="pos-main">
       <div class="pos-header">
@@ -1341,6 +1356,8 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
 
     // --- Navigation Handlers ---
     cardPosMode.addEventListener('click', () => {
+      selectionScreen.classList.add('hidden-screen');
+      posScreen.classList.remove('hidden-screen');
       selectionScreen.style.display = 'none';
       selectionScreen.style.visibility = 'hidden';
       selectionScreen.style.height = '0';
@@ -1412,6 +1429,8 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     });
 
     btnGotoSelection.addEventListener('click', () => {
+      posScreen.classList.add('hidden-screen');
+      selectionScreen.classList.remove('hidden-screen');
       posScreen.style.display = 'none';
       selectionScreen.style.display = 'flex';
       selectionScreen.style.visibility = 'visible';
