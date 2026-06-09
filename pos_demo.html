@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERONE CSC - Quick POS Terminal Demo</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --panel-dark: #121826;
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --color-primary: #6366f1;
+      --color-primary-glow: rgba(99, 102, 241, 0.35);
+      --color-success: #10b981;
+      --color-success-glow: rgba(16, 185, 129, 0.25);
+      --color-warning: #f59e0b;
+      --color-danger: #ef4444;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dimmed: #64748b;
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --border-radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* --- Selection Welcome Screen --- */
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-dark) 70%);
+      transition: var(--transition-smooth);
+    }
+
+    .welcome-header {
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .welcome-header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #a5b4fc 0%, var(--color-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .welcome-header p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    .selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      width: 100%;
+      max-width: 720px;
+      margin-bottom: 20px;
+    }
+
+    .selection-card {
+      background: rgba(18, 24, 38, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .selection-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--color-primary);
+      box-shadow: 0 15px 35px var(--color-primary-glow);
+    }
+
+    .selection-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      transition: var(--transition-smooth);
+    }
+
+    .selection-card:hover .selection-icon {
+      background: var(--color-primary);
+      color: #fff;
+      box-shadow: 0 0 20px var(--color-primary);
+    }
+
+    .selection-card.pos-mode:hover .selection-icon {
+      background: var(--color-success);
+      color: #fff;
+      box-shadow: 0 0 20px var(--color-success);
+    }
+    .selection-card.pos-mode .selection-icon {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--color-success);
+    }
+    .selection-card.pos-mode:hover {
+      border-color: var(--color-success);
+      box-shadow: 0 15px 35px var(--color-success-glow);
+    }
+
+    .selection-card h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .selection-card p {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* --- POS Workspace Layout --- */
+    .pos-workspace {
+      display: none; /* Toggled via JS */
+      grid-template-columns: 1fr 380px;
+      min-height: 100vh;
+      background: var(--bg-dark);
+    }
+
+    /* Left side (Grid + Cart) */
+    .pos-main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* Right side (Recent Transactions Log) */
+    .pos-sidebar {
+      background: var(--panel-dark);
+      border-left: 1px solid var(--panel-border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* POS Header */
+    .pos-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 15px;
+    }
+
+    .pos-header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--color-primary);
+    }
+
+    .pos-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .drawer-status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--color-success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    /* Category Navigation */
+    .category-nav {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+      scroll-behavior: smooth;
+    }
+
+    .category-nav::-webkit-scrollbar {
+      height: 4px;
+    }
+    .category-nav::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+
+    .category-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: 30px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 600;
+      transition: var(--transition-smooth);
+    }
+
+    .category-btn.active, .category-btn:hover {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Quick Access Buttons Grid */
+    .pos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+    }
+
+    .pos-grid-btn {
+      background: rgba(18, 24, 38, 0.5);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--border-radius);
+      padding: 18px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 110px;
+    }
+
+    .pos-grid-btn:hover {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--color-primary);
+      transform: scale(1.03);
+    }
+
+    .pos-grid-btn:active {
+      transform: scale(0.97);
+    }
+
+    .pos-grid-btn i {
+      color: var(--color-primary);
+    }
+
+    .pos-grid-btn span.label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    .pos-grid-btn span.price {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-success);
+      font-family: monospace;
+    }
+
+    /* Selected Items Cart Panel */
+    .cart-panel {
+      background: rgba(18, 24, 38, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 10px;
+    }
+
+    .cart-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-clear-cart {
+      background: transparent;
+      border: none;
+      color: var(--color-danger);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cart-list {
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 5px;
+    }
+
+    .cart-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .cart-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+
+    .cart-empty-state {
+      text-align: center;
+      padding: 30px 10px;
+      color: var(--text-dimmed);
+      font-style: italic;
+      font-size: 13px;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--panel-border);
+      padding: 10px 14px;
+      border-radius: 12px;
+      gap: 10px;
+      animation: slideIn 0.2s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .cart-item-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cart-item-title {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .cart-item-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Editable Price Input */
+    .cart-item-price-edit {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 2px 6px;
+      width: 80px;
+    }
+
+    .cart-item-price-edit span {
+      font-size: 11px;
+      color: var(--color-success);
+      font-weight: 700;
+    }
+
+    .cart-item-price-edit input {
+      background: transparent;
+      border: none;
+      color: var(--color-success);
+      font-weight: 700;
+      font-size: 12px;
+      font-family: monospace;
+      width: 100%;
+      outline: none;
+      text-align: right;
+    }
+
+    /* Quantity Controls (Large Touch Friendly) */
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .quantity-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .quantity-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--color-primary);
+    }
+
+    .quantity-input {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      width: 32px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    .btn-remove-item {
+      background: transparent;
+      border: none;
+      color: var(--text-dimmed);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-remove-item:hover {
+      color: var(--color-danger);
+    }
+
+    /* Cart Summary and Actions */
+    .cart-summary {
+      border-top: 1px solid var(--panel-border);
+      padding-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .summary-label {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .summary-value {
+      font-weight: 700;
+      font-size: 16px;
+      font-family: monospace;
+    }
+
+    .summary-total {
+      font-size: 22px;
+      color: var(--color-success);
+    }
+
+    .cart-actions {
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 10px;
+    }
+
+    .btn-checkout {
+      background: var(--color-success);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px var(--color-success-glow);
+      transition: var(--transition-smooth);
+    }
+
+    .btn-checkout:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--color-success-glow);
+    }
+
+    .btn-checkout:active {
+      transform: translateY(0);
+    }
+
+    .pay-mode-select {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    /* --- Sidebar Log (Recent Transactions) --- */
+    .sidebar-header {
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tx-log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .tx-log-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: var(--transition-smooth);
+    }
+
+    .tx-log-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tx-log-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .tx-log-desc {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .tx-log-amount {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: monospace;
+    }
+
+    .tx-log-time {
+      font-size: 10px;
+      color: var(--text-dimmed);
+    }
+
+    .tx-log-badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tx-log-badge.cash { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
+    .tx-log-badge.online { background: rgba(99, 102, 241, 0.1); color: var(--color-primary); }
+    .tx-log-badge.wallet { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
+
+    /* --- Cash Drawer Overlay Simulation --- */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    .drawer-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-modal {
+      background: var(--panel-dark);
+      border: 2px solid var(--color-success);
+      border-radius: var(--border-radius);
+      padding: 30px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      transform: scale(0.9);
+      transition: var(--transition-smooth);
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.3);
+    }
+
+    .drawer-overlay.show .drawer-modal {
+      transform: scale(1);
+    }
+
+    .drawer-icon-anim {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--color-success);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      animation: pulseGreen 1.5s infinite;
+    }
+
+    @keyframes pulseGreen {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .drawer-modal h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .drawer-modal p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .escpos-code-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--color-warning);
+      text-align: left;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+    }
+
+    .btn-close-modal {
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-close-modal:hover {
+      background: #4f46e5;
+    }
+
+    /* --- Responsive/Mobile Compatibility --- */
+    @media (max-width: 900px) {
+      .pos-workspace {
+        grid-template-columns: 1fr; /* Stack sidebar on mobile */
+        max-height: none;
+      }
+      .pos-main, .pos-sidebar {
+        max-height: none;
+        overflow-y: visible;
+      }
+      .pos-sidebar {
+        border-left: none;
+        border-top: 1px solid var(--panel-border);
+        padding-top: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Selection Welcome Screen -->
+  <div id="selection-screen" class="welcome-screen">
+    <div class="welcome-header">
+      <h1>CYBERONE CSC</h1>
+      <p>Please select your workspace terminal node</p>
+    </div>
+    <div class="selection-grid">
+      <!-- Card A: POS Quick Terminal -->
+      <div id="card-pos-mode" class="selection-card pos-mode">
+        <div class="selection-icon">
+          <i data-lucide="zap" style="width:32px; height:32px;"></i>
+        </div>
+        <h2>Quick POS Terminal</h2>
+        <p>Optimized for walk-in citizens. Quick access service grid buttons, touch-friendly cart editing, cash drawer trigger release, and instant log.</p>
+      </div>
+
+      <!-- Card B: Admin Dashboard -->
+      <div id="card-admin-mode" class="selection-card">
+        <div class="selection-icon">
+          <i data-lucide="layout-dashboard" style="width:32px; height:32px;"></i>
+        </div>
+        <h2>Management Dashboard</h2>
+        <p>Complete ledger operations, daily statements, wallet commissions, accounts management, payroll sheets, and audit history logs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. POS Workspace Screen -->
+  <div id="pos-screen" class="pos-workspace">
+    <!-- Main Left Panel -->
+    <div class="pos-main">
+      <div class="pos-header">
+        <div class="pos-header-left">
+          <button id="btn-goto-selection" class="btn-back">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Selection
+          </button>
+          <div class="pos-title">Quick Sales POS</div>
+        </div>
+        <div class="drawer-status-badge">
+          <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>
+          <span>Cash Drawer: Trigger Ready (RJ12)</span>
+        </div>
+      </div>
+
+      <!-- Customer Section -->
+      <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i data-lucide="user" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
+          <span style="font-size: 13px; font-weight: 600;">Walk-in Customer</span>
+        </div>
+        <span style="font-size: 11px; color: var(--text-dimmed);">Active Session Operator: SHIBU (Owner)</span>
+      </div>
+
+      <!-- Categories Navigation -->
+      <div class="category-nav">
+        <button class="category-btn active" data-cat="all">All Items</button>
+        <button class="category-btn" data-cat="g2c">G2C Services</button>
+        <button class="category-btn" data-cat="utility">Recharges & Utility</button>
+        <button class="category-btn" data-cat="aeps">AEPS Cash Out</button>
+        <button class="category-btn" data-cat="printing">Print & Copy</button>
+      </div>
+
+      <!-- Quick Access Buttons Grid -->
+      <div id="quick-access-grid" class="pos-grid">
+        <!-- Service buttons will be rendered dynamically -->
+      </div>
+
+      <!-- Current Cart / Selection Window -->
+      <div class="cart-panel">
+        <div class="cart-header">
+          <h3>
+            <i data-lucide="shopping-cart" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
+            Selection Cart Window
+          </h3>
+          <button id="clear-cart" class="btn-clear-cart">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Clear All
+          </button>
+        </div>
+
+        <!-- Selected Items List -->
+        <div id="cart-items-list" class="cart-list">
+          <div class="cart-empty-state">No services selected yet. Click any button in the grid above.</div>
+        </div>
+
+        <!-- Cart Summary and Actions -->
+        <div class="cart-summary">
+          <div class="summary-row">
+            <span class="summary-label">Selected Count:</span>
+            <span id="cart-item-count" class="summary-value">0 items</span>
+          </div>
+          <div class="summary-row" style="border-top: 1px dashed var(--panel-border); padding-top: 10px;">
+            <span class="summary-label" style="font-size: 14px; font-weight: 600; color: #fff;">Total Payable Amount:</span>
+            <span id="cart-total-amount" class="summary-value summary-total">₹0.00</span>
+          </div>
+
+          <div class="cart-actions">
+            <select id="payment-mode" class="pay-mode-select">
+              <option value="Cash">Cash Payment</option>
+              <option value="Online">Online / UPI</option>
+              <option value="Wallet">CSC Wallet / Digital</option>
+            </select>
+            <button id="checkout-btn" class="btn-checkout">
+              <i data-lucide="check" style="width: 16px; height: 16px;"></i> Pay & Open Drawer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Recent Transactions Log -->
+    <div class="pos-sidebar">
+      <div class="sidebar-header">
+        <h3>
+          <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
+          Recent Transactions Log
+        </h3>
+        <span style="font-size: 10px; color: var(--text-dimmed); font-weight: 700;">Live Feed</span>
+      </div>
+
+      <div id="recent-transactions-list" class="tx-log-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Cash Drawer simulation overlay -->
+  <div id="drawer-modal-overlay" class="drawer-overlay">
+    <div class="drawer-modal">
+      <div class="drawer-icon-anim">
+        <i data-lucide="door-open" style="width: 40px; height: 40px;"></i>
+      </div>
+      <h2>Cash Drawer Triggered!</h2>
+      <p>Sending the ESC/POS open drawer command pulse to your Receipt Printer via the RJ12 connection.</p>
+      
+      <div class="escpos-code-box"><strong>ESC/POS Command Bytes Sent:</strong>
+Hex: 1B 70 00 19 FA
+ASCII: ESC p 0 25 250
+Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
+
+      <button id="close-drawer-modal" class="btn-close-modal">Done / Close Tray</button>
+    </div>
+  </div>
+
+  <!-- Core Javascript Logic -->
+  <script>
+    // Services Database Array
+    const SERVICES = [
+      { id: 'S1', label: 'e-District Certificate', price: 60, category: 'g2c', icon: 'file-text' },
+      { id: 'S2', label: 'PAN Card Application', price: 120, category: 'g2c', icon: 'credit-card' },
+      { id: 'S3', label: 'Passport Application', price: 300, category: 'g2c', icon: 'globe' },
+      { id: 'S4', label: 'Aadhaar Demographic Update', price: 100, category: 'g2c', icon: 'fingerprint' },
+      { id: 'S5', label: 'Black & White Printout', price: 10, category: 'printing', icon: 'printer' },
+      { id: 'S6', label: 'Color Photo Print', price: 30, category: 'printing', icon: 'image' },
+      { id: 'S7', label: 'Lamination Service', price: 40, category: 'printing', icon: 'layers' },
+      { id: 'S8', label: 'Mobile Recharge Plan', price: 299, category: 'utility', icon: 'phone' },
+      { id: 'S9', label: 'KSEB Electricity Bill Payment', price: 20, category: 'utility', icon: 'zap' },
+      { id: 'S10', label: 'AEPS Cash Withdrawal', price: 15, category: 'aeps', icon: 'wallet' },
+      { id: 'S11', label: 'DTH TV Recharge', price: 250, category: 'utility', icon: 'tv' },
+      { id: 'S12', label: 'PVC Identity Card Print', price: 70, category: 'printing', icon: 'contact' }
+    ];
+
+    // Mock Recent Transactions Log Data
+    let recentTransactions = [
+      { id: 'TXN-901', desc: 'e-District Certificate (x1)', amount: 60, time: '2 mins ago', mode: 'Cash' },
+      { id: 'TXN-902', desc: 'Black & White Printout (x4)', amount: 40, time: '8 mins ago', mode: 'Cash' },
+      { id: 'TXN-903', desc: 'Aadhaar Demographic Update (x1)', amount: 100, time: '15 mins ago', mode: 'Online' },
+      { id: 'TXN-904', desc: 'PAN Card Application (x1)', amount: 120, time: '22 mins ago', mode: 'Wallet' },
+      { id: 'TXN-905', desc: 'Mobile Recharge Plan (x1)', amount: 299, time: '40 mins ago', mode: 'Online' }
+    ];
+
+    // State
+    let cart = [];
+
+    // Elements
+    const selectionScreen = document.getElementById('selection-screen');
+    const posScreen = document.getElementById('pos-screen');
+    const cardPosMode = document.getElementById('card-pos-mode');
+    const cardAdminMode = document.getElementById('card-admin-mode');
+    const btnGotoSelection = document.getElementById('btn-goto-selection');
+    const gridContainer = document.getElementById('quick-access-grid');
+    const cartItemsList = document.getElementById('cart-items-list');
+    const cartItemCount = document.getElementById('cart-item-count');
+    const cartTotalAmount = document.getElementById('cart-total-amount');
+    const clearCartBtn = document.getElementById('clear-cart');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const paymentModeSelect = document.getElementById('payment-mode');
+    const recentTxList = document.getElementById('recent-transactions-list');
+    const drawerOverlay = document.getElementById('drawer-modal-overlay');
+    const closeDrawerModalBtn = document.getElementById('close-drawer-modal');
+    const categoryBtns = document.querySelectorAll('.category-btn');
+
+    // --- Navigation Handlers ---
+    cardPosMode.addEventListener('click', () => {
+      selectionScreen.style.display = 'none';
+      posScreen.style.display = 'grid';
+      renderGrid('all');
+    });
+
+    cardAdminMode.addEventListener('click', () => {
+      alert("Redirect simulation: In the fully integrated version, this will take you to your original Management Dashboard view!");
+    });
+
+    btnGotoSelection.addEventListener('click', () => {
+      posScreen.style.display = 'none';
+      selectionScreen.style.display = 'flex';
+    });
+
+    // Category Grid Toggling
+    categoryBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        categoryBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.getAttribute('data-cat');
+        renderGrid(cat);
+      });
+    });
+
+    // --- POS Logic & Rendering ---
+
+    // Render Quick Service Button Grid
+    function renderGrid(category) {
+      gridContainer.innerHTML = '';
+      const filtered = category === 'all' ? SERVICES : SERVICES.filter(s => s.category === category);
+      
+      filtered.forEach(service => {
+        const btn = document.createElement('div');
+        btn.className = 'pos-grid-btn';
+        btn.innerHTML = `
+          <i data-lucide="${service.icon}" style="width:24px; height:24px;"></i>
+          <span class="label">${service.label}</span>
+          <span class="price">₹${service.price}</span>
+        `;
+        btn.addEventListener('click', () => addToCart(service));
+        gridContainer.appendChild(btn);
+      });
+      lucide.createIcons();
+    }
+
+    // Add Item to Cart
+    function addToCart(service) {
+      const existing = cart.find(item => item.id === service.id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({
+          id: service.id,
+          label: service.label,
+          price: service.price, // Manual editable price
+          qty: 1
+        });
+      }
+      renderCart();
+    }
+
+    // Remove Item from Cart
+    function removeFromCart(id) {
+      cart = cart.filter(item => item.id !== id);
+      renderCart();
+    }
+
+    // Update Quantity
+    function updateQty(id, delta) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) {
+        removeFromCart(id);
+      } else {
+        renderCart();
+      }
+    }
+
+    // Manual quantity change handler
+    function updateQtyInput(id, newQty) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      const parsed = parseInt(newQty);
+      item.qty = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+      updateTotals();
+    }
+
+    // Validate quantity on blur
+    function validateQty(id, value) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      const parsed = parseInt(value);
+      if (isNaN(parsed) || parsed <= 0) {
+        item.qty = 1;
+      } else {
+        item.qty = parsed;
+      }
+      renderCart();
+    }
+
+    // Manual price change handler
+    function updatePrice(id, newPrice) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      const parsed = parseFloat(newPrice);
+      item.price = isNaN(parsed) ? 0 : parsed;
+      updateTotals();
+    }
+
+    // Validate price on blur
+    function validatePrice(id, value) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      const parsed = parseFloat(value);
+      if (isNaN(parsed) || parsed < 0) {
+        item.price = 0;
+      } else {
+        item.price = parsed;
+      }
+      renderCart();
+    }
+
+    // Update totals and badge counts without fully re-rendering inputs (prevents cursor loss)
+    function updateTotals() {
+      let count = 0;
+      let total = 0;
+      cart.forEach(item => {
+        count += item.qty;
+        total += item.qty * item.price;
+      });
+      cartItemCount.innerText = `${count} ${count === 1 ? 'item' : 'items'}`;
+      cartTotalAmount.innerText = `₹${total.toFixed(2)}`;
+    }
+
+    // Render Cart HTML
+    function renderCart() {
+      cartItemsList.innerHTML = '';
+      if (cart.length === 0) {
+        cartItemsList.innerHTML = `<div class="cart-empty-state">No services selected yet. Click any button in the grid above.</div>`;
+        updateTotals();
+        return;
+      }
+
+      cart.forEach(item => {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'cart-item';
+        itemRow.innerHTML = `
+          <div class="cart-item-details">
+            <div class="cart-item-title" title="${item.label}">${item.label}</div>
+            <div class="cart-item-controls">
+              <!-- Inline Editable Price Input -->
+              <div class="cart-item-price-edit">
+                <span>₹</span>
+                <input type="number" step="any" value="${item.price}" oninput="updatePrice('${item.id}', this.value)" onblur="validatePrice('${item.id}', this.value)">
+              </div>
+              <span style="font-size:11px; color:var(--text-dimmed);">each</span>
+            </div>
+          </div>
+          
+          <div class="cart-item-controls">
+            <!-- Quantity Control -->
+            <div class="quantity-control">
+              <button class="quantity-btn" onclick="updateQty('${item.id}', -1)">-</button>
+              <input type="text" class="quantity-input" inputmode="numeric" pattern="[0-9]*" value="${item.qty}" oninput="updateQtyInput('${item.id}', this.value)" onblur="validateQty('${item.id}', this.value)">
+              <button class="quantity-btn" onclick="updateQty('${item.id}', 1)">+</button>
+            </div>
+            
+            <button class="btn-remove-item" onclick="removeFromCart('${item.id}')" title="Delete">
+              <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+          </div>
+        `;
+        cartItemsList.appendChild(itemRow);
+      });
+      
+      updateTotals();
+      lucide.createIcons();
+    }
+
+    // Clear Cart
+    clearCartBtn.addEventListener('click', () => {
+      cart = [];
+      renderCart();
+    });
+
+    // Checkout / Pay & Open Drawer trigger
+    checkoutBtn.addEventListener('click', () => {
+      if (cart.length === 0) {
+        alert("Your cart is empty! Please select at least one item.");
+        return;
+      }
+
+      let count = 0;
+      let total = 0;
+      let descriptionParts = [];
+      cart.forEach(item => {
+        if (item.qty <= 0) return;
+        count += item.qty;
+        total += item.qty * item.price;
+        descriptionParts.push(`${item.label} (x${item.qty})`);
+      });
+
+      if (count === 0) {
+        alert("Please select a valid quantity greater than 0.");
+        return;
+      }
+
+      const mode = paymentModeSelect.value;
+      const descText = descriptionParts.join(', ');
+
+      // Add to mock recent transactions log
+      recentTransactions.unshift({
+        id: `TXN-${Math.floor(100 + Math.random() * 900)}`,
+        desc: descText,
+        amount: total,
+        time: 'Just now',
+        mode: mode
+      });
+
+      // Clear the Cart
+      cart = [];
+      renderCart();
+
+      // Render updated transactions log list
+      renderTransactions();
+
+      // Trigger Cash Drawer open modal simulation
+      drawerOverlay.classList.add('show');
+    });
+
+    closeDrawerModalBtn.addEventListener('click', () => {
+      drawerOverlay.classList.remove('show');
+    });
+
+    // Render Recent Transactions Log
+    function renderTransactions() {
+      recentTxList.innerHTML = '';
+      recentTransactions.forEach(tx => {
+        const card = document.createElement('div');
+        card.className = 'tx-log-card';
+        card.innerHTML = `
+          <div class="tx-log-row">
+            <span class="tx-log-desc" title="${tx.desc}">${tx.desc}</span>
+            <span class="tx-log-amount">₹${tx.amount.toFixed(2)}</span>
+          </div>
+          <div class="tx-log-row" style="align-items: center;">
+            <span class="tx-log-time">${tx.time}</span>
+            <span class="tx-log-badge ${tx.mode.toLowerCase()}">${tx.mode}</span>
+          </div>
+        `;
+        recentTxList.appendChild(card);
+      });
+    }
+
+    // Initialize View Log
+    renderTransactions();
+  </script>
+</body>
+</html>
