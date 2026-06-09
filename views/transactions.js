@@ -763,19 +763,14 @@ export function renderTransactions(mountPoint, appInstance) {
             
             <!-- Service Specific Cost Deductions (Conditional) -->
             <div id="service-specific-fields" style="display: ${initialType === 'service' ? 'block' : 'none'}; margin-bottom: 15px;">
-              <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                  <label class="form-label">Deducted Cost Source</label>
-                  <select id="sale-deduct-source" class="form-control">
-                    <option value="none">None (DTP/Print - 100% Service Charge)</option>
-                    <option value="account">Direct Bank Account</option>
-                    ${walletOptions}
-                  </select>
+              <div class="form-group" style="margin-bottom: 15px;">
+                <label class="form-label">Cost Deductions (Multi-source)</label>
+                <div id="deductions-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- Dynamic rows go here -->
                 </div>
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                  <label class="form-label">Deducted Wallet/Portal Cost (₹)</label>
-                  <input type="number" step="0.01" id="sale-deduct-amount-service" class="form-control" value="0.00">
-                </div>
+                <button type="button" id="btn-add-deduction-row" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;">
+                  <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Deduction Source
+                </button>
               </div>
 
               <!-- Material Deductions (Consumables) -->
@@ -862,6 +857,61 @@ export function renderTransactions(mountPoint, appInstance) {
       const selectProduct = document.getElementById('sale-product-link');
       const inputProductQty = document.getElementById('sale-product-qty');
 
+      const btnAddDeductionRow = document.getElementById('btn-add-deduction-row');
+      const containerDeductions = document.getElementById('deductions-list-container');
+
+      const createDeductionRow = (source = 'none', amount = 0) => {
+        const row = document.createElement('div');
+        row.className = 'deduction-row';
+        row.style = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
+        row.innerHTML = `
+          <select class="form-control deduction-select" style="flex: 2; height: 32px; font-size: 12px; padding: 4px 8px;">
+            <option value="none">None (No Deduction)</option>
+            <option value="account">Direct Bank Account</option>
+            ${walletOptions}
+          </select>
+          <input type="number" step="0.01" class="form-control deduction-amount" value="${parseFloat(amount).toFixed(2)}" placeholder="0.00" style="flex: 1; height: 32px; font-size: 12px; padding: 4px 8px; min-width: 80px;">
+          <button type="button" class="btn btn-danger btn-sm btn-delete-deduction" style="height: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        `;
+        if (source) {
+          row.querySelector('.deduction-select').value = source;
+        }
+
+        // Add auto-calc commission on change for this specific source
+        row.querySelector('.deduction-select').addEventListener('change', (e) => {
+          const src = e.target.value;
+          const enteredAmount = parseFloat(inputAmount.value || 0);
+          const amtInput = row.querySelector('.deduction-amount');
+          
+          if (src !== 'none' && src !== 'account') {
+            const wallet = store.wallets.find(w => w.id === src);
+            if (wallet) {
+              const rate = wallet.commissionRate || 0;
+              const calculatedCost = enteredAmount * (1 - rate);
+              amtInput.value = calculatedCost.toFixed(2);
+            }
+          }
+          updateProfitMath();
+        });
+
+        row.querySelector('.deduction-amount').addEventListener('input', updateProfitMath);
+        row.querySelector('.btn-delete-deduction').addEventListener('click', () => {
+          row.remove();
+          updateProfitMath();
+        });
+        return row;
+      };
+
+      if (btnAddDeductionRow && containerDeductions) {
+        btnAddDeductionRow.addEventListener('click', () => {
+          containerDeductions.appendChild(createDeductionRow('none', 0));
+          lucide.createIcons();
+          updateProfitMath();
+        });
+      }
+
       const getGstDetails = () => {
         const hasGst = document.getElementById('sale-has-gst').checked;
         const gstConfigContainer = document.getElementById('gst-config-container');
@@ -871,7 +921,15 @@ export function renderTransactions(mountPoint, appInstance) {
         
         let cost = 0;
         if (currentSaleType === 'service') {
-          cost = parseFloat(document.getElementById('sale-deduct-amount-service').value || 0);
+          if (containerDeductions) {
+            containerDeductions.querySelectorAll('.deduction-row').forEach(row => {
+              const src = row.querySelector('.deduction-select').value;
+              const amt = parseFloat(row.querySelector('.deduction-amount').value || 0);
+              if (src !== 'none') {
+                cost += amt;
+              }
+            });
+          }
         } else if (currentSaleType === 'product') {
           const prodId = selectProduct.value;
           const qty = parseInt(inputProductQty.value || 1);
@@ -985,10 +1043,9 @@ export function renderTransactions(mountPoint, appInstance) {
 
           // Reset service fields
           if (descInput) descInput.value = '';
-          const deductSource = document.getElementById('sale-deduct-source');
-          if (deductSource) deductSource.value = 'none';
-          const deductAmount = document.getElementById('sale-deduct-amount-service');
-          if (deductAmount) deductAmount.value = '0.00';
+          if (containerDeductions) {
+            containerDeductions.innerHTML = '';
+          }
 
           // Trigger initial product calculation
           updateProductDetails();
@@ -1016,43 +1073,32 @@ export function renderTransactions(mountPoint, appInstance) {
         }
       };
 
-      // Automatic Wallet cost deduction calculation
-      const updateAutoDeductionCost = () => {
-        const deductSourceSelect = document.getElementById('sale-deduct-source');
-        if (!deductSourceSelect) return;
-        const deductSource = deductSourceSelect.value;
+      // Automatic Wallet cost deduction calculation for all active rows
+      const updateAutoDeductions = () => {
+        if (!containerDeductions) return;
         const gstDetails = getGstDetails();
         const enteredAmount = gstDetails.billAmount;
-        const deductAmountInput = document.getElementById('sale-deduct-amount-service');
-        if (!deductAmountInput) return;
- 
-        if (deductSource === 'none' || deductSource === 'account') {
-          return;
-        }
- 
-        const wallet = store.wallets.find(w => w.id === deductSource);
-        if (wallet) {
-          const rate = wallet.commissionRate || 0;
-          const calculatedCost = enteredAmount * (1 - rate);
-          deductAmountInput.value = calculatedCost.toFixed(2);
-        }
+        
+        containerDeductions.querySelectorAll('.deduction-row').forEach(row => {
+          const selectDeductSource = row.querySelector('.deduction-select');
+          const inputDeductAmount = row.querySelector('.deduction-amount');
+          
+          if (selectDeductSource && inputDeductAmount) {
+            const source = selectDeductSource.value;
+            if (source !== 'none' && source !== 'account') {
+              const wallet = store.wallets.find(w => w.id === source);
+              if (wallet) {
+                const rate = wallet.commissionRate || 0;
+                const calculatedCost = enteredAmount * (1 - rate);
+                inputDeductAmount.value = calculatedCost.toFixed(2);
+              }
+            }
+          }
+        });
       };
 
       selectProduct.addEventListener('change', updateProductDetails);
       inputProductQty.addEventListener('input', updateProductDetails);
-
-      const selectDeductSource = document.getElementById('sale-deduct-source');
-      if (selectDeductSource) {
-        selectDeductSource.addEventListener('change', () => {
-          updateAutoDeductionCost();
-          updateProfitMath();
-        });
-      }
-
-      const inputDeductService = document.getElementById('sale-deduct-amount-service');
-      if (inputDeductService) {
-        inputDeductService.addEventListener('input', updateProfitMath);
-      }
 
       // Initialize layout and state on load
       setSaleType(initialType);
@@ -1101,8 +1147,19 @@ export function renderTransactions(mountPoint, appInstance) {
               }
             }
           }
-          document.getElementById('sale-deduct-source').value = editTxn.deductedFrom || 'none';
-          document.getElementById('sale-deduct-amount-service').value = editTxn.deductedAmount || 0;
+          
+          if (containerDeductions) {
+            containerDeductions.innerHTML = '';
+            if (editTxn.deductions && Array.isArray(editTxn.deductions) && editTxn.deductions.length > 0) {
+              editTxn.deductions.forEach(d => {
+                containerDeductions.appendChild(createDeductionRow(d.source, d.amount));
+              });
+            } else if (editTxn.deductedFrom && editTxn.deductedFrom !== 'none') {
+              containerDeductions.appendChild(createDeductionRow(editTxn.deductedFrom, editTxn.deductedAmount));
+            } else {
+              containerDeductions.appendChild(createDeductionRow('none', 0));
+            }
+          }
         }
 
         // Initialize GST fields
@@ -1120,6 +1177,12 @@ export function renderTransactions(mountPoint, appInstance) {
         inputCredit.value = editTxn.paidByCredit || 0;
         document.getElementById('sale-customer').value = editTxn.customerId || '';
         updateProfitMath();
+      } else {
+        // If recording a new service transaction, add a default empty deduction row
+        if (containerDeductions) {
+          containerDeductions.innerHTML = '';
+          containerDeductions.appendChild(createDeductionRow('none', 0));
+        }
       }
 
       // Automatically fill payment distributions based on total amount
@@ -1128,7 +1191,7 @@ export function renderTransactions(mountPoint, appInstance) {
         inputCash.value = gstDetails.billAmount.toFixed(2);
         inputUPI.value = '0.00';
         inputCredit.value = '0.00';
-        updateAutoDeductionCost();
+        updateAutoDeductions();
         updateProfitMath();
       });
 
@@ -1138,6 +1201,7 @@ export function renderTransactions(mountPoint, appInstance) {
         const cash = parseFloat(inputCash.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
         inputUPI.value = Math.max(0, amt - cash - credit).toFixed(2);
+        updateAutoDeductions();
         updateProfitMath();
       };
 
@@ -1149,6 +1213,7 @@ export function renderTransactions(mountPoint, appInstance) {
         const upi = parseFloat(inputUPI.value || 0);
         const credit = parseFloat(inputCredit.value || 0);
         inputCash.value = Math.max(0, amt - upi - credit).toFixed(2);
+        updateAutoDeductions();
         updateProfitMath();
       });
 
@@ -1244,6 +1309,7 @@ export function renderTransactions(mountPoint, appInstance) {
         let pagesPrinted = 0;
         let deductedFrom = 'none';
         let deductedAmount = 0;
+        const deductions = [];
         const consumables = [];
 
         if (containerConsumables) {
@@ -1269,11 +1335,25 @@ export function renderTransactions(mountPoint, appInstance) {
           const selectedProduct = store.products.find(p => p.id === productId);
           description = `${selectedProduct.name} (x${quantity})`;
           deductedAmount = selectedProduct.buyPrice * quantity;
+          deductedFrom = 'none';
         } else {
           description = document.getElementById('sale-desc').value.trim();
           store.addServiceType(description); // Save service type automatically
-          deductedFrom = document.getElementById('sale-deduct-source').value;
-          deductedAmount = parseFloat(document.getElementById('sale-deduct-amount-service').value || 0);
+          
+          if (containerDeductions) {
+            containerDeductions.querySelectorAll('.deduction-row').forEach(row => {
+              const src = row.querySelector('.deduction-select').value;
+              const amt = parseFloat(row.querySelector('.deduction-amount').value || 0);
+              if (src !== 'none') {
+                deductions.push({ source: src, amount: amt });
+              }
+            });
+          }
+
+          if (deductions.length > 0) {
+            deductedFrom = deductions.length === 1 ? deductions[0].source : 'multiple';
+            deductedAmount = deductions.reduce((sum, d) => sum + d.amount, 0);
+          }
         }
 
         if (gstDetails.hasGst) {
@@ -1291,6 +1371,7 @@ export function renderTransactions(mountPoint, appInstance) {
           consumables,
           deductedFrom,
           deductedAmount,
+          deductions,
           customerId,
           productId,
           quantity,
@@ -1438,16 +1519,38 @@ function renderLedgerRows(txns) {
       columns[5] = fmt(t.serviceChargeToCash);
       columns[6] = fmt(t.serviceChargeToAccount);
 
-      // Deduction logic columns
-      const source = t.deductedFrom === 'account' ? 'main_bob' : t.deductedFrom;
-      if (source === 'main_bob') columns[7] = fmt(t.deductedAmount);
-      else if (source === 'csc') columns[8] = fmt(t.deductedAmount);
-      else if (source === 'paynearby') columns[9] = fmt(t.deductedAmount);
-      else if (source === 'airtel_pb') columns[10] = fmt(t.deductedAmount);
-      else if (source === 'ibkart') columns[11] = fmt(t.deductedAmount);
-      else if (source === 'bsnl') columns[12] = fmt(t.deductedAmount);
-      else if (source === 'vi') columns[13] = fmt(t.deductedAmount);
-      else if (source === 'airtel') columns[14] = fmt(t.deductedAmount);
+      // Deduction logic columns (supports multiple source split)
+      if (t.deductions && Array.isArray(t.deductions) && t.deductions.length > 0) {
+        t.deductions.forEach(d => {
+          const source = d.source === 'account' ? 'main_bob' : d.source;
+          const amt = parseFloat(d.amount || 0);
+          if (amt > 0) {
+            let colIdx = -1;
+            if (source === 'main_bob') colIdx = 7;
+            else if (source === 'csc') colIdx = 8;
+            else if (source === 'paynearby') colIdx = 9;
+            else if (source === 'airtel_pb') colIdx = 10;
+            else if (source === 'ibkart') colIdx = 11;
+            else if (source === 'bsnl') colIdx = 12;
+            else if (source === 'vi') colIdx = 13;
+            else if (source === 'airtel') colIdx = 14;
+            
+            if (colIdx !== -1) {
+              columns[colIdx] = columns[colIdx] === '—' ? fmt(amt) : fmt(parseFloat(columns[colIdx].replace('₹', '')) + amt);
+            }
+          }
+        });
+      } else {
+        const source = t.deductedFrom === 'account' ? 'main_bob' : t.deductedFrom;
+        if (source === 'main_bob') columns[7] = fmt(t.deductedAmount);
+        else if (source === 'csc') columns[8] = fmt(t.deductedAmount);
+        else if (source === 'paynearby') columns[9] = fmt(t.deductedAmount);
+        else if (source === 'airtel_pb') columns[10] = fmt(t.deductedAmount);
+        else if (source === 'ibkart') columns[11] = fmt(t.deductedAmount);
+        else if (source === 'bsnl') columns[12] = fmt(t.deductedAmount);
+        else if (source === 'vi') columns[13] = fmt(t.deductedAmount);
+        else if (source === 'airtel') columns[14] = fmt(t.deductedAmount);
+      }
 
     } else if (t.type === 'deposit') {
       typeBadge = `<span class="badge deposit">Deposit</span>`;

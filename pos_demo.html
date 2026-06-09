@@ -959,17 +959,14 @@
           <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
             <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); display:flex; align-items:center; gap:6px;">
               <i data-lucide="wallet" style="width: 13px; height: 13px; color: var(--color-warning);"></i>
-              Portal Cost Deduction (Cost of Service)
+              Portal Cost Deductions (Cost of Service)
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 100px; gap: 8px;">
-              <select id="deduct-source" style="background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); color: #fff; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 600; outline: none; cursor: pointer;">
-                <option value="none">None (DTP/Print - 100% Profit)</option>
-              </select>
-              <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 8px;">
-                <span style="font-size: 11px; color: var(--color-success); font-weight: 700; margin-right: 4px;">₹</span>
-                <input type="number" step="any" id="deduct-amount" value="0.00" style="background:transparent; border:none; color: var(--color-success); font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
-              </div>
+            <div id="pos-deductions-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Dynamic deduction rows appended here -->
             </div>
+            <button type="button" id="btn-pos-add-deduction" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: var(--text-main); font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: var(--transition-smooth); margin-top: 4px;">
+              <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Deduction Source
+            </button>
           </div>
 
           <!-- Customer Payment Splits Section -->
@@ -1318,8 +1315,8 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const newCustCredit = document.getElementById('new-cust-credit');
 
     // Deduction & Payment Split Elements
-    const deductSourceSelect = document.getElementById('deduct-source');
-    const deductAmountInput = document.getElementById('deduct-amount');
+    const posDeductionsListContainer = document.getElementById('pos-deductions-list-container');
+    const btnPosAddDeduction = document.getElementById('btn-pos-add-deduction');
     const payCashAmountInput = document.getElementById('pay-cash-amount');
     const payUpiAmountInput = document.getElementById('pay-upi-amount');
     const cashTenderedInput = document.getElementById('cash-tendered-amount');
@@ -1434,31 +1431,64 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
 
     // --- Customer Selection & Registration Handlers ---
 
-    // Populate Wallets
-    function populateWallets() {
-      deductSourceSelect.innerHTML = '<option value="none">None (DTP/Print - 100% Profit)</option>';
-      WALLETS.forEach(w => {
-        const opt = document.createElement('option');
-        opt.value = w.id;
-        opt.innerText = w.name;
-        deductSourceSelect.appendChild(opt);
+    // createDeductionRow helper
+    function createDeductionRow(source = 'none', amount = 0) {
+      const row = document.createElement('div');
+      row.className = 'pos-deduction-row';
+      row.style.cssText = 'display: grid; grid-template-columns: 1fr 100px 32px; gap: 8px; align-items: center; margin-bottom: 4px;';
+      row.innerHTML = `
+        <select class="pos-deduction-select" style="background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); color: #fff; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 600; outline: none; cursor: pointer;">
+          <option value="none">None (No Deduction)</option>
+          ${WALLETS.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
+        </select>
+        <div style="display:flex; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 8px; padding: 0 8px; height: 35px;">
+          <span style="font-size: 11px; color: var(--color-success); font-weight: 700; margin-right: 4px;">₹</span>
+          <input type="number" step="any" class="pos-deduction-amount" value="${parseFloat(amount).toFixed(2)}" style="background:transparent; border:none; color: var(--color-success); font-weight:700; font-size:12px; font-family:monospace; width:100%; outline:none; text-align:right;">
+        </div>
+        <button type="button" class="btn-remove-deduction" style="background: transparent; border: none; color: var(--text-dimmed); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; transition: var(--transition-smooth);">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+        </button>
+      `;
+      
+      row.querySelector('.pos-deduction-select').value = source;
+
+      // Listeners
+      row.querySelector('.pos-deduction-select').addEventListener('change', (e) => {
+        const src = e.target.value;
+        const total = parseFloat(cartTotalAmount.innerText.replace('₹', '')) || 0;
+        const amtInput = row.querySelector('.pos-deduction-amount');
+        if (src === 'none') {
+          amtInput.value = '0.00';
+        } else {
+          const wallet = WALLETS.find(w => w.id === src);
+          if (wallet) {
+            const calculatedCost = total * (1 - wallet.rate);
+            amtInput.value = calculatedCost.toFixed(2);
+          }
+        }
       });
+
+      row.querySelector('.btn-remove-deduction').addEventListener('click', () => {
+        row.remove();
+      });
+
+      return row;
     }
 
-    // Auto-calculate cost when deduction source changes
-    deductSourceSelect.addEventListener('change', () => {
-      const val = deductSourceSelect.value;
-      if (val === 'none') {
-        deductAmountInput.value = '0.00';
-      } else {
-        const wallet = WALLETS.find(w => w.id === val);
-        if (wallet) {
-          const total = parseFloat(cartTotalAmount.innerText.replace('₹', '')) || 0;
-          const calculatedCost = total * (1 - wallet.rate);
-          deductAmountInput.value = calculatedCost.toFixed(2);
-        }
+    function populateWallets() {
+      if (posDeductionsListContainer) {
+        posDeductionsListContainer.innerHTML = '';
+        posDeductionsListContainer.appendChild(createDeductionRow('none', 0));
+        lucide.createIcons();
       }
-    });
+    }
+
+    if (btnPosAddDeduction && posDeductionsListContainer) {
+      btnPosAddDeduction.addEventListener('click', () => {
+        posDeductionsListContainer.appendChild(createDeductionRow('none', 0));
+        lucide.createIcons();
+      });
+    }
 
     // Automatic Split Payment calculations
     payCashAmountInput.addEventListener('input', () => {
@@ -1896,29 +1926,31 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
 
     // Automatic wallet cost deduction calculation based on cart items
     function autoDeductCalculation() {
-      // Find the first item in the cart that has a default deduction source other than 'none'
-      let activeDeductItem = cart.find(item => {
+      if (!posDeductionsListContainer) return;
+      posDeductionsListContainer.innerHTML = '';
+
+      // Find all default deductions for items in the cart
+      const deductionsMap = {}; // { source: amount }
+      
+      cart.forEach(item => {
         const service = SERVICES.find(s => s.id === item.id);
-        return service && service.defaultDeductSource && service.defaultDeductSource !== 'none';
+        if (service && service.defaultDeductSource && service.defaultDeductSource !== 'none') {
+          const src = service.defaultDeductSource;
+          const amt = service.defaultDeductAmount * item.qty;
+          deductionsMap[src] = (deductionsMap[src] || 0) + amt;
+        }
       });
 
-      if (activeDeductItem) {
-        const service = SERVICES.find(s => s.id === activeDeductItem.id);
-        deductSourceSelect.value = service.defaultDeductSource;
-        
-        // Sum up default cost deduction of all items in the cart
-        let totalDeductCost = 0;
-        cart.forEach(item => {
-          const s = SERVICES.find(srv => srv.id === item.id);
-          if (s && s.defaultDeductSource === service.defaultDeductSource) {
-            totalDeductCost += item.qty * s.defaultDeductAmount;
-          }
+      const sources = Object.keys(deductionsMap);
+      if (sources.length > 0) {
+        sources.forEach(src => {
+          posDeductionsListContainer.appendChild(createDeductionRow(src, deductionsMap[src]));
         });
-        deductAmountInput.value = totalDeductCost.toFixed(2);
       } else {
-        deductSourceSelect.value = 'none';
-        deductAmountInput.value = '0.00';
+        // Add a single empty deduction row as default
+        posDeductionsListContainer.appendChild(createDeductionRow('none', 0));
       }
+      lucide.createIcons();
     }
 
     // Add Item to Cart
@@ -2011,14 +2043,19 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       cartItemCount.innerText = `${count} ${count === 1 ? 'item' : 'items'}`;
       cartTotalAmount.innerText = `₹${total.toFixed(2)}`;
 
-      // Update automatic cost deduction
-      const deductSource = deductSourceSelect.value;
-      if (deductSource !== 'none') {
-        const wallet = WALLETS.find(w => w.id === deductSource);
-        if (wallet) {
-          const calculatedCost = total * (1 - wallet.rate);
-          deductAmountInput.value = calculatedCost.toFixed(2);
-        }
+      // Update automatic cost deductions
+      if (posDeductionsListContainer) {
+        posDeductionsListContainer.querySelectorAll('.pos-deduction-row').forEach(row => {
+          const src = row.querySelector('.pos-deduction-select').value;
+          const amtInput = row.querySelector('.pos-deduction-amount');
+          if (src !== 'none') {
+            const wallet = WALLETS.find(w => w.id === src);
+            if (wallet) {
+              const calculatedCost = total * (1 - wallet.rate);
+              amtInput.value = calculatedCost.toFixed(2);
+            }
+          }
+        });
       }
 
       // Sync cash & UPI inputs to active template total
@@ -2124,12 +2161,25 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
       });
       localStorage.setItem('cyberone_v2_pos_services', JSON.stringify(SERVICES));
 
-      const deductVal = deductSourceSelect.value;
-      const deductCost = parseFloat(deductAmountInput.value) || 0;
+      const deductions = [];
+      let totalDeductCost = 0;
       let deductName = 'None';
-      if (deductVal !== 'none') {
-        const wallet = WALLETS.find(w => w.id === deductVal);
-        if (wallet) deductName = wallet.name;
+
+      if (posDeductionsListContainer) {
+        posDeductionsListContainer.querySelectorAll('.pos-deduction-row').forEach(row => {
+          const src = row.querySelector('.pos-deduction-select').value;
+          const amt = parseFloat(row.querySelector('.pos-deduction-amount').value) || 0;
+          if (src !== 'none') {
+            const wallet = WALLETS.find(w => w.id === src);
+            const srcName = wallet ? wallet.name : src;
+            deductions.push({ source: src, name: srcName, amount: amt });
+            totalDeductCost += amt;
+          }
+        });
+      }
+
+      if (deductions.length > 0) {
+        deductName = deductions.length === 1 ? deductions[0].name : 'Multiple Sources';
       }
 
       const cashPaid = parseFloat(payCashAmountInput.value) || 0;
@@ -2160,14 +2210,17 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         cashPaid: cashPaid,
         upiPaid: upiPaid,
         deductName: deductName,
-        deductCost: deductCost
+        deductCost: totalDeductCost,
+        deductions: deductions
       });
 
       // Clear the Cart and reset tender inputs
       cart = [];
       renderCart();
-      deductSourceSelect.value = 'none';
-      deductAmountInput.value = '0.00';
+      if (posDeductionsListContainer) {
+        posDeductionsListContainer.innerHTML = '';
+        posDeductionsListContainer.appendChild(createDeductionRow('none', 0));
+      }
       cashTenderedInput.value = '';
       changeToReturnAmount.innerText = '₹0.00';
       changeToReturnAmount.style.color = 'var(--text-dimmed)';
@@ -2205,7 +2258,10 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         }
 
         let costInfo = '';
-        if (tx.deductCost > 0) {
+        if (tx.deductions && Array.isArray(tx.deductions) && tx.deductions.length > 0) {
+          const details = tx.deductions.map(d => `₹${d.amount.toFixed(2)} from ${d.name || d.source}`).join(', ');
+          costInfo = `<div style="font-size: 10px; color: var(--color-warning); margin-top: 2px;">Deducted: ${details}</div>`;
+        } else if (tx.deductCost > 0) {
           costInfo = `<div style="font-size: 10px; color: var(--color-warning); margin-top: 2px;">Deducted: ₹${tx.deductCost.toFixed(2)} from ${tx.deductName}</div>`;
         }
 

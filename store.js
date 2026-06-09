@@ -428,7 +428,12 @@ class StateStore {
           log.transactions.forEach(txn => {
             if (txn.type === 'sale') {
               const amount = parseFloat(txn.amount || 0);
-              const cost = parseFloat(txn.deductedAmount || 0);
+              let cost = 0;
+              if (txn.deductions && Array.isArray(txn.deductions)) {
+                cost = txn.deductions.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+              } else {
+                cost = parseFloat(txn.deductedAmount || 0);
+              }
               const gst = parseFloat(txn.gstAmount || 0);
               const profit = amount - cost - gst;
 
@@ -751,7 +756,20 @@ class StateStore {
             balances[bankId] = parseFloat(((balances[bankId] || 0) + parseFloat(txn.paidByUPI)).toFixed(2));
           }
           // Wallet/Account cost deduction
-          if (txn.deductedFrom && txn.deductedFrom !== 'none') {
+          if (txn.deductions && Array.isArray(txn.deductions)) {
+            txn.deductions.forEach(ded => {
+              const walletId = ded.source;
+              const cost = parseFloat(ded.amount || 0);
+              if (walletId && walletId !== 'none') {
+                const targetId = walletId === 'account' ? 'main_bob' : walletId;
+                if (balances[targetId] !== undefined) {
+                  balances[targetId] = parseFloat((balances[targetId] - cost).toFixed(2));
+                } else {
+                  balances[targetId] = parseFloat((-cost).toFixed(2));
+                }
+              }
+            });
+          } else if (txn.deductedFrom && txn.deductedFrom !== 'none') {
             const walletId = txn.deductedFrom;
             const cost = parseFloat(txn.deductedAmount || 0);
 
@@ -870,7 +888,12 @@ class StateStore {
     if (txnData.type === 'sale') {
       const descLower = (txnData.description || '').toLowerCase();
       const amount = parseFloat(txnData.amount || 0);
-      const cost = parseFloat(txnData.deductedAmount || 0);
+      let cost = 0;
+      if (txnData.deductions && Array.isArray(txnData.deductions)) {
+        cost = txnData.deductions.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+      } else {
+        cost = parseFloat(txnData.deductedAmount || 0);
+      }
       const gst = parseFloat(txnData.gstAmount || 0);
       const profit = amount - cost - gst;
 
@@ -930,7 +953,7 @@ class StateStore {
           applicationNumber: '',
           status: 'submitted',
           assignedStaffId: txnData.staffId || '465314670016',
-          feePaid: parseFloat(txnData.deductedAmount || 0),
+          feePaid: cost,
           serviceCharge: parseFloat((amount - cost).toFixed(2)),
           notes: `Auto-created from transaction ${id}`,
           transactionId: id
@@ -1092,7 +1115,12 @@ class StateStore {
 
     if (updatedData.type === 'sale') {
       const amount = parseFloat(updatedData.amount || 0);
-      const cost = parseFloat(updatedData.deductedAmount || 0);
+      let cost = 0;
+      if (updatedData.deductions && Array.isArray(updatedData.deductions)) {
+        cost = updatedData.deductions.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+      } else {
+        cost = parseFloat(updatedData.deductedAmount || 0);
+      }
       const gst = parseFloat(updatedData.gstAmount || 0);
       const profit = amount - cost - gst;
 
