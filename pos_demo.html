@@ -1056,6 +1056,14 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     </div>
   </div>
 
+        <div style="display:flex; gap:10px; margin-top: 10px;">
+          <button type="button" id="close-customer-modal" class="btn-close-modal" style="background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: var(--text-main); flex: 1;">Cancel</button>
+          <button type="submit" class="btn-close-modal" style="background: var(--color-primary); flex: 1;">Save Citizen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 5. POS Settings Panel Overlay -->
   <div id="settings-modal-overlay" class="drawer-overlay">
     <div class="drawer-modal" style="max-width: 600px; width: 95%; text-align: left; max-height: 90vh; display:flex; flex-direction:column; padding: 20px;">
@@ -1078,6 +1086,18 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         
         <!-- Tab 1: Manage Tiles Content -->
         <div id="tab-tiles-content" style="display:flex; flex-direction:column; gap:15px;">
+          <!-- Tile Arrangement Mode -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); padding:12px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i data-lucide="trending-up" style="width:16px; height:16px; color:var(--color-primary);"></i>
+              <span style="font-size:12px; font-weight:600; color:#fff;">Grid Arrangement Mode</span>
+            </div>
+            <select id="tile-sort-mode" style="background:rgba(0,0,0,0.25); border:1px solid var(--panel-border); color:#fff; padding:6px 12px; border-radius:8px; outline:none; font-size:11px; cursor:pointer; font-weight:700;">
+              <option value="usage">Most Used First (Dynamic)</option>
+              <option value="manual">Manual Sorting (Reorder List)</option>
+            </select>
+          </div>
+
           <!-- Add new tile form -->
           <div style="background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); padding:15px; border-radius:12px;">
             <h4 style="font-size:13px; margin-bottom:10px; color:var(--color-primary); font-weight:700;">Add New Quick Access Service Tile</h4>
@@ -1154,18 +1174,18 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
   <script>
     // Services Database Array
     let SERVICES = [
-      { id: 'S1', label: 'e-District Certificate', price: 60, category: 'g2c', icon: 'file-text', defaultDeductSource: 'csc', defaultDeductAmount: 15 },
-      { id: 'S2', label: 'PAN Card Application', price: 120, category: 'g2c', icon: 'credit-card', defaultDeductSource: 'csc', defaultDeductAmount: 107 },
-      { id: 'S3', label: 'Passport Application', price: 300, category: 'g2c', icon: 'globe', defaultDeductSource: 'sbi_bank', defaultDeductAmount: 150 },
-      { id: 'S4', label: 'Aadhaar Demographic Update', price: 100, category: 'g2c', icon: 'fingerprint', defaultDeductSource: 'csc', defaultDeductAmount: 50 },
-      { id: 'S5', label: 'Black & White Printout', price: 10, category: 'printing', icon: 'printer', defaultDeductSource: 'none', defaultDeductAmount: 0 },
-      { id: 'S6', label: 'Color Photo Print', price: 30, category: 'printing', icon: 'image', defaultDeductSource: 'none', defaultDeductAmount: 0 },
-      { id: 'S7', label: 'Lamination Service', price: 40, category: 'printing', icon: 'layers', defaultDeductSource: 'none', defaultDeductAmount: 0 },
-      { id: 'S8', label: 'Mobile Recharge Plan', price: 299, category: 'utility', icon: 'phone', defaultDeductSource: 'csc', defaultDeductAmount: 294.50 },
-      { id: 'S9', label: 'KSEB Electricity Bill Payment', price: 20, category: 'utility', icon: 'zap', defaultDeductSource: 'none', defaultDeductAmount: 0 },
-      { id: 'S10', label: 'AEPS Cash Withdrawal', price: 15, category: 'aeps', icon: 'wallet', defaultDeductSource: 'paynearby', defaultDeductAmount: 0 },
-      { id: 'S11', label: 'DTH TV Recharge', price: 250, category: 'utility', icon: 'tv', defaultDeductSource: 'csc', defaultDeductAmount: 246.25 },
-      { id: 'S12', label: 'PVC Identity Card Print', price: 70, category: 'printing', icon: 'contact', defaultDeductSource: 'none', defaultDeductAmount: 0 }
+      { id: 'S1', label: 'e-District Certificate', price: 60, category: 'g2c', icon: 'file-text', defaultDeductSource: 'csc', defaultDeductAmount: 15, usageCount: 25 },
+      { id: 'S2', label: 'PAN Card Application', price: 120, category: 'g2c', icon: 'credit-card', defaultDeductSource: 'csc', defaultDeductAmount: 107, usageCount: 18 },
+      { id: 'S3', label: 'Passport Application', price: 300, category: 'g2c', icon: 'globe', defaultDeductSource: 'sbi_bank', defaultDeductAmount: 150, usageCount: 5 },
+      { id: 'S4', label: 'Aadhaar Demographic Update', price: 100, category: 'g2c', icon: 'fingerprint', defaultDeductSource: 'csc', defaultDeductAmount: 50, usageCount: 30 },
+      { id: 'S5', label: 'Black & White Printout', price: 10, category: 'printing', icon: 'printer', defaultDeductSource: 'none', defaultDeductAmount: 0, usageCount: 50 },
+      { id: 'S6', label: 'Color Photo Print', price: 30, category: 'printing', icon: 'image', defaultDeductSource: 'none', defaultDeductAmount: 0, usageCount: 12 },
+      { id: 'S7', label: 'Lamination Service', price: 40, category: 'printing', icon: 'layers', defaultDeductSource: 'none', defaultDeductAmount: 0, usageCount: 8 },
+      { id: 'S8', label: 'Mobile Recharge Plan', price: 299, category: 'utility', icon: 'phone', defaultDeductSource: 'csc', defaultDeductAmount: 294.50, usageCount: 22 },
+      { id: 'S9', label: 'KSEB Electricity Bill Payment', price: 20, category: 'utility', icon: 'zap', defaultDeductSource: 'none', defaultDeductAmount: 0, usageCount: 14 },
+      { id: 'S10', label: 'AEPS Cash Withdrawal', price: 15, category: 'aeps', icon: 'wallet', defaultDeductSource: 'paynearby', defaultDeductAmount: 0, usageCount: 40 },
+      { id: 'S11', label: 'DTH TV Recharge', price: 250, category: 'utility', icon: 'tv', defaultDeductSource: 'csc', defaultDeductAmount: 246.25, usageCount: 11 },
+      { id: 'S12', label: 'PVC Identity Card Print', price: 70, category: 'printing', icon: 'contact', defaultDeductSource: 'none', defaultDeductAmount: 0, usageCount: 9 }
     ];
 
     // Load services from localStorage if present to preserve custom arrangements
@@ -1257,6 +1277,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     const tilePriceInput = document.getElementById('tile-price');
     const tileDeductSourceSelect = document.getElementById('tile-deduct-source');
     const tileDeductAmountInput = document.getElementById('tile-deduct-amount');
+    const tileSortModeSelect = document.getElementById('tile-sort-mode');
 
     // --- Navigation Handlers ---
     cardPosMode.addEventListener('click', () => {
@@ -1512,11 +1533,21 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     // --- POS Settings Handlers & Theme Logic ---
     btnPosSettings.addEventListener('click', () => {
       settingsModalOverlay.classList.add('show');
+      tileSortModeSelect.value = localStorage.getItem('cyberone_v2_pos_sort_mode') || 'usage';
       renderTileManager();
     });
 
     closeSettingsModalBtn.addEventListener('click', () => {
       settingsModalOverlay.classList.remove('show');
+    });
+
+    // Sort Mode Change Listener
+    tileSortModeSelect.addEventListener('change', (e) => {
+      localStorage.setItem('cyberone_v2_pos_sort_mode', e.target.value);
+      const activeCatBtn = document.querySelector('.category-btn.active');
+      const activeCat = activeCatBtn ? activeCatBtn.getAttribute('data-cat') : 'all';
+      renderGrid(activeCat);
+      renderTileManager();
     });
 
     // Settings Tab Switcher
@@ -1563,7 +1594,8 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         category,
         icon,
         defaultDeductSource,
-        defaultDeductAmount
+        defaultDeductAmount,
+        usageCount: 0
       };
 
       SERVICES.push(newService);
@@ -1583,6 +1615,9 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     function renderTileManager() {
       const listContainer = document.getElementById('pos-tiles-manager-list');
       listContainer.innerHTML = '';
+      
+      const sortMode = localStorage.getItem('cyberone_v2_pos_sort_mode') || 'usage';
+      
       SERVICES.forEach((service, index) => {
         const item = document.createElement('div');
         item.style.cssText = `
@@ -1603,6 +1638,26 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
           deductInfo = ` | Cost: ₹0 (100% Profit)`;
         }
 
+        const usage = service.usageCount || 0;
+
+        let rearrangeControl = '';
+        if (sortMode === 'manual') {
+          rearrangeControl = `
+            <button class="tile-rearrange-btn" onclick="moveTile(${index}, -1)" title="Move Up" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex;" ${index === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>
+              <i data-lucide="chevron-up" style="width:14px; height:14px;"></i>
+            </button>
+            <button class="tile-rearrange-btn" onclick="moveTile(${index}, 1)" title="Move Down" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex;" ${index === SERVICES.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>
+              <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+            </button>
+          `;
+        } else {
+          rearrangeControl = `
+            <span style="font-size:10px; color:var(--color-primary); font-weight:700; background:rgba(99,102,241,0.1); padding:2px 6px; border-radius:4px; white-space:nowrap;">
+              Used: ${usage}
+            </span>
+          `;
+        }
+
         item.innerHTML = `
           <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
             <i data-lucide="${service.icon}" style="width:16px; height:16px; color:var(--color-primary); flex-shrink:0;"></i>
@@ -1613,13 +1668,7 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
           </div>
           
           <div style="display:flex; align-items:center; gap:6px;">
-            <!-- Rearrange buttons -->
-            <button class="tile-rearrange-btn" onclick="moveTile(${index}, -1)" title="Move Up" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex;" ${index === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>
-              <i data-lucide="chevron-up" style="width:14px; height:14px;"></i>
-            </button>
-            <button class="tile-rearrange-btn" onclick="moveTile(${index}, 1)" title="Move Down" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:flex;" ${index === SERVICES.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>
-              <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
-            </button>
+            ${rearrangeControl}
             <!-- Delete button -->
             <button onclick="deleteTile(${index})" title="Delete Tile" style="background:transparent; border:none; color:var(--color-danger); cursor:pointer; padding:4px; display:flex; margin-left:5px;">
               <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
@@ -1704,7 +1753,13 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
     // Render Quick Service Button Grid
     function renderGrid(category) {
       gridContainer.innerHTML = '';
-      const filtered = category === 'all' ? SERVICES : SERVICES.filter(s => s.category === category);
+      let filtered = category === 'all' ? SERVICES : SERVICES.filter(s => s.category === category);
+      
+      // Sort by usage count descending if sortMode is 'usage'
+      const sortMode = localStorage.getItem('cyberone_v2_pos_sort_mode') || 'usage';
+      if (sortMode === 'usage') {
+        filtered = [...filtered].sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+      }
       
       filtered.forEach(service => {
         const btn = document.createElement('div');
@@ -1941,6 +1996,15 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
         }
       }
 
+      // Increment usage count of items in the cart
+      cart.forEach(item => {
+        const service = SERVICES.find(s => s.id === item.id);
+        if (service) {
+          service.usageCount = (service.usageCount || 0) + item.qty;
+        }
+      });
+      localStorage.setItem('cyberone_v2_pos_services', JSON.stringify(SERVICES));
+
       const deductVal = deductSourceSelect.value;
       const deductCost = parseFloat(deductAmountInput.value) || 0;
       let deductName = 'None';
@@ -1980,6 +2044,11 @@ Action: Release Drawer 1 Latch (Pulse Pin 2)</div>
 
     closeDrawerModalBtn.addEventListener('click', () => {
       drawerOverlay.classList.remove('show');
+
+      // Refresh the Grid after checkout completed to reflect dynamic popularity changes!
+      const activeCatBtn = document.querySelector('.category-btn.active');
+      const activeCat = activeCatBtn ? activeCatBtn.getAttribute('data-cat') : 'all';
+      renderGrid(activeCat);
     });
 
     // Render Recent Transactions Log
