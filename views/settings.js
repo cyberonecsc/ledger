@@ -133,6 +133,11 @@ export function renderSettings(mountPoint, appInstance) {
       gstin
     });
 
+    // Re-subscribe to the new center code on Firebase
+    if (typeof appInstance.setupFirebaseSubscription === 'function') {
+      appInstance.setupFirebaseSubscription();
+    }
+
     appInstance.showToast('Center profile updated successfully!', 'success');
   });
 

@@ -92,42 +92,7 @@ class Application {
 
     if (firebaseConfig) {
       firebaseService.initialize(firebaseConfig);
-      if (firebaseService.isInitialized()) {
-        console.log("Firebase: Realtime Sync active!");
-        // Listen to real-time database updates from Firebase
-        firebaseService.subscribe(store.centerProfile.code, (remoteData) => {
-          if (remoteData) {
-            console.log("Firebase: Received database update from remote cloud");
-            const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
-            const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
-            
-            let remoteIsOlder = false;
-            if (localLastModified && remoteLastModified && new Date(localLastModified) > new Date(remoteLastModified)) {
-              remoteIsOlder = true;
-            }
-            
-            const updated = this.mergeSyncData(remoteData, remoteIsOlder);
-            if (updated) {
-              console.log("Firebase: Merging remote changes to local store and refreshing UI");
-              store.loadState();
-              auth.reloadUsers();
-              
-              // Also write to local server disk if running on localhost
-              const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-              if (isLocalhost) {
-                store.syncDatabaseState();
-              }
-              
-              if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
-                this.needsUIRefresh = true;
-              } else {
-                this.needsUIRefresh = false;
-                this.handleRouting();
-              }
-            }
-          }
-        });
-      }
+      this.setupFirebaseSubscription();
     }
 
     // Trigger scheduled backup check
@@ -187,6 +152,44 @@ class Application {
 
     // Trigger initial route load
     this.handleRouting();
+  }
+
+  setupFirebaseSubscription() {
+    if (firebaseService.isInitialized()) {
+      console.log(`Firebase: Registering real-time subscription for center: ${store.centerProfile.code}`);
+      firebaseService.subscribe(store.centerProfile.code, (remoteData) => {
+        if (remoteData) {
+          console.log("Firebase: Received database update from remote cloud");
+          const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
+          const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
+          
+          let remoteIsOlder = false;
+          if (localLastModified && remoteLastModified && new Date(localLastModified) > new Date(remoteLastModified)) {
+            remoteIsOlder = true;
+          }
+          
+          const updated = this.mergeSyncData(remoteData, remoteIsOlder);
+          if (updated) {
+            console.log("Firebase: Merging remote changes to local store and refreshing UI");
+            store.loadState();
+            auth.reloadUsers();
+            
+            // Also write to local server disk if running on localhost
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (isLocalhost) {
+              store.syncDatabaseState();
+            }
+            
+            if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
+              this.needsUIRefresh = true;
+            } else {
+              this.needsUIRefresh = false;
+              this.handleRouting();
+            }
+          }
+        }
+      });
+    }
   }
 
   async loadDatabase() {

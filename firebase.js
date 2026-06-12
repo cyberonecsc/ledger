@@ -1,4 +1,4 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, set, get, onValue, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -43,7 +43,11 @@ class FirebaseService {
         return false;
       }
 
-      this.app = initializeApp(parsedConfig);
+      if (getApps().length > 0) {
+        this.app = getApp();
+      } else {
+        this.app = initializeApp(parsedConfig);
+      }
       this.db = getDatabase(this.app);
       console.log("Firebase: Initialized successfully");
       return true;

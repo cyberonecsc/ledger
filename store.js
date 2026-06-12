@@ -175,18 +175,30 @@ class StateStore {
     
     // Default Center Profile
     const defaultProfile = {
-      name: "CYBERONE CSC - Attingal Center",
-      code: "CYBER-ATT-14",
+      name: "CYBERONE CSC",
+      code: "465314670016",
       address: "Room 4B, Central Arcade, Attingal",
-      city: "Attingal",
-      state: "Kerala",
+      city: "ATTINGAL",
+      state: "KERALA",
       pin: "695101",
-      landPhone: "0470-2621098",
-      mobile: "9048123456",
+      landPhone: "0470-2998476",
+      mobile: "9072809735",
       email: "attingal@cyberonecsc.com",
-      gstin: "32AAAAA1111A1Z1"
+      gstin: "32ARKPR0860N1ZF"
     };
     this.centerProfile = { ...defaultProfile, ...this.getItem('cyberone_v2_center_profile', {}) };
+    
+    // Auto-migrate legacy default center code to the real active center code
+    if (this.centerProfile.code === 'CYBER-ATT-14') {
+      console.log("Migration: Migrating legacy default center code CYBER-ATT-14 to 465314670016");
+      this.centerProfile.code = '465314670016';
+      this.centerProfile.name = 'CYBERONE CSC';
+      this.centerProfile.landPhone = '0470-2998476';
+      this.centerProfile.mobile = '9072809735';
+      this.centerProfile.gstin = '32ARKPR0860N1ZF';
+      this.saveItem('cyberone_v2_center_profile', this.centerProfile);
+    }
+
     this.activityLogs = this.getItem('cyberone_v2_activity_logs', []);
     
     // If dailyLogs doesn't exist, we seed an empty ledger sheet for today's date

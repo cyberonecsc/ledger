@@ -406,6 +406,9 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
         // Initialize if not already done
         if (!firebaseService.isInitialized()) {
           firebaseService.initialize(configStr);
+          if (typeof appInstance.setupFirebaseSubscription === 'function') {
+            appInstance.setupFirebaseSubscription();
+          }
         }
 
         if (!firebaseService.isInitialized()) {
