@@ -156,7 +156,9 @@ export function renderAuditLog(mountPoint, appInstance) {
           <label class="form-label">Payment Source</label>
           <select id="exp-source" class="form-control">
             <option value="cash">Cash In Hand (Physical Cash)</option>
+            <option value="petty_cash">Petty Cash</option>
             <option value="account">Bank Account (BOB / UPI)</option>
+            ${store.wallets.filter(w => w.isActive).map(w => `<option value="${w.id}">${w.name} (Wallet)</option>`).join('')}
           </select>
         </div>
 
@@ -389,14 +391,24 @@ export function renderAuditLog(mountPoint, appInstance) {
           
           if (t.type === 'expense') {
             typeBadge = `<span class="badge expense">Expense</span>`;
-            sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
+            const wallet = store.wallets.find(w => w.id === t.source);
+            const bank = store.bankAccounts.find(b => b.id === t.source);
+            sourceName = t.source === 'cash' ? 'Cash' : 
+                         (t.source === 'petty_cash' ? 'Petty Cash' : 
+                         (t.source === 'account' || t.source === 'main_bob' || bank ? (bank ? bank.name : 'Bank (BOB)') :
+                         (wallet ? wallet.name : t.source)));
           } else if (t.type === 'deposit') {
             typeBadge = `<span class="badge deposit">Deposit</span>`;
             const bank = store.bankAccounts.find(b => b.id === t.source);
             sourceName = t.source === 'cash' ? 'Cash' : (t.source === 'petty_cash' ? 'Petty Cash' : (t.source === 'outside' ? 'Outside Source' : (bank ? bank.name : t.source)));
           } else if (t.type === 'salary') {
             typeBadge = `<span class="badge expense" style="background: rgba(220, 38, 38, 0.1); color:#fca5a5;">Salary</span>`;
-            sourceName = t.source === 'account' ? 'Bank (BOB)' : 'Cash Drawer';
+            const wallet = store.wallets.find(w => w.id === t.source);
+            const bank = store.bankAccounts.find(b => b.id === t.source);
+            sourceName = t.source === 'cash' ? 'Cash' : 
+                         (t.source === 'petty_cash' ? 'Petty Cash' : 
+                         (t.source === 'account' || t.source === 'main_bob' || bank ? (bank ? bank.name : 'Bank (BOB)') :
+                         (wallet ? wallet.name : t.source)));
           } else if (t.type === 'adjustment') {
             typeBadge = `<span class="badge deposit" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning);">Adjustment</span>`;
             sourceName = t.sourceId || '-';

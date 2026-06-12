@@ -1434,6 +1434,7 @@ export function renderTransactions(mountPoint, appInstance) {
               <option value="cash">Cash In Hand (Physical Cash)</option>
               <option value="petty_cash">Petty Cash</option>
               <option value="account">Bank Account (UPI / Transfer)</option>
+              ${store.wallets.filter(w => w.isActive).map(w => `<option value="${w.id}">${w.name} (Wallet)</option>`).join('')}
             </select>
           </div>
 
