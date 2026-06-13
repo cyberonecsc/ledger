@@ -92,7 +92,55 @@ class Application {
 
     if (firebaseConfig) {
       firebaseService.initialize(firebaseConfig);
-      this.setupFirebaseSubscription();
+      
+      const isDesktop = !/Mobi|Android|iPhone/i.test(navigator.userAgent);
+      if (isDesktop && store.justMigratedCenterCode) {
+        console.log("Migration: Force-uploading local database from Desktop PC to Firebase on first migration");
+        store.justMigratedCenterCode = false; // Reset flag
+        
+        // Compile and force save local data to Firebase
+        const payload = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('cyberone_v2_')) {
+            if ([
+              'cyberone_v2_current_user',
+              'cyberone_v2_active_date',
+              'cyberone_v2_sidebar_collapsed',
+              'cyberone_v2_last_sync_date',
+              'cyberone_v2_local_snapshots',
+              'cyberone_v2_firebase_config',
+              'cyberone_v2_github_token',
+              'cyberone_v2_github_repo',
+              'cyberone_v2_github_branch'
+            ].includes(key)) {
+              continue;
+            }
+            payload[key] = localStorage.getItem(key);
+          }
+        }
+        const users = localStorage.getItem('cyberone_v2_users');
+        if (users) {
+          payload['cyberone_v2_users'] = users;
+        }
+        
+        // Set last modified to now so it's newer than any Android syncs
+        payload['cyberone_v2_last_modified'] = new Date().toISOString();
+        localStorage.setItem('cyberone_v2_last_modified', payload['cyberone_v2_last_modified']);
+        
+        firebaseService.saveData(store.centerProfile.code, payload)
+          .then(success => {
+            if (success) {
+              console.log("Migration: Local database state successfully uploaded and synced to Firebase!");
+              store.setSyncStatus('synced');
+            } else {
+              console.error("Migration: Failed to upload data to Firebase");
+            }
+            this.setupFirebaseSubscription();
+          });
+      } else {
+        this.setupFirebaseSubscription();
+      }
     }
 
     // Trigger scheduled backup check

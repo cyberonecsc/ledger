@@ -93,6 +93,7 @@ class StateStore {
     this.isDatabaseInitialized = false;
     this.syncStatus = 'synced';
     this.syncListeners = [];
+    this.justMigratedCenterCode = false;
     this.loadState();
     
     // Auto-sync when auth state changes (user management / privileges updates)
@@ -197,6 +198,7 @@ class StateStore {
       this.centerProfile.mobile = '9072809735';
       this.centerProfile.gstin = '32ARKPR0860N1ZF';
       this.saveItem('cyberone_v2_center_profile', this.centerProfile);
+      this.justMigratedCenterCode = true;
     }
 
     this.activityLogs = this.getItem('cyberone_v2_activity_logs', []);
