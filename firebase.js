@@ -1,5 +1,5 @@
-import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, set, get, onValue, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { initializeApp, getApps, getApp } from './firebase-app.js';
+import { getDatabase, ref, set, get, onValue, off } from './firebase-database.js';
 
 export const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyCL_0-TN5LGrNmdGorGDGxm9Qk9kbPdXoM",

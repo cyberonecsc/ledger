@@ -21,6 +21,8 @@ const targets = [
   'store.js',
   'auth.js',
   'firebase.js',
+  'firebase-app.js',
+  'firebase-database.js',
   'views'
 ];
 
