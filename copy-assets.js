@@ -23,6 +23,7 @@ const targets = [
   'firebase.js',
   'firebase-app.js',
   'firebase-database.js',
+  'db.json',
   'views'
 ];
 

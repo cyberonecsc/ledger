@@ -1030,7 +1030,7 @@ class Application {
               }
             });
             
-            if (logChanged) {
+            if (logChanged || JSON.stringify(localLogs) !== JSON.stringify(mergedLogs)) {
               localStorage.setItem(key, JSON.stringify(mergedLogs));
               changed = true;
             }
