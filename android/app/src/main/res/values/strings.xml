@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CYBERONE CSC Ledger</string>
+    <string name="title_activity_main">CYBERONE CSC Ledger</string>
+    <string name="package_name">com.cyberonecsc.ledger</string>
+    <string name="custom_url_scheme">com.cyberonecsc.ledger</string>
+</resources>

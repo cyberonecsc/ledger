@@ -592,6 +592,9 @@ class Application {
             <button id="sidebar-logout" class="btn-logout" style="margin-top: 15px;">
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
+            <div class="sidebar-version" style="text-align: center; font-size: 11px; color: var(--text-dimmed); margin-top: 20px; font-family: var(--font-display); transition: var(--transition-smooth);">
+              v3.0.0
+            </div>
           </div>
         </aside>
 

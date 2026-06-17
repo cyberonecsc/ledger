@@ -1797,7 +1797,8 @@ body.sidebar-collapsed {
 
 body.sidebar-collapsed .sidebar-logo h1,
 body.sidebar-collapsed .sidebar-menu span,
-body.sidebar-collapsed .user-details {
+body.sidebar-collapsed .user-details,
+body.sidebar-collapsed .sidebar-version {
   display: none !important;
 }
 

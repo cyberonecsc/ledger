@@ -1,0 +1,50 @@
+{
+  "name": "cyberone-csc-ledger",
+  "version": "3.0.0",
+  "description": "CYBERONE CSC Center Management & Accounting Ledger",
+  "main": "main.js",
+  "scripts": {
+    "build": "node copy-assets.js",
+    "start": "npm run build && electron .",
+    "build:win": "npm run build && electron-builder --win",
+    "cap:sync": "npm run build && cap sync",
+    "cap:open:android": "cap open android"
+  },
+  "keywords": [
+    "ledger",
+    "accounting",
+    "csc",
+    "cyberone"
+  ],
+  "author": "SHIBU RAMACHANDRAN",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
+    "electron": "^30.0.9",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.cyberonecsc.ledger",
+    "productName": "CYBERONE CSC Ledger",
+    "win": {
+      "target": "nsis",
+      "icon": "logo.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CYBERONE CSC Ledger"
+    },
+    "files": [
+      "main.js",
+      "logo.png",
+      "www/**/*"
+    ]
+  }
+}
