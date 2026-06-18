@@ -208,6 +208,7 @@ class Application {
       firebaseService.subscribe(store.centerProfile.code, (remoteData) => {
         if (remoteData) {
           console.log("Firebase: Received database update from remote cloud");
+          store.setSyncStatus('synced');
           const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
           const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
           
@@ -592,8 +593,10 @@ class Application {
             <button id="sidebar-logout" class="btn-logout" style="margin-top: 15px;">
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
-            <div class="sidebar-version" style="text-align: center; font-size: 11px; color: var(--text-dimmed); margin-top: 20px; font-family: var(--font-display); transition: var(--transition-smooth);">
-              v3.0.0
+            <div class="sidebar-version" style="text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 20px; font-family: var(--font-primary); padding: 0 10px; line-height: 1.5; transition: var(--transition-smooth);">
+              <div>v3.0.3</div>
+              <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© XTREME SYSTEMS</div>
+              <div style="font-size: 8px; opacity: 0.7; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
             </div>
           </div>
         </aside>
