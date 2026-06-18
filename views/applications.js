@@ -147,7 +147,7 @@ export function renderApplications(mountPoint, appInstance) {
                         <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                       </button>
                       <div style="padding-right: 20px;">
-                        <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${citizen ? citizen.name : 'Unknown Citizen'}</div>
+                        <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${citizen ? citizen.name : 'Walk-in Customer'}</div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${app.serviceType}</div>
                       </div>
                       
@@ -199,7 +199,7 @@ export function renderApplications(mountPoint, appInstance) {
                   const citizen = customers.find(c => c.id === app.customerId);
                   return `
                     <tr>
-                      <td><strong>${citizen ? citizen.name : 'Unknown Citizen'}</strong></td>
+                      <td><strong>${citizen ? citizen.name : 'Walk-in Customer'}</strong></td>
                       <td>${app.serviceType}</td>
                       <td><code>${app.applicationNumber || '—'}</code></td>
                       <td style="text-align: right;">₹${(app.feePaid || 0).toFixed(2)}</td>

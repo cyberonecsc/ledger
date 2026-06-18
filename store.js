@@ -447,6 +447,59 @@ class StateStore {
       this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
     }
 
+    // Migration: Retroactively register missing G2C applications for existing transactions
+    let updatedMissingApps = false;
+    if (this.dailyLogs) {
+      const g2cKeywords = ['application', 'certificate', 'registration', 'passport', 'aadhaar', 'pan card', 'pancard', 'license', 'licence', 'admission', 'pension', 'edistrict', 'e-district'];
+      Object.keys(this.dailyLogs).forEach(date => {
+        const log = this.dailyLogs[date];
+        if (log && log.transactions) {
+          log.transactions.forEach(txn => {
+            if (txn.type === 'sale') {
+              const descLower = (txn.description || '').toLowerCase();
+              const isG2C = g2cKeywords.some(kw => descLower.includes(kw));
+              if (isG2C) {
+                const txnId = txn.id;
+                const hasApp = this.applications.some(a => a.transactionId === txnId || a.id === txn.applicationId || (a.notes && a.notes.includes(`Auto-created from transaction ${txnId}`)));
+                if (!hasApp) {
+                  const appId = 'APP-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                  let cost = 0;
+                  if (txn.deductions && Array.isArray(txn.deductions)) {
+                    cost = txn.deductions.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+                  } else {
+                    cost = parseFloat(txn.deductedAmount || 0);
+                  }
+                  const amount = parseFloat(txn.amount || 0);
+                  const newApp = {
+                    id: appId,
+                    customerId: txn.customerId || '',
+                    serviceType: txn.description,
+                    applicationNumber: '',
+                    status: 'submitted',
+                    assignedStaffId: txn.staffId || '465314670016',
+                    feePaid: cost,
+                    serviceCharge: parseFloat((amount - cost).toFixed(2)),
+                    lastUpdated: date,
+                    notes: `Auto-created from transaction ${txnId}`,
+                    transactionId: txnId
+                  };
+                  this.applications.push(newApp);
+                  txn.applicationId = appId;
+                  updatedMissingApps = true;
+                  console.log(`Auto-created missing application ${appId} for transaction ${txnId} (${txn.description}) on date ${date}`);
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+    if (updatedMissingApps) {
+      this.saveItem('cyberone_v2_applications', this.applications);
+      this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
+      this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
+    }
+
     // Always recalculate all balances on startup to guarantee database consistency
     this.recalculateAllBalances(true);
   }
@@ -925,10 +978,12 @@ class StateStore {
         }
       }
 
-      // Auto-create pending application if description has "application" and customer is linked
-      if (descLower.includes('application') && txnData.customerId && !linkedApplicationId) {
+      // Auto-create pending application if it matches G2C service keywords
+      const g2cKeywords = ['application', 'certificate', 'registration', 'passport', 'aadhaar', 'pan card', 'pancard', 'license', 'licence', 'admission', 'pension', 'edistrict', 'e-district'];
+      const isG2C = g2cKeywords.some(kw => descLower.includes(kw));
+      if (isG2C && !linkedApplicationId) {
         const app = this.addApplication({
-          customerId: txnData.customerId,
+          customerId: txnData.customerId || '',
           serviceType: txnData.description,
           applicationNumber: '',
           status: 'submitted',
