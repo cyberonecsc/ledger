@@ -200,6 +200,9 @@ class Application {
 
     // Trigger initial route load
     this.handleRouting();
+
+    // Check for updates asynchronously
+    this.checkForUpdates();
   }
 
   setupFirebaseSubscription() {
@@ -238,6 +241,88 @@ class Application {
           }
         }
       });
+    }
+  }
+
+  async checkForUpdates() {
+    const currentVersion = '3.0.4';
+    try {
+      const response = await fetch('https://api.github.com/repos/cyberonecsc/ledger/releases/latest');
+      if (response.ok) {
+        const data = await response.json();
+        const latestVersion = data.tag_name.replace('v', '');
+        
+        // Simple version comparison (e.g. "3.0.4" vs "3.0.3")
+        if (latestVersion !== currentVersion) {
+          console.log(`Update checker: New version available: v${latestVersion}`);
+          this.showUpdateBanner(latestVersion, data.html_url);
+        }
+      }
+    } catch (e) {
+      console.warn("Update checker: Failed to look up latest release:", e);
+    }
+  }
+
+  showUpdateBanner(version, releaseUrl) {
+    if (document.getElementById('app-update-banner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'app-update-banner';
+    banner.style.cssText = `
+      background: linear-gradient(135deg, var(--color-primary), #059669);
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-radius: var(--border-radius-sm);
+      margin: 12px 16px 0 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-family: var(--font-primary);
+      animation: slideDown 0.3s ease-out;
+    `;
+    
+    if (!document.getElementById('style-update-banner')) {
+      const style = document.createElement('style');
+      style.id = 'style-update-banner';
+      style.textContent = `
+        @keyframes slideDown {
+          from { transform: translateY(-10px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    banner.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i data-lucide="info" style="width:16px; height:16px;"></i>
+        <span>New Update Available! Version <strong>v${version}</strong> is ready.</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <a href="${releaseUrl}" target="_blank" class="btn btn-sm btn-secondary" style="background:rgba(255,255,255,0.2); border:none; padding:4px 10px; font-size:12px; font-weight:700; color:#fff; text-decoration:none; border-radius:4px; transition:0.2s;">
+          Get Update
+        </a>
+        <button id="close-update-banner" style="background:none; border:none; color:#fff; cursor:pointer; padding:2px; display:flex; align-items:center; justify-content:center; opacity:0.8; outline:none;">
+          <i data-lucide="x" style="width:14px; height:14px;"></i>
+        </button>
+      </div>
+    `;
+
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      const header = mainContent.querySelector('.main-header');
+      if (header) {
+        header.insertAdjacentElement('afterend', banner);
+        lucide.createIcons();
+        
+        document.getElementById('close-update-banner').addEventListener('click', () => {
+          banner.remove();
+        });
+      }
     }
   }
 
@@ -594,8 +679,8 @@ class Application {
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
             <div class="sidebar-version" style="text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 20px; font-family: var(--font-primary); padding: 0 10px; line-height: 1.5; transition: var(--transition-smooth);">
-              <div>v3.0.3</div>
-              <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© XTREME SYSTEMS</div>
+              <div>v3.0.4</div>
+              <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© ${new Date().getFullYear()} XTREME SYSTEMS</div>
               <div style="font-size: 8px; opacity: 0.7; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
             </div>
           </div>
