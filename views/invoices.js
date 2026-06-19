@@ -43,7 +43,7 @@ export function renderInvoices(mountPoint, appInstance) {
       </div>
 
       <div class="filter-actions" style="display: flex; gap: 10px; align-items: center;">
-        <input type="date" id="inv-date-picker" value="${localActiveDate}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+        <input type="date" id="inv-date-picker" value="${localActiveDate}" style="background: var(--datepicker-bg); border: 1px solid var(--panel-border); color: var(--datepicker-color); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: var(--datepicker-color-scheme); font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
         <button id="btn-create-inv" class="btn btn-primary">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Create Invoice
         </button>

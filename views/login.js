@@ -16,9 +16,9 @@ export function renderLogin(mountPoint, appInstance) {
   const updateCardContent = () => {
     const customLogo = localStorage.getItem('cyberone_v2_custom_logo');
     const logoSrc = customLogo || './logo.png';
-    const loginLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'shield-check\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
-    const signupLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'user-plus\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
-    const resetLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px;" onerror="this.outerHTML='<i data-lucide=\\'key-round\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
+    const loginLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px; background: #ffffff; border-radius: 8px; padding: 4px;" onerror="this.outerHTML='<i data-lucide=\\'shield-check\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
+    const signupLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px; background: #ffffff; border-radius: 8px; padding: 4px;" onerror="this.outerHTML='<i data-lucide=\\'user-plus\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
+    const resetLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px; background: #ffffff; border-radius: 8px; padding: 4px;" onerror="this.outerHTML='<i data-lucide=\\'key-round\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
 
     if (viewMode === 'login') {
       // Render Sign In form
@@ -123,7 +123,7 @@ export function renderLogin(mountPoint, appInstance) {
               </div>
 
               <!-- OTP Verification Input Section (Hidden by default) -->
-              <div id="otp-section" class="form-group" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px;">
+              <div id="otp-section" class="form-group" style="display: none; background: var(--bg-card-medium); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px;">
                 <label class="form-label" for="otp-input" style="color: var(--color-primary);">Verify Email OTP</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
                   <input type="text" id="otp-input" class="form-control" placeholder="6-digit OTP" maxLength="6" style="flex-grow: 1; text-align: center; font-weight: 700; letter-spacing: 2px;">
@@ -187,7 +187,7 @@ export function renderLogin(mountPoint, appInstance) {
               </div>
 
               <!-- Reset OTP Section -->
-              <div id="reset-otp-section" class="form-group" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px;">
+              <div id="reset-otp-section" class="form-group" style="display: none; background: var(--bg-card-medium); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-top: 10px;">
                 <label class="form-label" for="reset-otp-input" style="color: var(--color-primary);">Verify Email OTP</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
                   <input type="text" id="reset-otp-input" class="form-control" placeholder="6-digit OTP" maxLength="6" style="flex-grow: 1; text-align: center; font-weight: 700; letter-spacing: 2px;">

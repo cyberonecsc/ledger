@@ -74,7 +74,7 @@ export function renderTransactions(mountPoint, appInstance) {
         <button id="btn-delete-selected" class="btn btn-danger" style="display: none;">
           <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Delete Selected (<span id="delete-selected-count">0</span>)
         </button>
-        <input type="date" id="txn-date-picker" value="${activeDate}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+        <input type="date" id="txn-date-picker" value="${activeDate}" style="background: var(--datepicker-bg); border: 1px solid var(--panel-border); color: var(--datepicker-color); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: var(--datepicker-color-scheme); font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
         <button id="btn-open-txn-modal" class="btn btn-primary">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add Transaction
         </button>
@@ -114,7 +114,7 @@ export function renderTransactions(mountPoint, appInstance) {
       </div>
       
       <!-- Pagination Controls -->
-      <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--panel-border); font-size: 13px;">
+      <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: var(--bg-card-medium); border-top: 1px solid var(--panel-border); font-size: 13px;">
         <div style="color: var(--text-muted);">
           Showing <span id="pagination-start">0</span> to <span id="pagination-end">0</span> of <span id="pagination-total">0</span> transactions
         </div>
@@ -122,7 +122,7 @@ export function renderTransactions(mountPoint, appInstance) {
           <button id="btn-prev-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
             <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Previous
           </button>
-          <span style="font-weight: 600; color: #fff; padding: 0 8px; font-family: var(--font-primary);">Page <span id="pagination-current">1</span> of <span id="pagination-max">1</span></span>
+          <span style="font-weight: 600; color: var(--text-white-invert); padding: 0 8px; font-family: var(--font-primary);">Page <span id="pagination-current">1</span> of <span id="pagination-max">1</span></span>
           <button id="btn-next-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
             Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
           </button>
@@ -748,8 +748,8 @@ export function renderTransactions(mountPoint, appInstance) {
           </div>
 
           <!-- Quick Register Customer Section -->
-          <div id="quick-customer-section" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-bottom: 15px; width: 100%; box-sizing: border-box;">
-            <h4 style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Quick Register Customer</h4>
+          <div id="quick-customer-section" style="display: none; background: var(--bg-card-medium); border: 1px solid var(--panel-border); padding: 12px; border-radius: var(--border-radius-sm); margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+            <h4 style="font-size: 12px; font-weight: 700; color: var(--text-white-invert); margin-bottom: 8px;">Quick Register Customer</h4>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <input type="text" id="quick-cust-name" class="form-control" placeholder="Customer Name" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
               <input type="text" id="quick-cust-phone" class="form-control" placeholder="Phone Number" style="flex: 1; min-width: 120px; font-size: 12px; padding: 6px 10px; height: 32px; background: rgba(0,0,0,0.2);">
@@ -759,7 +759,7 @@ export function renderTransactions(mountPoint, appInstance) {
           </div>
 
           <!-- Additional Details (Deductions, Material, GST) -->
-          <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px; margin-top: 15px;">
+          <div style="border-top: 1px solid var(--border-hairline-solid); padding-top: 15px; margin-top: 15px;">
             
             <!-- Service Specific Cost Deductions (Conditional) -->
             <div id="service-specific-fields" style="display: ${initialType === 'service' ? 'block' : 'none'}; margin-bottom: 15px;">
@@ -789,7 +789,7 @@ export function renderTransactions(mountPoint, appInstance) {
             <div class="form-group" style="margin-bottom: 15px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                 <input type="checkbox" id="sale-has-gst" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary);">
-                <label for="sale-has-gst" style="font-size: 11px; font-weight: 600; color: #fff; margin: 0; cursor: pointer; user-select: none;">Apply GST (Optional)</label>
+                <label for="sale-has-gst" style="font-size: 11px; font-weight: 600; color: var(--text-white-invert); margin: 0; cursor: pointer; user-select: none;">Apply GST (Optional)</label>
               </div>
               <div id="gst-config-container" style="display: none; gap: 10px; grid-template-columns: 1fr 1fr; margin-bottom: 10px;">
                 <select id="sale-gst-rate" class="form-control" style="font-size: 11px; height: 32px; padding: 4px 8px;">
@@ -806,10 +806,10 @@ export function renderTransactions(mountPoint, appInstance) {
             </div>
 
             <!-- GST Breakdown Summary Card -->
-            <div id="gst-breakdown-container" style="display: none; margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px dashed var(--panel-border); border-radius: var(--border-radius-sm); font-size: 11px; color: var(--text-muted);">
+            <div id="gst-breakdown-container" style="display: none; margin-bottom: 15px; padding: 10px; background: var(--bg-card-medium); border: 1px dashed var(--panel-border); border-radius: var(--border-radius-sm); font-size: 11px; color: var(--text-muted);">
               <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
                 <span>Base Taxable Value:</span>
-                <span id="gst-lbl-base" style="color:#fff; font-weight:600;">₹0.00</span>
+                <span id="gst-lbl-base" style="color: var(--text-white-invert); font-weight:600;">₹0.00</span>
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
                 <span>CGST (Central Tax):</span>

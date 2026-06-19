@@ -36,7 +36,7 @@ export function renderAEPS(mountPoint, appInstance) {
           <div class="glass-card" style="padding: 20px; border-left: 4px solid var(--color-success); display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
               <div>
-                <strong style="font-size: 15px; color:#fff; display:block;">${w.name}</strong>
+                <strong style="font-size: 15px; color: var(--text-white-invert); display:block;">${w.name}</strong>
                 <span style="font-size:11px; color:var(--text-muted);">ID: <code>${w.loginId}</code></span>
               </div>
               <button class="btn btn-sm btn-secondary btn-edit-aeps" data-id="${w.id}" style="padding: 4px;">

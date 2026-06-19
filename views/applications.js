@@ -82,7 +82,7 @@ export function renderApplications(mountPoint, appInstance) {
           <input type="text" id="app-search" class="form-control" placeholder="Search by citizen name, file ID, or reference number..." value="${searchQuery}">
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-          <input type="date" id="app-date-picker" value="${localActiveDate}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: dark; font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+          <input type="date" id="app-date-picker" value="${localActiveDate}" style="background: var(--datepicker-bg); border: 1px solid var(--panel-border); color: var(--datepicker-color); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: var(--datepicker-color-scheme); font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
           <button id="btn-add-app" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; height: 38px;">
             <i data-lucide="plus" style="width: 16px; height: 16px;"></i> New File
           </button>
@@ -96,15 +96,15 @@ export function renderApplications(mountPoint, appInstance) {
           const count = col.items.length;
           
           return `
-            <div class="tracker-column" style="background: rgba(255, 255, 255, 0.015); border: 1px solid var(--panel-border); border-radius: var(--border-radius-md); padding: 15px; display: flex; flex-direction: column; gap: 12px; min-height: 400px;">
+            <div class="tracker-column" style="background: var(--bg-card-light); border: 1px solid var(--panel-border); border-radius: var(--border-radius-md); padding: 15px; display: flex; flex-direction: column; gap: 12px; min-height: 400px;">
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid ${col.color}; padding-bottom: 8px; margin-bottom: 5px;">
-                <span style="font-weight: 700; color: #fff; font-size: 14px;">${col.title}</span>
+                <span style="font-weight: 700; color: var(--text-white-invert); font-size: 14px;">${col.title}</span>
                 <span class="badge" style="background: ${col.color}20; color: ${col.color}; border: 1px solid ${col.color}40; font-size: 11px; padding: 2px 8px; border-radius: 20px;">${count}</span>
               </div>
               
               <div style="display: flex; flex-direction: column; gap: 10px;">
                 ${count === 0 ? `
-                  <div style="text-align: center; color: var(--text-dimmed); padding: 30px 10px; border: 1px dashed rgba(255, 255, 255, 0.05); border-radius: var(--border-radius-sm); font-size: 12px; font-style: italic;">
+                  <div style="text-align: center; color: var(--text-dimmed); padding: 30px 10px; border: 1px dashed var(--bg-card-heavy); border-radius: var(--border-radius-sm); font-size: 12px; font-style: italic;">
                     No files in this stage
                   </div>
                 ` : col.items.map(app => {
@@ -142,16 +142,16 @@ export function renderApplications(mountPoint, appInstance) {
                   }
 
                   return `
-                    <div class="glass-card" style="padding: 12px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; gap: 8px; position: relative;">
+                    <div class="glass-card" style="padding: 12px; border: 1px solid var(--panel-border); background: var(--bg-card-transparent); display: flex; flex-direction: column; gap: 8px; position: relative;">
                       <button class="btn-delete-app" data-id="${app.id}" style="position: absolute; right: 8px; top: 8px; background: none; border: none; color: var(--color-danger); opacity: 0.6; cursor: pointer; padding: 4px; outline: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="Delete Application Log">
                         <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                       </button>
                       <div style="padding-right: 20px;">
-                        <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${citizen ? citizen.name : 'Walk-in Customer'}</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-white-invert); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${citizen ? citizen.name : 'Walk-in Customer'}</div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${app.serviceType}</div>
                       </div>
                       
-                      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-dimmed); border-top: 1px dashed rgba(255,255,255,0.04); padding-top: 6px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-dimmed); border-top: 1px dashed var(--border-hairline); padding-top: 6px;">
                         <span>Ref: ${app.applicationNumber || 'No Ref No.'}</span>
                         <span>${app.lastUpdated}</span>
                       </div>
@@ -170,14 +170,14 @@ export function renderApplications(mountPoint, appInstance) {
       </div>
 
       <!-- History / Archived Files (Full-width Layout) -->
-      <div class="glass-card" style="margin-top: 30px; padding: 20px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.015);">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-          <span style="font-weight: 700; color: #fff; font-size: 15px;">History / Archived Files</span>
-          <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--panel-border); font-size: 11px; padding: 2px 8px; border-radius: 20px;">${historyItems.length} Total</span>
+      <div class="glass-card" style="margin-top: 30px; padding: 20px; border: 1px solid var(--panel-border); background: var(--bg-card-light);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-hairline-solid); padding-bottom: 10px; margin-bottom: 15px;">
+          <span style="font-weight: 700; color: var(--text-white-invert); font-size: 15px;">History / Archived Files</span>
+          <span class="badge" style="background: var(--bg-card-heavy); color: var(--text-muted); border: 1px solid var(--panel-border); font-size: 11px; padding: 2px 8px; border-radius: 20px;">${historyItems.length} Total</span>
         </div>
 
         ${historyItems.length === 0 ? `
-          <div style="text-align: center; color: var(--text-dimmed); padding: 40px 10px; border: 1px dashed rgba(255, 255, 255, 0.05); border-radius: var(--border-radius-sm); font-size: 12px; font-style: italic;">
+          <div style="text-align: center; color: var(--text-dimmed); padding: 40px 10px; border: 1px dashed var(--bg-card-heavy); border-radius: var(--border-radius-sm); font-size: 12px; font-style: italic;">
             No applications in history
           </div>
         ` : `

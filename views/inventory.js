@@ -41,7 +41,7 @@ export function renderInventory(mountPoint, appInstance) {
         <div class="no-print glass-card" style="padding: 15px; margin-bottom: 15px; border-color: rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.03); display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <i data-lucide="scan-barcode" style="width: 22px; height: 22px; color: var(--color-primary);"></i>
-            <span style="font-weight: 700; font-size: 13px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Scan to Restock</span>
+            <span style="font-weight: 700; font-size: 13px; color: var(--text-white-invert); text-transform: uppercase; letter-spacing: 0.5px;">Scan to Restock</span>
           </div>
           <div style="flex: 1; min-width: 250px;">
             <input type="text" id="barcode-scan-input" class="form-control" placeholder="Point scanner here and scan barcode (or enter manual barcode & press Enter)..." style="font-size: 12px; height: 36px; padding: 6px 12px; background: rgba(0,0,0,0.25);">
@@ -123,7 +123,7 @@ export function renderInventory(mountPoint, appInstance) {
         </div>
         
         <!-- Pagination Controls -->
-        <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--panel-border); font-size: 13px;">
+        <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: var(--bg-card-medium); border-top: 1px solid var(--panel-border); font-size: 13px;">
           <div style="color: var(--text-muted);">
             Showing <span id="pag-start">0</span> to <span id="pag-end">0</span> of <span id="pag-total">0</span> entries
           </div>
@@ -131,7 +131,7 @@ export function renderInventory(mountPoint, appInstance) {
             <button id="btn-pag-prev" class="btn btn-sm btn-secondary" style="display: flex; align-items: center; gap: 4px; cursor: pointer; outline: none; border: 1px solid var(--panel-border);">
               <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Previous
             </button>
-            <span style="font-weight: 600; color: #fff; padding: 0 8px;">Page <span id="pag-current">1</span> of <span id="pag-max">1</span></span>
+            <span style="font-weight: 600; color: var(--text-white-invert); padding: 0 8px;">Page <span id="pag-current">1</span> of <span id="pag-max">1</span></span>
             <button id="btn-pag-next" class="btn btn-sm btn-secondary" style="display: flex; align-items: center; gap: 4px; cursor: pointer; outline: none; border: 1px solid var(--panel-border);">
               Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
             </button>
@@ -295,7 +295,7 @@ export function renderInventory(mountPoint, appInstance) {
           const checkboxChecked = selectedIds.has(p.id) ? 'checked' : '';
 
           return `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.02);">
+            <tr style="border-bottom: 1px solid var(--bg-card-medium);">
               <td style="text-align: center;"><input type="checkbox" class="select-prod-checkbox" data-id="${p.id}" ${checkboxChecked} style="cursor: pointer;"></td>
               <td><code>${p.sku}</code></td>
               <td><strong>${p.name}</strong></td>

@@ -79,7 +79,7 @@ export function renderPayroll(mountPoint, appInstance) {
         
         <form id="form-attendance">
           ${staff.map(s => `
-            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom:10px; margin-bottom:10px;">
+            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--bg-card-medium); padding-bottom:10px; margin-bottom:10px;">
               <div>
                 <strong style="font-size:14px; display:block;">${s.name}</strong>
                 <span style="font-size:11px; color:var(--text-dimmed); text-transform:capitalize;">${s.role}</span>
@@ -200,7 +200,7 @@ export function renderPayroll(mountPoint, appInstance) {
           <button id="btn-download-slip" class="btn btn-secondary" style="flex-grow:1;">
             <i data-lucide="download" style="width:16px; height:16px;"></i> Download PDF
           </button>
-          <button id="btn-whatsapp-slip" class="btn btn-secondary" style="flex-grow:1; background: #16a34a; border-color: #16a34a; color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+          <button id="btn-whatsapp-slip" class="btn btn-secondary" style="flex-grow:1; background: #16a34a; border-color: #16a34a; color: var(--text-white-invert); display: inline-flex; align-items: center; gap: 6px;">
             <i data-lucide="message-square" style="width:16px; height:16px;"></i> WhatsApp
           </button>
           <button id="btn-close-slip" class="btn btn-secondary">Close</button>
@@ -218,7 +218,7 @@ export function renderPayroll(mountPoint, appInstance) {
         <form id="form-edit-salary">
           <div class="form-group">
             <label class="form-label">Employee Name</label>
-            <input type="text" id="edit-salary-name" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #fff;">
+            <input type="text" id="edit-salary-name" class="form-control" readonly style="background: var(--bg-card-heavy); color: var(--text-white-invert);">
           </div>
           
           <div class="form-row">
@@ -228,7 +228,7 @@ export function renderPayroll(mountPoint, appInstance) {
             </div>
             <div class="form-group">
               <label class="form-label">Base Salary (Full Month) (₹)</label>
-              <input type="number" id="edit-salary-base" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #fff;">
+              <input type="number" id="edit-salary-base" class="form-control" readonly style="background: var(--bg-card-heavy); color: var(--text-white-invert);">
             </div>
           </div>
           
@@ -256,7 +256,7 @@ export function renderPayroll(mountPoint, appInstance) {
 
           <div class="form-group">
             <label class="form-label">Payment Source</label>
-            <select id="edit-salary-source" class="form-control" style="background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--panel-border); outline: none;">
+            <select id="edit-salary-source" class="form-control" style="background: var(--bg-card-heavy); color: var(--text-white-invert); border: 1px solid var(--panel-border); outline: none;">
               <option value="cash">Cash In Hand (Physical Cash)</option>
               <option value="petty_cash">Petty Cash</option>
               <option value="account">Bank Account (UPI / Transfer)</option>

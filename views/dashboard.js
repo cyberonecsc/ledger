@@ -205,21 +205,21 @@ export function renderDashboard(mountPoint, appInstance) {
       <a href="#transactions?action=new-sale" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.08); transition: var(--transition-smooth);">
         <i data-lucide="plus-circle" style="width: 24px; height: 24px; color: var(--color-primary); filter: drop-shadow(0 0 5px var(--color-primary-glow));"></i>
         <div>
-          <h4 style="font-family: var(--font-display); font-weight: 700; color: #fff; font-size: 15px;">New Transaction</h4>
+          <h4 style="font-family: var(--font-display); font-weight: 700; color: var(--text-white-invert); font-size: 15px;">New Transaction</h4>
           <span style="font-size: 11px; color: var(--text-muted);">Record new sale or expense</span>
         </div>
       </a>
       <a href="#inventory" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); transition: var(--transition-smooth);">
         <i data-lucide="package-plus" style="width: 24px; height: 24px; color: var(--color-success); filter: drop-shadow(0 0 5px var(--color-success-glow));"></i>
         <div>
-          <h4 style="font-family: var(--font-display); font-weight: 700; color: #fff; font-size: 15px;">Add Product</h4>
+          <h4 style="font-family: var(--font-display); font-weight: 700; color: var(--text-white-invert); font-size: 15px;">Add Product</h4>
           <span style="font-size: 11px; color: var(--text-muted);">Register stock or service</span>
         </div>
       </a>
       <a href="#customers" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(6, 182, 212, 0.35); background: rgba(6, 182, 212, 0.08); transition: var(--transition-smooth);">
         <i data-lucide="user-plus" style="width: 24px; height: 24px; color: var(--color-info); filter: drop-shadow(0 0 5px var(--color-info-glow));"></i>
         <div>
-          <h4 style="font-family: var(--font-display); font-weight: 700; color: #fff; font-size: 15px;">Add Customer</h4>
+          <h4 style="font-family: var(--font-display); font-weight: 700; color: var(--text-white-invert); font-size: 15px;">Add Customer</h4>
           <span style="font-size: 11px; color: var(--text-muted);">Register citizen profile</span>
         </div>
       </a>
@@ -248,7 +248,7 @@ export function renderDashboard(mountPoint, appInstance) {
             if (app.status === 'delivered') statusColor = 'var(--color-success)';
 
             return `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-card-transparent); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm);">
                 <div>
                   <div style="font-size: 13px; font-weight: 600;">${customer ? customer.name : 'Unknown'}</div>
                   <div style="font-size: 11px; color: var(--text-muted);">${app.serviceType}</div>
@@ -274,7 +274,7 @@ export function renderDashboard(mountPoint, appInstance) {
           ` : recentProducts.map(p => {
             const isLowStock = p.stock <= p.minStock;
             return `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isLowStock ? 'rgba(239, 68, 68, 0.03)' : 'rgba(255, 255, 255, 0.01)'}; border: 1px solid ${isLowStock ? 'rgba(239, 68, 68, 0.15)' : 'var(--panel-border)'}; border-radius: var(--border-radius-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${isLowStock ? 'rgba(239, 68, 68, 0.03)' : 'var(--bg-card-transparent)'}; border: 1px solid ${isLowStock ? 'rgba(239, 68, 68, 0.15)' : 'var(--panel-border)'}; border-radius: var(--border-radius-sm);">
                 <div>
                   <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                     ${p.name}
@@ -301,7 +301,7 @@ export function renderDashboard(mountPoint, appInstance) {
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 12px; color: var(--text-muted);">Reconciliation Date:</span>
             <input type="date" id="dashboard-date-picker" class="form-control" 
-               style="font-size: 12px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, 0.05); padding: 2px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border); height: 28px; width: 130px; cursor: pointer; color-scheme: dark;"
+               style="font-size: 12px; font-weight: 700; color: var(--text-white-invert); background: var(--bg-card-heavy); padding: 2px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border); height: 28px; width: 130px; cursor: pointer; color-scheme: dark;"
                value="${activeDate}"
                max="${todayStr}">
           </div>
@@ -353,10 +353,10 @@ export function renderDashboard(mountPoint, appInstance) {
             else if (diff < 0) closingColor = 'var(--color-danger)';
 
             return `
-              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.02); height: 38px;">
+              <tr style="border-bottom: 1px solid var(--bg-card-medium); height: 38px;">
                 <td style="padding: 8px 12px; display: flex; align-items: center; gap: 8px;">
                   <i data-lucide="${acc.icon}" style="width: 14px; height: 14px; color: ${acc.color};"></i>
-                  <span style="font-weight: 500; font-size: 13px; color: #fff;">${acc.name}</span>
+                  <span style="font-weight: 500; font-size: 13px; color: var(--text-white-invert);">${acc.name}</span>
                 </td>
                 <td style="padding: 8px 12px; text-align: right; font-family: var(--font-display); color: var(--text-muted);">
                   ${fmt(opVal)}
@@ -399,12 +399,12 @@ export function renderDashboard(mountPoint, appInstance) {
                   ${rowsHtml}
                 </tbody>
                 <tfoot>
-                   <tr style="border-top: 2px solid var(--panel-border); background: rgba(255, 255, 255, 0.02); height: 42px; font-weight: 700;">
+                   <tr style="border-top: 2px solid var(--panel-border); background: var(--bg-card-medium); height: 42px; font-weight: 700;">
                     <td style="padding: 10px 12px; display: flex; align-items: center; gap: 8px;">
                       <i data-lucide="calculator" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
-                      <span style="font-weight: 700; font-size: 13px; color: #fff;">Total of All Accounts</span>
+                      <span style="font-weight: 700; font-size: 13px; color: var(--text-white-invert);">Total of All Accounts</span>
                     </td>
-                    <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); color: #fff; font-size: 13px; font-weight: 700;">
+                    <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); color: var(--text-white-invert); font-size: 13px; font-weight: 700;">
                       ${fmt(totalOpening)}
                     </td>
                     <td style="padding: 10px 12px; text-align: right; font-family: var(--font-display); color: ${totalClosingColor}; font-size: 13px; font-weight: 700;">
@@ -429,7 +429,7 @@ export function renderDashboard(mountPoint, appInstance) {
         <div class="section-header">
           <div>
             <h3 style="font-size: 15px; margin-bottom: 4px;">Today's Transactions breakdown</h3>
-            <span style="font-size: 12px; color: var(--text-muted);">Total volume: <strong style="color:#fff; font-family:var(--font-display); font-weight:600;">${fmt(totalTxnVolume)}</strong></span>
+            <span style="font-size: 12px; color: var(--text-muted);">Total volume: <strong style="color: var(--text-white-invert); font-family:var(--font-display); font-weight:600;">${fmt(totalTxnVolume)}</strong></span>
           </div>
           <i data-lucide="pie-chart" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
         </div>
@@ -447,11 +447,11 @@ export function renderDashboard(mountPoint, appInstance) {
                   const offset = 251.3 - (cumulativePercent * 251.3);
                   cumulativePercent += percentage;
                   return `<circle cx="50" cy="50" r="40" fill="transparent" stroke="${g.color}" stroke-width="12" stroke-dasharray="${segmentLength} 251.3" stroke-dashoffset="${offset}" style="transition: stroke-dashoffset 0.5s ease;"></circle>`;
-                }).join('') : `<circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="12"></circle>`;
+                }).join('') : `<circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--border-hairline-solid)" stroke-width="12"></circle>`;
               })()}
             </svg>
             <div style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-              <span style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; line-height: 1;">${totalTxnCount}</span>
+              <span style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-white-invert); line-height: 1;">${totalTxnCount}</span>
               <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Txns</span>
             </div>
           </div>
@@ -467,7 +467,7 @@ export function renderDashboard(mountPoint, appInstance) {
                     <span style="font-weight: 500; color: var(--text-dimmed);">${g.label}</span>
                   </div>
                   <div style="text-align: right;">
-                    <span style="font-weight: 600; color: #fff; font-family: var(--font-display);">${fmt(g.amount)}</span>
+                    <span style="font-weight: 600; color: var(--text-white-invert); font-family: var(--font-display);">${fmt(g.amount)}</span>
                     <span style="font-size: 10px; color: var(--text-muted); margin-left: 4px;">(${g.count})</span>
                   </div>
                 </div>

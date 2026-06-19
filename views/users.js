@@ -45,7 +45,7 @@ export function renderUserManagement(mountPoint, appInstance) {
               <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Active Accounts</h5>
               <div style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; padding-right:5px;">
                 ${listUsers.map(u => `
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm);">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-card-transparent); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm);">
                     <div style="display:flex; align-items:center; gap:10px; min-width: 0; flex-grow: 1;">
                       ${u.photo ? `
                         <img src="${u.photo}" alt="User Avatar" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-primary);">
@@ -53,7 +53,7 @@ export function renderUserManagement(mountPoint, appInstance) {
                         <div class="avatar" style="width: 28px; height: 28px; font-size: 11px; box-shadow: none;">${u.name.charAt(0)}</div>
                       `}
                       <div style="min-width: 0; flex-grow: 1;">
-                        <strong style="font-size:13px; display:block; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${u.name}</strong>
+                        <strong style="font-size:13px; display:block; color: var(--text-white-invert); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${u.name}</strong>
                         <span style="font-size:11px; color:var(--text-muted);">@${u.username} <code style="color:var(--color-primary);">(${u.role})</code></span>
                       </div>
                     </div>

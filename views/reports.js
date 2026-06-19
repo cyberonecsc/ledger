@@ -231,7 +231,7 @@ export function renderReports(mountPoint, appInstance) {
         <div class="card-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
           <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
             <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Gross Turnover</span>
-            <div id="custom-kpi-turnover" style="font-family:var(--font-display); font-size:20px; font-weight:700; color:#fff; margin-top:5px;">₹0.00</div>
+            <div id="custom-kpi-turnover" style="font-family:var(--font-display); font-size:20px; font-weight:700; color: var(--text-white-invert); margin-top:5px;">₹0.00</div>
           </div>
           <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
             <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Net Income (SC)</span>
@@ -247,7 +247,7 @@ export function renderReports(mountPoint, appInstance) {
           </div>
         </div>
 
-        <div id="custom-chart-mount" style="margin-top: 25px; margin-bottom: 25px; padding: 15px; background: rgba(255,255,255,0.01); border: 1px solid var(--panel-border); border-radius: var(--border-radius-md); display: flex; justify-content: center;" class="no-print">
+        <div id="custom-chart-mount" style="margin-top: 25px; margin-bottom: 25px; padding: 15px; background: var(--bg-card-transparent); border: 1px solid var(--panel-border); border-radius: var(--border-radius-md); display: flex; justify-content: center;" class="no-print">
           <!-- SVG chart will mount here -->
         </div>
 
@@ -735,10 +735,10 @@ function generateDaybookSVG(opCash, clCash, opBank, clBank) {
   return `
     <svg viewBox="0 0 500 240" style="width: 100%; max-width: 500px; height: auto; font-family: inherit;">
       <!-- Gridlines -->
-      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - 20}" y2="${paddingTop}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.33}" x2="${width - 20}" y2="${paddingTop + chartHeight * 0.33}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.66}" x2="${width - 20}" y2="${paddingTop + chartHeight * 0.66}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-      <line x1="${paddingLeft}" y1="${chartHeight + paddingTop}" x2="${width - 20}" y2="${chartHeight + paddingTop}" stroke="rgba(255,255,255,0.1)" />
+      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - 20}" y2="${paddingTop}" stroke="var(--bg-card-heavy)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.33}" x2="${width - 20}" y2="${paddingTop + chartHeight * 0.33}" stroke="var(--bg-card-heavy)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.66}" x2="${width - 20}" y2="${paddingTop + chartHeight * 0.66}" stroke="var(--bg-card-heavy)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${chartHeight + paddingTop}" x2="${width - 20}" y2="${chartHeight + paddingTop}" stroke="var(--border-hairline-solid)" />
 
       <!-- Y Axis Labels -->
       <text x="${paddingLeft - 8}" y="${paddingTop + 4}" fill="var(--text-muted)" font-size="9" text-anchor="end">₹${Math.round(max).toLocaleString('en-IN')}</text>
@@ -839,7 +839,7 @@ function generatePLSVG(govt, dtp, bills, recharges, totalRev, totalExp) {
   });
 
   if (categories.length === 0) {
-    donutSlices = `<circle r="${radius}" cx="80" cy="100" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="14"></circle>`;
+    donutSlices = `<circle r="${radius}" cx="80" cy="100" fill="transparent" stroke="var(--bg-card-heavy)" stroke-width="14"></circle>`;
     legendHtml = `<text x="150" y="105" fill="var(--text-dimmed)" font-size="11">No revenue logged</text>`;
   }
 
@@ -854,7 +854,7 @@ function generatePLSVG(govt, dtp, bills, recharges, totalRev, totalExp) {
   return `
     <svg viewBox="0 0 600 200" style="width: 100%; max-width: 600px; height: auto; font-family: inherit;">
       <!-- Background Pane Splitter -->
-      <line x1="320" y1="15" x2="320" y2="185" stroke="rgba(255,255,255,0.08)" />
+      <line x1="320" y1="15" x2="320" y2="185" stroke="var(--border-hairline-solid)" />
 
       <!-- Left Side: Revenue Breakdown Donut -->
       <text x="15" y="25" fill="#fff" font-size="12" font-weight="700">Revenue Distribution</text>
@@ -873,13 +873,13 @@ function generatePLSVG(govt, dtp, bills, recharges, totalRev, totalExp) {
       
       <!-- Revenue Bar -->
       <text x="340" y="55" fill="var(--text-muted)" font-size="10">Total Revenues (SC)</text>
-      <rect x="340" y="65" width="${barChartWidth}" height="16" rx="4" fill="rgba(255,255,255,0.02)" />
+      <rect x="340" y="65" width="${barChartWidth}" height="16" rx="4" fill="var(--bg-card-medium)" />
       <rect x="340" y="65" width="${wRev}" height="16" rx="4" fill="url(#grad-pl-rev)" />
       <text x="${Math.max(345, 340 + wRev + 8)}" y="77" fill="#10b981" font-size="11" font-weight="700">₹${Math.round(totalRev)}</text>
 
       <!-- Expenses Bar -->
       <text x="340" y="110" fill="var(--text-muted)" font-size="10">Operating Expenses</text>
-      <rect x="340" y="120" width="${barChartWidth}" height="16" rx="4" fill="rgba(255,255,255,0.02)" />
+      <rect x="340" y="120" width="${barChartWidth}" height="16" rx="4" fill="var(--bg-card-medium)" />
       <rect x="340" y="120" width="${wExp}" height="16" rx="4" fill="url(#grad-pl-exp)" />
       <text x="${Math.max(345, 340 + wExp + 8)}" y="132" fill="#ef4444" font-size="11" font-weight="700">₹${Math.round(totalExp)}</text>
 
@@ -933,7 +933,7 @@ function generateWalletSVG(wallets, balances) {
         <text x="10" y="26" fill="var(--text-dimmed)" font-size="9">${wData.login}</text>
         
         <!-- Bar background -->
-        <rect x="${labelWidth}" y="6" width="${chartWidth}" height="16" rx="4" fill="rgba(255,255,255,0.02)" />
+        <rect x="${labelWidth}" y="6" width="${chartWidth}" height="16" rx="4" fill="var(--bg-card-medium)" />
         
         <!-- Fill Bar -->
         <rect x="${labelWidth}" y="6" width="${barW}" height="16" rx="4" fill="url(#grad-wallet-${index})" />
@@ -996,7 +996,7 @@ function generateStaffSVG(staffData) {
         <text x="${x + barWidth/2}" y="${top - 6}" fill="#22d3ee" font-size="9" font-weight="700" text-anchor="middle">₹${Math.round(s.sales)}</text>
         
         <!-- Files counter bubble inside/above bar -->
-        <circle cx="${x + barWidth/2}" cy="${top + 15}" r="8" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
+        <circle cx="${x + barWidth/2}" cy="${top + 15}" r="8" fill="var(--border-hairline-solid)" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
         <text x="${x + barWidth/2}" y="${top + 18}" fill="#fff" font-size="8" font-weight="700" text-anchor="middle">${s.apps}</text>
 
         <!-- X Label (Name) -->
@@ -1023,9 +1023,9 @@ function generateStaffSVG(staffData) {
       <text x="10" y="15" fill="var(--text-muted)" font-size="10" font-weight="700" text-transform="uppercase">Revenue & Application File Output</text>
       
       <!-- Gridlines -->
-      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - paddingRight}" y2="${paddingTop}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.5}" x2="${width - paddingRight}" y2="${paddingTop + chartHeight * 0.5}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-      <line x1="${paddingLeft}" y1="${chartHeight + paddingTop}" x2="${width - paddingRight}" y2="${chartHeight + paddingTop}" stroke="rgba(255,255,255,0.1)" />
+      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - paddingRight}" y2="${paddingTop}" stroke="var(--bg-card-heavy)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${paddingTop + chartHeight * 0.5}" x2="${width - paddingRight}" y2="${paddingTop + chartHeight * 0.5}" stroke="var(--bg-card-heavy)" stroke-dasharray="4" />
+      <line x1="${paddingLeft}" y1="${chartHeight + paddingTop}" x2="${width - paddingRight}" y2="${chartHeight + paddingTop}" stroke="var(--border-hairline-solid)" />
 
       <!-- Y Axis Labels -->
       <text x="${paddingLeft - 8}" y="${paddingTop + 4}" fill="var(--text-muted)" font-size="8" text-anchor="end">₹${Math.round(max).toLocaleString('en-IN')}</text>

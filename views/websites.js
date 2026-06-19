@@ -31,7 +31,7 @@ export function renderWebsites(mountPoint, appInstance) {
     mountPoint.innerHTML = `
       <!-- 5 columns for frequently used websites -->
       <div style="margin-bottom: 30px;">
-        <h4 style="font-family: var(--font-display); font-weight: 700; color: #fff; font-size: 14px; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted);">
+        <h4 style="font-family: var(--font-display); font-weight: 700; color: var(--text-white-invert); font-size: 14px; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted);">
           Frequently Used Portals
         </h4>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
@@ -49,7 +49,7 @@ export function renderWebsites(mountPoint, appInstance) {
                 <div style="position: absolute; top: -20px; right: -20px; width: 60px; height: 60px; border-radius: 50%; background: var(--color-primary-glow); filter: blur(20px); opacity: 0.15; pointer-events: none;"></div>
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                  <span style="font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; word-break: break-word;">${web.name}</span>
+                  <span style="font-size: 13px; font-weight: 700; color: var(--text-white-invert); line-height: 1.2; word-break: break-word;">${web.name}</span>
                   <span class="badge" style="background: rgba(99,102,241,0.1); color: var(--color-primary); border: 1px solid rgba(99,102,241,0.2); font-size: 9px; padding: 1px 5px; border-radius: 10px; flex-shrink: 0;">
                     ${web.visitCount || 0} visits
                   </span>
@@ -59,7 +59,7 @@ export function renderWebsites(mountPoint, appInstance) {
                   ${hostname}
                 </div>
                 
-                <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 5px; border-top: 1px dashed rgba(255,255,255,0.04);">
+                <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 5px; border-top: 1px dashed var(--border-hairline);">
                   <button class="btn btn-xs btn-secondary btn-copy-uid" data-id="${web.id}" style="flex: 1; font-size: 9px; padding: 2px; height: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 3px;">
                     <i data-lucide="copy" style="width: 10px; height: 10px;"></i> ID
                   </button>
@@ -71,7 +71,7 @@ export function renderWebsites(mountPoint, appInstance) {
             `;
           }).join('')}
           ${websites.length === 0 ? `
-            <div style="grid-column: 1 / -1; text-align: center; color: var(--text-dimmed); padding: 20px; background: rgba(255,255,255,0.01); border: 1px dashed var(--panel-border); border-radius: var(--border-radius-md); font-size: 12px; font-style: italic;">
+            <div style="grid-column: 1 / -1; text-align: center; color: var(--text-dimmed); padding: 20px; background: var(--bg-card-transparent); border: 1px dashed var(--panel-border); border-radius: var(--border-radius-md); font-size: 12px; font-style: italic;">
               No portals registered. Add websites below to populate quick access list.
             </div>
           ` : ''}
@@ -121,7 +121,7 @@ export function renderWebsites(mountPoint, appInstance) {
                   </td>
                   <td>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <code style="background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; font-size: 12px;">${web.userId || '—'}</code>
+                      <code style="background: var(--border-hairline); padding: 2px 6px; border-radius: 4px; font-size: 12px;">${web.userId || '—'}</code>
                       ${web.userId ? `
                         <button class="btn btn-xs btn-secondary btn-copy-uid" data-id="${web.id}" style="padding: 2px 4px; height: 20px;" title="Copy User ID">
                           <i data-lucide="copy" style="width: 11px; height: 11px;"></i>
@@ -131,7 +131,7 @@ export function renderWebsites(mountPoint, appInstance) {
                   </td>
                   <td>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <input type="password" class="form-control web-pwd-field" value="${web.password || ''}" disabled style="background: none; border: none; padding: 0; width: 100px; color: #fff; font-family: monospace; font-size: 12px;">
+                      <input type="password" class="form-control web-pwd-field" value="${web.password || ''}" disabled style="background: none; border: none; padding: 0; width: 100px; color: var(--text-white-invert); font-family: monospace; font-size: 12px;">
                       ${web.password ? `
                         <button class="btn btn-xs btn-secondary btn-toggle-pwd" style="padding: 2px 4px; height: 20px;">
                           <i data-lucide="eye" style="width: 11px; height: 11px;"></i>
@@ -146,7 +146,7 @@ export function renderWebsites(mountPoint, appInstance) {
                     ${web.notes || '—'}
                   </td>
                   <td style="text-align: center;">
-                    <span class="badge" style="background: rgba(255,255,255,0.03); color: var(--text-muted); border: 1px solid var(--panel-border); font-size: 11px;">
+                    <span class="badge" style="background: var(--bg-card-medium); color: var(--text-muted); border: 1px solid var(--panel-border); font-size: 11px;">
                       ${web.visitCount || 0}
                     </span>
                   </td>

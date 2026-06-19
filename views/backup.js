@@ -104,7 +104,7 @@ export function renderBackupRestore(mountPoint, appInstance) {
       <!-- Local Snapshots / Checkpoints Table -->
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h4 style="font-size: 13px; font-weight: 600; color: #fff; margin: 0;">Local Browser Checkpoints</h4>
+          <h4 style="font-size: 13px; font-weight: 600; color: var(--text-white-invert); margin: 0;">Local Browser Checkpoints</h4>
           <button id="btn-create-manual-snapshot" class="btn btn-xs btn-success" style="display:inline-flex; align-items:center; gap:4px; font-size:11px; padding: 4px 8px; width:auto; border-radius: var(--border-radius-sm);">
             <i data-lucide="plus" style="width:12px; height:12px;"></i> Create Checkpoint Now
           </button>
@@ -301,8 +301,8 @@ ${Object.keys(store.dailyLogs).sort().join(', ')}</div>
         const sizeStr = (byteSize / 1024).toFixed(1) + ' KB';
         
         return `
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <td style="padding: 8px; color: #fff; font-weight: 500;">${dateStr}</td>
+          <tr style="border-bottom: 1px solid var(--bg-card-heavy);">
+            <td style="padding: 8px; color: var(--text-white-invert); font-weight: 500;">${dateStr}</td>
             <td style="padding: 8px; color: var(--text-muted);">${snap.label}</td>
             <td style="padding: 8px; color: var(--text-muted);">${sizeStr}</td>
             <td style="padding: 8px; text-align: right;">

@@ -20,6 +20,28 @@
   --text-muted: #9ca3af;
   --text-dimmed: #6b7280;
 
+  /* Auto-inverting contrast variables */
+  --border-hairline: rgba(255, 255, 255, 0.05);
+  --border-hairline-solid: rgba(255, 255, 255, 0.08);
+  --border-hairline-heavy: rgba(255, 255, 255, 0.12);
+  --bg-card-transparent: rgba(255, 255, 255, 0.01);
+  --bg-card-light: rgba(255, 255, 255, 0.015);
+  --bg-card-medium: rgba(255, 255, 255, 0.02);
+  --bg-card-heavy: rgba(255, 255, 255, 0.05);
+  --text-white-invert: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+  --btn-secondary-hover-bg: rgba(255, 255, 255, 0.1);
+  --chart-grid-stroke: rgba(255, 255, 255, 0.03);
+  --chart-axis-stroke: rgba(255, 255, 255, 0.1);
+  --glass-card-hover-border: rgba(255, 255, 255, 0.15);
+  --wallet-card-bg: linear-gradient(135deg, rgba(20, 28, 48, 0.6) 0%, rgba(10, 15, 30, 0.6) 100%);
+  --wallet-card-border: var(--panel-border);
+  --wallet-card-name-color: #ffffff;
+  --wallet-card-balance-color: #ffffff;
+  --datepicker-bg: rgba(255, 255, 255, 0.05);
+  --datepicker-color: #ffffff;
+  --datepicker-color-scheme: dark;
+
   /* Accent Colors */
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
@@ -52,19 +74,41 @@
 /* Light theme overrides - Will be toggled in Settings */
 body.light-theme {
   color-scheme: light;
-  --bg-main: #f8fafc;
-  --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  --panel-bg: rgba(255, 255, 255, 0.7);
+  --bg-main: #f1f5f9;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  --panel-bg: rgba(255, 255, 255, 0.75);
   --panel-bg-hover: rgba(255, 255, 255, 0.95);
-  --panel-border: rgba(99, 102, 241, 0.15);
-  --panel-glow: rgba(99, 102, 241, 0.05);
+  --panel-border: rgba(15, 23, 42, 0.08);
+  --panel-glow: rgba(37, 99, 235, 0.04);
 
   --text-main: #0f172a;
   --text-muted: #475569;
   --text-dimmed: #94a3b8;
 
-  --panel-border-hover: rgba(99, 102, 241, 0.3);
-  --shadow-premium: 0 10px 30px rgba(99, 102, 241, 0.08);
+  /* Auto-inverting contrast variables for light theme */
+  --border-hairline: rgba(15, 23, 42, 0.06);
+  --border-hairline-solid: rgba(15, 23, 42, 0.08);
+  --border-hairline-heavy: rgba(15, 23, 42, 0.12);
+  --bg-card-transparent: rgba(15, 23, 42, 0.01);
+  --bg-card-light: rgba(15, 23, 42, 0.015);
+  --bg-card-medium: rgba(15, 23, 42, 0.02);
+  --bg-card-heavy: rgba(15, 23, 42, 0.05);
+  --text-white-invert: #0f172a;
+  --btn-secondary-bg: rgba(15, 23, 42, 0.05);
+  --btn-secondary-hover-bg: rgba(15, 23, 42, 0.1);
+  --chart-grid-stroke: rgba(15, 23, 42, 0.08);
+  --chart-axis-stroke: rgba(15, 23, 42, 0.15);
+  --glass-card-hover-border: rgba(15, 23, 42, 0.15);
+  --wallet-card-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(255, 255, 255, 0.9) 100%);
+  --wallet-card-border: rgba(37, 99, 235, 0.15);
+  --wallet-card-name-color: #0f172a;
+  --wallet-card-balance-color: #0f172a;
+  --datepicker-bg: rgba(15, 23, 42, 0.05);
+  --datepicker-color: #0f172a;
+  --datepicker-color-scheme: light;
+
+  --panel-border-hover: rgba(15, 23, 42, 0.15);
+  --shadow-premium: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 /* Base Styles & Resets */
@@ -397,7 +441,7 @@ button, input, select, textarea {
 
 .glass-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--glass-card-hover-border);
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
 }
 
@@ -440,7 +484,7 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--btn-secondary-bg);
   color: var(--text-main);
   font-size: 16px;
 }
@@ -504,12 +548,12 @@ button, input, select, textarea {
 }
 
 .chart-grid-line {
-  stroke: rgba(255, 255, 255, 0.03);
+  stroke: var(--chart-grid-stroke);
   stroke-width: 1;
 }
 
 .chart-axis-line {
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: var(--chart-axis-stroke);
   stroke-width: 1.5;
 }
 
@@ -613,10 +657,10 @@ button, input, select, textarea {
 
 .table-responsive::-webkit-scrollbar {
   height: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-medium);
 }
 .table-responsive::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--bg-card-transparent);
   border-radius: 5px;
 }
 .table-responsive::-webkit-scrollbar-thumb {
@@ -638,11 +682,11 @@ button, input, select, textarea {
 .ledger-table-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-medium);
 }
 
 .ledger-table-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--bg-card-transparent);
   border-radius: 4px;
 }
 
@@ -673,7 +717,7 @@ button, input, select, textarea {
 }
 
 .custom-table th {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-medium);
   padding: 16px 20px;
   font-weight: 600;
   color: var(--text-muted);
@@ -692,7 +736,7 @@ button, input, select, textarea {
 }
 
 .custom-table tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--bg-card-light);
 }
 
 .custom-table tbody tr:last-child td {
@@ -741,8 +785,8 @@ button, input, select, textarea {
   flex-direction: column;
   justify-content: space-between;
   height: 160px;
-  background: linear-gradient(135deg, rgba(20, 28, 48, 0.6) 0%, rgba(10, 15, 30, 0.6) 100%);
-  border: 1px solid var(--panel-border);
+  background: var(--wallet-card-bg);
+  border: 1px solid var(--wallet-card-border);
   border-radius: var(--border-radius-lg);
   padding: 20px;
   transition: var(--transition-smooth);
@@ -764,7 +808,7 @@ button, input, select, textarea {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--wallet-card-name-color);
 }
 
 .wallet-meta {
@@ -786,7 +830,7 @@ button, input, select, textarea {
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--wallet-card-balance-color);
 }
 
 /* Beautiful Forms */
@@ -805,7 +849,7 @@ button, input, select, textarea {
 .form-control {
   width: 100%;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-medium);
   border: 1px solid var(--panel-border);
   border-radius: var(--border-radius-sm);
   color: var(--text-main);
@@ -833,7 +877,7 @@ select.form-control option {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 8px var(--color-primary-glow);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-card-heavy);
 }
 
 .form-row {
@@ -876,13 +920,13 @@ select.form-control option {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--btn-secondary-bg);
   border: 1px solid var(--panel-border);
   color: var(--text-main);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--btn-secondary-hover-bg);
 }
 
 .btn-success {
@@ -1144,7 +1188,7 @@ select.form-control option {
 
 .btn-preset {
   padding: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-medium);
   border: 1px solid var(--panel-border);
   border-radius: var(--border-radius-sm);
   font-size: 11px;
@@ -1183,7 +1227,7 @@ select.form-control option {
 }
 
 .tracker-column {
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--bg-card-transparent);
   border: 1px solid var(--panel-border);
   border-radius: var(--border-radius-md);
   padding: 14px;
@@ -1212,7 +1256,7 @@ select.form-control option {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-card-heavy);
   font-size: 10px;
   display: flex;
   align-items: center;
@@ -1892,7 +1936,7 @@ body.sidebar-collapsed .submenu-list {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-card-medium);
   border: 1px solid var(--panel-border);
   padding: 6px 12px;
   border-radius: var(--border-radius-sm);
@@ -1936,7 +1980,7 @@ body.sidebar-collapsed .submenu-list {
 .sync-badge.offline {
   color: var(--text-muted);
   border-color: var(--panel-border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-medium);
 }
 
 /* ==========================================================================
@@ -2144,18 +2188,41 @@ body.sidebar-collapsed .submenu-list {
 /* 6. Shaded Light (White Background, Blue Highlights, Shaded Sidebar) */
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg-main: #ffffff;
-  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #ffffff 100%);
-  --panel-bg: rgba(248, 250, 252, 0.9);
-  --panel-bg-hover: rgba(255, 255, 255, 1);
+  --bg-main: #f1f5f9;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  --panel-bg: rgba(255, 255, 255, 0.75);
+  --panel-bg-hover: rgba(255, 255, 255, 0.95);
   --panel-border: rgba(15, 23, 42, 0.08);
   --panel-glow: rgba(37, 99, 235, 0.04);
+
   --text-main: #0f172a;
   --text-muted: #475569;
   --text-dimmed: #94a3b8;
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-glow: rgba(37, 99, 235, 0.2);
+
+  /* Auto-inverting contrast variables for light theme */
+  --border-hairline: rgba(15, 23, 42, 0.06);
+  --border-hairline-solid: rgba(15, 23, 42, 0.08);
+  --border-hairline-heavy: rgba(15, 23, 42, 0.12);
+  --bg-card-transparent: rgba(15, 23, 42, 0.01);
+  --bg-card-light: rgba(15, 23, 42, 0.015);
+  --bg-card-medium: rgba(15, 23, 42, 0.02);
+  --bg-card-heavy: rgba(15, 23, 42, 0.05);
+  --text-white-invert: #0f172a;
+  --btn-secondary-bg: rgba(15, 23, 42, 0.05);
+  --btn-secondary-hover-bg: rgba(15, 23, 42, 0.1);
+  --chart-grid-stroke: rgba(15, 23, 42, 0.08);
+  --chart-axis-stroke: rgba(15, 23, 42, 0.15);
+  --glass-card-hover-border: rgba(15, 23, 42, 0.15);
+  --wallet-card-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(255, 255, 255, 0.9) 100%);
+  --wallet-card-border: rgba(37, 99, 235, 0.15);
+  --wallet-card-name-color: #0f172a;
+  --wallet-card-balance-color: #0f172a;
+  --datepicker-bg: rgba(15, 23, 42, 0.05);
+  --datepicker-color: #0f172a;
+  --datepicker-color-scheme: light;
+
+  --panel-border-hover: rgba(15, 23, 42, 0.15);
+  --shadow-premium: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 /* Light theme elements overrides */
@@ -2184,7 +2251,7 @@ body.sidebar-collapsed .submenu-list {
 :root[data-theme='light'] .login-card { background: #ffffff; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
 :root[data-theme='light'] .login-header h2 { color: #0f172a; }
 :root[data-theme='light'] .modal-container { background: #ffffff; }
-:root[data-theme='light'] .modal-header h3 { color: #0f172a; }
+:root[data-theme='light'] .modal-header h4 { color: #0f172a !important; }
 
 /* Batch Selection & Action Bar Styles */
 .custom-table input[type="checkbox"] {

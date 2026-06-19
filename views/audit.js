@@ -62,7 +62,7 @@ export function renderAuditLog(mountPoint, appInstance) {
 
     <!-- Floating Batch Action Bar -->
     <div id="ops-batch-action-bar" class="batch-action-bar">
-      <span style="font-size: 14px; font-weight: 600; color: #fff;"><span id="batch-select-count">0</span> items selected</span>
+      <span style="font-size: 14px; font-weight: 600; color: var(--text-white-invert);"><span id="batch-select-count">0</span> items selected</span>
       <div style="width: 1px; height: 20px; background: rgba(255, 255, 255, 0.15);"></div>
       <button id="btn-ops-batch-delete" class="btn btn-sm btn-danger" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 30px; cursor: pointer; border: none; font-weight: 600;">
         <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete Selected
@@ -265,8 +265,8 @@ export function renderAuditLog(mountPoint, appInstance) {
           return `
             <tr>
               <td style="font-size: 12px; white-space: nowrap; font-family: monospace; color: var(--text-muted);">${formatTime(entry.timestamp)}</td>
-              <td style="font-weight: 600; color: #fff;">${entry.user}</td>
-              <td><span class="${actionClass}" style="border: 1px solid rgba(255,255,255,0.05); font-size: 10px; padding: 2px 6px;">${entry.action}</span></td>
+              <td style="font-weight: 600; color: var(--text-white-invert);">${entry.user}</td>
+              <td><span class="${actionClass}" style="border: 1px solid var(--bg-card-heavy); font-size: 10px; padding: 2px 6px;">${entry.action}</span></td>
               <td style="font-size: 13px; color: var(--text-main); font-weight: 500;">${detailsText}</td>
             </tr>
           `;
@@ -299,7 +299,7 @@ export function renderAuditLog(mountPoint, appInstance) {
           </div>
 
           <!-- Audit Pagination Controls -->
-          <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--panel-border); font-size: 13px;">
+          <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: var(--bg-card-medium); border-top: 1px solid var(--panel-border); font-size: 13px;">
             <div style="color: var(--text-muted);">
               Showing <span id="audit-p-start">${totalItems > 0 ? startIndex + 1 : 0}</span> to <span id="audit-p-end">${endIndex}</span> of <span id="audit-p-total">${totalItems}</span> entries
             </div>
@@ -307,7 +307,7 @@ export function renderAuditLog(mountPoint, appInstance) {
               <button id="btn-audit-prev" class="btn btn-sm btn-secondary" ${auditPage === 1 ? 'disabled' : ''}>
                 <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Previous
               </button>
-              <span style="color: #fff; padding: 0 8px;">Page ${auditPage} of ${totalPages}</span>
+              <span style="color: var(--text-white-invert); padding: 0 8px;">Page ${auditPage} of ${totalPages}</span>
               <button id="btn-audit-next" class="btn btn-sm btn-secondary" ${auditPage === totalPages ? 'disabled' : ''}>
                 Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
               </button>
@@ -423,7 +423,7 @@ export function renderAuditLog(mountPoint, appInstance) {
               <td><span style="font-family: monospace; font-size: 11px; color: var(--text-muted); font-weight:600;">${t.id}</span></td>
               <td>${typeBadge}</td>
               <td><strong>${t.description}</strong></td>
-              <td style="font-weight:700; color: #fff;">${fmt(t.amount)}</td>
+              <td style="font-weight:700; color: var(--text-white-invert);">${fmt(t.amount)}</td>
               <td><code>${sourceName}</code></td>
               <td style="text-align: center; white-space: nowrap;">
                 ${isEditable ? `
@@ -479,7 +479,7 @@ export function renderAuditLog(mountPoint, appInstance) {
               <button id="btn-ops-prev" class="btn btn-sm btn-secondary" ${opsPage === 1 ? 'disabled' : ''}>
                 <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Prev
               </button>
-              <span style="color: #fff; padding: 0 8px; font-size: 12px;">Page ${opsPage} of ${totalOpsPages}</span>
+              <span style="color: var(--text-white-invert); padding: 0 8px; font-size: 12px;">Page ${opsPage} of ${totalOpsPages}</span>
               <button id="btn-ops-next" class="btn btn-sm btn-secondary" ${opsPage === totalOpsPages ? 'disabled' : ''}>
                 Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
               </button>

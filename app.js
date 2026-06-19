@@ -249,7 +249,7 @@ class Application {
   }
 
   async checkForUpdates() {
-    const currentVersion = '3.0.6';
+    const currentVersion = '3.0.7';
     try {
       const response = await fetch('https://api.github.com/repos/cyberonecsc/ledger/releases/latest');
       if (response.ok) {
@@ -598,7 +598,7 @@ class Application {
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
           <div class="sidebar-logo" style="display:flex; align-items:center; gap:10px; position:relative;">
-            <img id="sidebar-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:28px; height:28px; object-fit:contain;" onerror="this.style.display='none';">
+            <img id="sidebar-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:28px; height:28px; object-fit:contain; background:#ffffff; border-radius:4px; padding:2px;" onerror="this.style.display='none';">
             <h1>CYBERONE CSC</h1>
             <button id="sidebar-toggle" style="position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--color-primary); border: 1px solid var(--panel-border); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.5); outline:none; transition: var(--transition-smooth);">
               <i data-lucide="${isCollapsed ? 'chevron-right' : 'chevron-left'}" style="width: 12px; height: 12px;"></i>
@@ -683,7 +683,7 @@ class Application {
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
             <div class="sidebar-version" style="text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 20px; font-family: var(--font-primary); padding: 0 10px; line-height: 1.5; transition: var(--transition-smooth);">
-              <div>v3.0.6</div>
+              <div>v3.0.7</div>
               <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© ${new Date().getFullYear()} XTREME SYSTEMS</div>
               <div style="font-size: 8px; opacity: 0.7; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
             </div>
@@ -698,7 +698,7 @@ class Application {
               <button id="mobile-menu-toggle" class="mobile-only-flex" style="display: none; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); color: #fff; width: 34px; height: 34px; align-items: center; justify-content: center; cursor: pointer; outline: none; transition: var(--transition-smooth); margin-right: 4px;">
                 <i data-lucide="menu" style="width: 18px; height: 18px;"></i>
               </button>
-              <img id="header-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:38px; height:38px; object-fit:contain;" onerror="this.style.display='none';">
+              <img id="header-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:38px; height:38px; object-fit:contain; background:#ffffff; border-radius:4px; padding:2px;" onerror="this.style.display='none';">
               <div class="page-title">
                 <h2 id="page-heading-title">CYBERONE CSC</h2>
                 <p id="page-heading-sub">Operations & Ledger Management</p>
@@ -712,7 +712,7 @@ class Application {
               </div>
               
               <!-- Live Header Clock -->
-              <div class="header-clock" style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; background:rgba(255,255,255,0.03); border:1px solid var(--panel-border); padding:4px 12px; border-radius:var(--border-radius-sm); user-select:none; -webkit-user-select:none;">
+              <div class="header-clock" style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; background:var(--datepicker-bg); border:1px solid var(--panel-border); padding:4px 12px; border-radius:var(--border-radius-sm); user-select:none; -webkit-user-select:none;">
                 <span id="header-clock-time" style="font-family: 'Outfit', 'Inter', monospace; color: var(--color-primary); font-weight:800; font-size:15px; letter-spacing:0.5px; line-height:1.2;"></span>
                 <span id="header-clock-date" style="color: #fff; font-size:13px; font-weight:700; margin-top:2px; line-height:1.2;"></span>
               </div>

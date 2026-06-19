@@ -174,7 +174,7 @@ export function renderCustomers(mountPoint, appInstance) {
           <!-- Column 1: Profile & Credit -->
           <div style="display: flex; flex-direction: column; gap: 15px; height: 100%; overflow-y: auto; padding-right: 5px;">
             <!-- Profile metadata -->
-            <div class="glass-card" id="profile-metadata-card" style="padding:15px; background: rgba(255,255,255,0.01); position: relative; margin-bottom: 0;">
+            <div class="glass-card" id="profile-metadata-card" style="padding:15px; background: var(--bg-card-transparent); position: relative; margin-bottom: 0;">
               <button id="btn-edit-profile-toggle" class="btn btn-sm btn-secondary" style="position: absolute; right: 15px; top: 15px; padding: 4px 8px; font-size: 11px;">
                 <i data-lucide="edit-3" style="width: 12px; height: 12px; margin-right: 4px;"></i> Edit Profile
               </button>
@@ -240,7 +240,7 @@ export function renderCustomers(mountPoint, appInstance) {
           <!-- Column 2: Log Visit Purpose Form -->
           <div style="display: flex; flex-direction: column; gap: 15px; height: 100%; overflow-y: auto; padding-right: 5px;">
             <!-- Log New Visit Purpose Form -->
-            <div class="glass-card" style="padding:15px; background: rgba(255,255,255,0.01); margin-bottom: 0;">
+            <div class="glass-card" style="padding:15px; background: var(--bg-card-transparent); margin-bottom: 0;">
               <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:10px;">Log New Visit Purpose</h5>
               <form id="form-log-visit">
                 <div class="form-group">
@@ -271,7 +271,7 @@ export function renderCustomers(mountPoint, appInstance) {
                 </div>
 
                 <!-- Website registration details (Hidden by default) -->
-                <div id="webreg-fields" style="display:none; background:rgba(255,255,255,0.02); border:1px solid var(--panel-border); padding:12px; border-radius:var(--border-radius-sm); margin-bottom:15px;">
+                <div id="webreg-fields" style="display:none; background:var(--bg-card-medium); border:1px solid var(--panel-border); padding:12px; border-radius:var(--border-radius-sm); margin-bottom:15px;">
                   <div class="form-group">
                     <label class="form-label">Website Name / URL</label>
                     <input type="text" id="web-url" class="form-control" placeholder="e.g. Kerala PSC Thulasi">
@@ -314,8 +314,8 @@ export function renderCustomers(mountPoint, appInstance) {
                 ${customer.visitLogs.length === 0 ? `
                   <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:10px;">No visit details logged yet.</div>
                 ` : customer.visitLogs.map(log => `
-                  <div style="padding:10px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
-                    <div style="display:flex; justify-content:space-between; font-weight:600; color: #fff;">
+                  <div style="padding:10px; background:var(--bg-card-transparent); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; font-weight:600; color: var(--text-white-invert);">
                       <span>${log.purpose}</span>
                       <span style="font-size:10px; color:var(--text-muted);">${log.date}</span>
                     </div>
@@ -339,7 +339,7 @@ export function renderCustomers(mountPoint, appInstance) {
                 ${customerTxns.length === 0 ? `
                   <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:15px;">No transactions logged.</div>
                 ` : customerTxns.map(t => `
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.01); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-card-transparent); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
                     <div>
                       <div style="font-weight:600;">${t.description}</div>
                       <div style="font-size:10px; color:var(--text-dimmed);">${t.date}</div>

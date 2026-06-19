@@ -116,8 +116,8 @@ export function renderSettings(mountPoint, appInstance) {
         ].map(t => {
           const isActive = (localStorage.getItem('cyberone_v2_theme') || 'cyberone') === t.id;
           return `
-            <div class="theme-option-card ${isActive ? 'active' : ''}" data-theme-id="${t.id}" style="border: 2px solid ${isActive ? 'var(--color-primary)' : 'var(--panel-border)'}; background: ${isActive ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)'}; padding: 12px; border-radius: var(--border-radius-md); text-align: center; cursor: pointer; transition: var(--transition-smooth); display: flex; flex-direction: column; align-items: center; gap: 8px;" title="${t.name}">
-              <div style="display: flex; gap: 4px; width: 44px; height: 24px; border-radius: var(--border-radius-sm); border: 1px solid rgba(255,255,255,0.1); overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            <div class="theme-option-card ${isActive ? 'active' : ''}" data-theme-id="${t.id}" style="border: 2px solid ${isActive ? 'var(--color-primary)' : 'var(--panel-border)'}; background: ${isActive ? 'var(--bg-card-medium)' : 'var(--bg-card-transparent)'}; padding: 12px; border-radius: var(--border-radius-md); text-align: center; cursor: pointer; transition: var(--transition-smooth); display: flex; flex-direction: column; align-items: center; gap: 8px;" title="${t.name}">
+              <div style="display: flex; gap: 4px; width: 44px; height: 24px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-hairline-solid); overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
                 <div style="background: ${t.colors[0]}; flex: 1.2;"></div>
                 <div style="background: ${t.colors[1]}; flex: 0.8;"></div>
               </div>
