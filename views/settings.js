@@ -98,6 +98,36 @@ export function renderSettings(mountPoint, appInstance) {
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Custom Logo</button>
       </form>
     </div>
+
+    <!-- Portal & Apps Theme Config -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 25px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Portal & Apps Theme</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Select a color scheme for your center portal and native applications</span>
+      </div>
+      <div class="theme-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        ${[
+          { id: 'cyberone', name: 'Cyberone Dark', desc: 'Indigo & Slate', colors: ['#060a13', '#6366f1'] },
+          { id: 'ocean', name: 'Ocean Breeze', desc: 'Midnight Teal', colors: ['#060e1a', '#0ea5e9'] },
+          { id: 'emerald', name: 'Emerald Wealth', desc: 'Forest Mint', colors: ['#050c0a', '#10b981'] },
+          { id: 'royal', name: 'Royal Amethyst', desc: 'Deep Purple', colors: ['#0a0614', '#a855f7'] },
+          { id: 'sunset', name: 'Sunset Crimson', desc: 'Charcoal Amber', colors: ['#0d0d0d', '#f59e0b'] },
+          { id: 'light', name: 'Shaded Light', desc: 'White & Blue Slate', colors: ['#ffffff', '#2563eb'] }
+        ].map(t => {
+          const isActive = (localStorage.getItem('cyberone_v2_theme') || 'cyberone') === t.id;
+          return `
+            <div class="theme-option-card ${isActive ? 'active' : ''}" data-theme-id="${t.id}" style="border: 2px solid ${isActive ? 'var(--color-primary)' : 'var(--panel-border)'}; background: ${isActive ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)'}; padding: 12px; border-radius: var(--border-radius-md); text-align: center; cursor: pointer; transition: var(--transition-smooth); display: flex; flex-direction: column; align-items: center; gap: 8px;" title="${t.name}">
+              <div style="display: flex; gap: 4px; width: 44px; height: 24px; border-radius: var(--border-radius-sm); border: 1px solid rgba(255,255,255,0.1); overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                <div style="background: ${t.colors[0]}; flex: 1.2;"></div>
+                <div style="background: ${t.colors[1]}; flex: 0.8;"></div>
+              </div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-main); line-height: 1.2;">${t.name}</div>
+              <div style="font-size: 10px; color: var(--text-muted); line-height: 1;">${t.desc}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
   `;
 
   // Set titles in header
@@ -186,6 +216,38 @@ export function renderSettings(mountPoint, appInstance) {
     }
 
     appInstance.showToast('Custom logo saved successfully!', 'success');
+  });
+
+  // Theme Selection Click Handler
+  document.querySelectorAll('.theme-option-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const selectedTheme = card.getAttribute('data-theme-id');
+      
+      // Update UI selection state
+      document.querySelectorAll('.theme-option-card').forEach(c => {
+        c.classList.remove('active');
+        c.style.borderColor = 'var(--panel-border)';
+      });
+      card.classList.add('active');
+      card.style.borderColor = 'var(--color-primary)';
+
+      // Save theme to localStorage
+      localStorage.setItem('cyberone_v2_theme', selectedTheme);
+      
+      // Apply theme to document element immediately
+      document.documentElement.setAttribute('data-theme', selectedTheme);
+      
+      // Trigger sync to Firebase / local
+      store.persistAll();
+      
+      const themeName = card.querySelector('div:nth-child(2)').innerText;
+      appInstance.showToast(`${themeName} theme applied successfully!`, 'success');
+      
+      // Re-render layout to update active sidebar classes and backgrounds
+      setTimeout(() => {
+        appInstance.handleRouting();
+      }, 250);
+    });
   });
 }
 

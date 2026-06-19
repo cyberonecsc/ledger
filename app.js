@@ -63,6 +63,10 @@ class Application {
       loadingScreen.style.display = 'none';
     }
 
+    // Load saved theme on boot
+    const savedTheme = localStorage.getItem('cyberone_v2_theme') || 'cyberone';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     // Load sidebar collapse state
     const isCollapsed = localStorage.getItem('cyberone_v2_sidebar_collapsed') === 'true';
     if (isCollapsed) {
@@ -245,7 +249,7 @@ class Application {
   }
 
   async checkForUpdates() {
-    const currentVersion = '3.0.5';
+    const currentVersion = '3.0.6';
     try {
       const response = await fetch('https://api.github.com/repos/cyberonecsc/ledger/releases/latest');
       if (response.ok) {
@@ -679,7 +683,7 @@ class Application {
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
             <div class="sidebar-version" style="text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 20px; font-family: var(--font-primary); padding: 0 10px; line-height: 1.5; transition: var(--transition-smooth);">
-              <div>v3.0.5</div>
+              <div>v3.0.6</div>
               <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© ${new Date().getFullYear()} XTREME SYSTEMS</div>
               <div style="font-size: 8px; opacity: 0.7; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
             </div>
@@ -701,12 +705,6 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
-              <!-- Theme Toggle Button -->
-                <button id="theme-toggle" class="btn btn-sm btn-secondary" style="background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); padding: 6px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; outline: none;">
-                  <i data-lucide="sun" class="theme-icon-light" style="display:none; width: 18px; height: 18px;"></i>
-                  <i data-lucide="moon" class="theme-icon-dark" style="width: 18px; height: 18px;"></i>
-                </button>
-
                 <!-- Cloud Sync Status Badge -->
               <div id="cloud-sync-badge" class="sync-badge offline">
                 <i data-lucide="cloud-off"></i>
@@ -750,35 +748,9 @@ class Application {
       });
     }
 
-    // Theme toggle click
-    const themeToggleBtn = document.getElementById('theme-toggle');
-    if (themeToggleBtn) {
-      themeToggleBtn.addEventListener('click', () => {
-        const isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
-        if (isLightMode) {
-          document.documentElement.removeAttribute('data-theme');
-          localStorage.setItem('cyberone_v2_theme', 'dark');
-          document.querySelector('.theme-icon-light').style.display = 'none';
-          document.querySelector('.theme-icon-dark').style.display = 'block';
-        } else {
-          document.documentElement.setAttribute('data-theme', 'light');
-          localStorage.setItem('cyberone_v2_theme', 'light');
-          document.querySelector('.theme-icon-light').style.display = 'block';
-          document.querySelector('.theme-icon-dark').style.display = 'none';
-        }
-      });
-    }
-
     // Load saved theme
-    if (localStorage.getItem('cyberone_v2_theme') === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-      const lightIcon = document.querySelector('.theme-icon-light');
-      const darkIcon = document.querySelector('.theme-icon-dark');
-      if (lightIcon && darkIcon) {
-        lightIcon.style.display = 'block';
-        darkIcon.style.display = 'none';
-      }
-    }
+    const savedTheme = localStorage.getItem('cyberone_v2_theme') || 'cyberone';
+    document.documentElement.setAttribute('data-theme', savedTheme);
 
     // Submenu expanding toggle
     const submenuToggle = this.root.querySelector('.submenu-toggle');
