@@ -1966,8 +1966,8 @@ export function renderAEPS(mountPoint, appInstance) {
             <div class="form-group">
               <label class="form-label">Transfer Direction</label>
               <select id="txn-direction" class="form-control" required>
-                <option value="w1_to_w2">Wallet 1 (DMT Only) to Wallet 2 (AEPS Payout)</option>
                 <option value="w2_to_w1">Wallet 2 (AEPS Payout) to Wallet 1 (DMT Only)</option>
+                <option value="w1_to_w2">Wallet 1 (DMT Only) to Wallet 2 (AEPS Payout)</option>
               </select>
             </div>
           `;
@@ -2099,8 +2099,8 @@ export function renderAEPS(mountPoint, appInstance) {
           <div class="form-group">
             <label class="form-label">Transfer Direction</label>
             <select id="it-direction" class="form-control" required>
-              <option value="w1_to_w2">Wallet 1 (DMT Only) to Wallet 2 (AEPS Payout)</option>
               <option value="w2_to_w1">Wallet 2 (AEPS Payout) to Wallet 1 (DMT Only)</option>
+              <option value="w1_to_w2">Wallet 1 (DMT Only) to Wallet 2 (AEPS Payout)</option>
             </select>
           </div>
           <div class="form-group">
