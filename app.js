@@ -990,7 +990,7 @@ class Application {
           const match = log.details.match(/Deleted application log ([^\s]+) for/);
           if (match) deletedApplicationIds.add(match[1]);
         } else if (log.action && log.action.startsWith('Delete ')) {
-          const match = log.details.match(/Deleted transaction ([^:]+):/);
+          const match = log.details.match(/Deleted (?:AEPS\/DMT )?transaction ([^:\s]+)/);
           if (match) deletedTransactionIds.add(match[1]);
         }
       }
@@ -1157,6 +1157,7 @@ class Application {
                     if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
                     if (key === 'cyberone_v2_applications' && deletedApplicationIds.has(k)) return;
+                    if (key === 'cyberone_v2_aeps_transactions' && deletedTransactionIds.has(k)) return;
                     map.set(k, item);
                   }
                 }
@@ -1168,6 +1169,7 @@ class Application {
                     if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
                     if (key === 'cyberone_v2_applications' && deletedApplicationIds.has(k)) return;
+                    if (key === 'cyberone_v2_aeps_transactions' && deletedTransactionIds.has(k)) return;
                     const existing = map.get(k);
                     map.set(k, existing ? (remoteIsOlder ? { ...item, ...existing } : { ...existing, ...item }) : item);
                   }
