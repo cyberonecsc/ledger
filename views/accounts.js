@@ -120,31 +120,72 @@ export function renderAccounts(mountPoint, appInstance) {
 
     <div class="wallet-grid">
       ${store.wallets.map(w => {
-        const bal = currentBalances[w.id] !== undefined ? currentBalances[w.id] : 0.00;
-        let balColor = '#fff';
-        if (bal < 100) balColor = 'var(--color-danger)';
-        else if (bal > 1000) balColor = 'var(--color-success)';
+        const isDual = w.id === 'aeps_kntny' || w.name.toLowerCase().includes('digipay lite');
+        if (isDual) {
+          const balW1 = currentBalances[w.id + '_w1'] !== undefined ? currentBalances[w.id + '_w1'] : 0.00;
+          const balW2 = currentBalances[w.id + '_w2'] !== undefined ? currentBalances[w.id + '_w2'] : 0.00;
+          const totalBal = balW1 + balW2;
+          let balColor = '#fff';
+          if (totalBal < 100) balColor = 'var(--color-danger)';
+          else if (totalBal > 1000) balColor = 'var(--color-success)';
 
-        return `
-          <div class="wallet-card" style="border-left: 4px solid ${w.isAEPS ? 'var(--color-info)' : 'var(--color-primary)'};">
-            <div class="wallet-card-header">
-              <div>
-                <span class="wallet-name">${w.name}</span>
-                <div class="wallet-meta">Login: <code>${w.loginId}</code>${w.isAEPS ? ' <span style="font-size: 10px; font-weight: 500; color: var(--color-info); background: rgba(0, 180, 216, 0.1); padding: 1px 4px; border-radius: 3px; margin-left: 4px;">AEPS</span>' : ''}</div>
+          return `
+            <div class="wallet-card" style="border-left: 4px solid var(--color-info); grid-column: span 2;">
+              <div class="wallet-card-header">
+                <div>
+                  <span class="wallet-name">${w.name} (Dual Wallet)</span>
+                  <div class="wallet-meta">Login: <code>${w.loginId}</code> <span style="font-size: 10px; font-weight: 500; color: var(--color-info); background: rgba(0, 180, 216, 0.1); padding: 1px 4px; border-radius: 3px; margin-left: 4px;">AEPS</span></div>
+                </div>
+                <button class="btn btn-sm btn-secondary btn-edit-wallet-dual" data-id="${w.id}" style="padding: 4px;">
+                  <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
+                </button>
               </div>
-              <button class="btn btn-sm btn-secondary btn-edit-wallet" data-id="${w.id}" style="padding: 4px;">
-                <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
-              </button>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display:flex; justify-content:space-between;">
+                <span>Commission Rate: <strong>${(w.commissionRate * 100).toFixed(2)}%</strong></span>
+                <span>Total Balance: <strong>₹${totalBal.toFixed(2)}</strong></span>
+              </div>
+              
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:12px; border-top: 1px solid var(--border-hairline); padding-top:12px;">
+                <div>
+                  <span style="font-size: 10px; color:var(--text-white-invert); display:block; font-weight:700; margin-bottom:4px;">Wallet 1 (AEPS & DMT)</span>
+                  <span style="font-size: 11px; color:var(--text-muted); display:block;">Initial Bal: <strong style="color:var(--text-white-invert);">₹${(initialBalances[w.id + '_w1'] || 0.00).toFixed(2)}</strong></span>
+                  <span style="font-size: 11px; color:var(--text-muted); display:block;">Current Bal: <strong style="color:var(--color-success);">₹${balW1.toFixed(2)}</strong></span>
+                </div>
+                <div style="border-left: 1px solid var(--border-hairline); padding-left:15px;">
+                  <span style="font-size: 10px; color:var(--text-white-invert); display:block; font-weight:700; margin-bottom:4px;">Wallet 2 (Payouts)</span>
+                  <span style="font-size: 11px; color:var(--text-muted); display:block;">Initial Bal: <strong style="color:var(--text-white-invert);">₹${(initialBalances[w.id + '_w2'] || 0.00).toFixed(2)}</strong></span>
+                  <span style="font-size: 11px; color:var(--text-muted); display:block;">Current Bal: <strong style="color:var(--color-info);">₹${balW2.toFixed(2)}</strong></span>
+                </div>
+              </div>
             </div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-              Commission Rate: <strong>${(w.commissionRate * 100).toFixed(2)}%</strong>
+          `;
+        } else {
+          const bal = currentBalances[w.id] !== undefined ? currentBalances[w.id] : 0.00;
+          let balColor = '#fff';
+          if (bal < 100) balColor = 'var(--color-danger)';
+          else if (bal > 1000) balColor = 'var(--color-success)';
+
+          return `
+            <div class="wallet-card" style="border-left: 4px solid ${w.isAEPS ? 'var(--color-info)' : 'var(--color-primary)'};">
+              <div class="wallet-card-header">
+                <div>
+                  <span class="wallet-name">${w.name}</span>
+                  <div class="wallet-meta">Login: <code>${w.loginId}</code>${w.isAEPS ? ' <span style="font-size: 10px; font-weight: 500; color: var(--color-info); background: rgba(0, 180, 216, 0.1); padding: 1px 4px; border-radius: 3px; margin-left: 4px;">AEPS</span>' : ''}</div>
+                </div>
+                <button class="btn btn-sm btn-secondary btn-edit-wallet" data-id="${w.id}" style="padding: 4px;">
+                  <i data-lucide="edit" style="width: 12px; height: 12px;"></i>
+                </button>
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                Commission Rate: <strong>${(w.commissionRate * 100).toFixed(2)}%</strong>
+              </div>
+              <div class="wallet-card-body" style="margin-top: auto; padding-top: 10px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center;">
+                <span class="wallet-balance-label">Balance</span>
+                <span class="wallet-balance-val" style="color: ${balColor};">₹${bal.toFixed(2)}</span>
+              </div>
             </div>
-            <div class="wallet-card-body" style="margin-top: auto; padding-top: 10px; border-top: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center;">
-              <span class="wallet-balance-label">Balance</span>
-              <span class="wallet-balance-val" style="color: ${balColor};">₹${bal.toFixed(2)}</span>
-            </div>
-          </div>
-        `;
+          `;
+        }
       }).join('')}
     </div>
 
@@ -198,12 +239,28 @@ export function renderAccounts(mountPoint, appInstance) {
 
         <h4 style="font-size: 13px; font-weight: 600; color: var(--text-white-invert); margin-bottom: 10px; margin-top: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;">Wallets</h4>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-          ${store.wallets.map(w => `
-            <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label" style="font-size:11px;">${w.name} (₹)</label>
-              <input type="number" step="0.01" data-id="${w.id}" class="form-control wallet-opening-input" value="${initialBalances[w.id] !== undefined ? initialBalances[w.id] : 0.00}" style="font-size:12px;" required>
-            </div>
-          `).join('')}
+          ${store.wallets.map(w => {
+            const isDual = w.id === 'aeps_kntny' || w.name.toLowerCase().includes('digipay lite');
+            if (isDual) {
+              return `
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px;">${w.name} - Wallet 1 (₹)</label>
+                  <input type="number" step="0.01" data-id="${w.id}_w1" class="form-control wallet-opening-input" value="${initialBalances[w.id + '_w1'] !== undefined ? initialBalances[w.id + '_w1'] : 0.00}" style="font-size:12px;" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px;">${w.name} - Wallet 2 (₹)</label>
+                  <input type="number" step="0.01" data-id="${w.id}_w2" class="form-control wallet-opening-input" value="${initialBalances[w.id + '_w2'] !== undefined ? initialBalances[w.id + '_w2'] : 0.00}" style="font-size:12px;" required>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:11px;">${w.name} (₹)</label>
+                  <input type="number" step="0.01" data-id="${w.id}" class="form-control wallet-opening-input" value="${initialBalances[w.id] !== undefined ? initialBalances[w.id] : 0.00}" style="font-size:12px;" required>
+                </div>
+              `;
+            }
+          }).join('')}
         </div>
 
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Opening Balances</button>
@@ -673,6 +730,103 @@ export function renderAccounts(mountPoint, appInstance) {
         store.adjustBalance(activeDate, walletId, newBal, auth.currentUser ? auth.currentUser.name : 'System');
 
         appInstance.showToast('Wallet parameters updated successfully!', 'success');
+        closeModal();
+        appInstance.handleRouting();
+      });
+    });
+  });
+
+  // Edit Dual Wallets button binding
+  const editDualWalletBtns = document.querySelectorAll('.btn-edit-wallet-dual');
+  editDualWalletBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const walletId = e.currentTarget.getAttribute('data-id');
+      const wallet = store.wallets.find(w => w.id === walletId);
+      if (!wallet) return;
+
+      const balW1 = currentBalances[walletId + '_w1'] !== undefined ? currentBalances[walletId + '_w1'] : 0.00;
+      const balW2 = currentBalances[walletId + '_w2'] !== undefined ? currentBalances[walletId + '_w2'] : 0.00;
+
+      document.getElementById('account-modal-title').innerText = `Edit ${wallet.name}`;
+      formMount.innerHTML = `
+        <form id="form-edit-wallet-dual">
+          <div class="form-group">
+            <label class="form-label">Portal Wallet Name</label>
+            <input type="text" id="wallet-name" class="form-control" value="${wallet.name}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Portal Login ID / Phone</label>
+            <input type="text" id="wallet-login" class="form-control" value="${wallet.loginId}" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Commission Rate (%)</label>
+              <input type="number" step="0.01" id="wallet-comm" class="form-control" value="${(wallet.commissionRate * 100).toFixed(2)}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select id="wallet-active" class="form-control">
+                <option value="true" ${wallet.isActive ? 'selected' : ''}>Active</option>
+                <option value="false" ${!wallet.isActive ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Wallet 1 Initial Bal (Ledger Start) (₹)</label>
+              <input type="number" step="0.01" id="wallet-initial-w1" class="form-control" value="${(initialBalances[walletId + '_w1'] || 0.00).toFixed(2)}" required>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Wallet 2 Initial Bal (Ledger Start) (₹)</label>
+              <input type="number" step="0.01" id="wallet-initial-w2" class="form-control" value="${(initialBalances[walletId + '_w2'] || 0.00).toFixed(2)}" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Wallet 1 Current Bal (Today's) (₹)</label>
+              <input type="number" step="0.01" id="wallet-balance-w1" class="form-control" value="${balW1.toFixed(2)}" required>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Wallet 2 Current Bal (Today's) (₹)</label>
+              <input type="number" step="0.01" id="wallet-balance-w2" class="form-control" value="${balW2.toFixed(2)}" required>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn btn-primary" style="flex-grow:1;">
+              <i data-lucide="save" style="width:16px; height:16px;"></i> Save Wallet Details
+            </button>
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+          </div>
+        </form>
+      `;
+
+      lucide.createIcons();
+      bindCancelBtn();
+      backdrop.classList.add('show');
+
+      document.getElementById('form-edit-wallet-dual').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        store.updateWalletDetails(walletId, {
+          name: document.getElementById('wallet-name').value,
+          loginId: document.getElementById('wallet-login').value,
+          commissionRate: parseFloat(document.getElementById('wallet-comm').value) / 100,
+          isActive: document.getElementById('wallet-active').value === 'true'
+        });
+
+        const initBalW1 = parseFloat(document.getElementById('wallet-initial-w1').value || 0);
+        const initBalW2 = parseFloat(document.getElementById('wallet-initial-w2').value || 0);
+        const newBalW1 = parseFloat(document.getElementById('wallet-balance-w1').value || 0);
+        const newBalW2 = parseFloat(document.getElementById('wallet-balance-w2').value || 0);
+        
+        store.initialBalances[walletId + '_w1'] = initBalW1;
+        store.initialBalances[walletId + '_w2'] = initBalW2;
+        store.saveItem('cyberone_v2_initial_balances', store.initialBalances);
+
+        store.adjustBalance(activeDate, walletId + '_w1', newBalW1, auth.currentUser ? auth.currentUser.name : 'System');
+        store.adjustBalance(activeDate, walletId + '_w2', newBalW2, auth.currentUser ? auth.currentUser.name : 'System');
+        store.recalculateAllBalances();
+
+        appInstance.showToast('Dual wallet parameters updated!', 'success');
         closeModal();
         appInstance.handleRouting();
       });

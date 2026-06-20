@@ -132,6 +132,10 @@ class StateStore {
     }
     
     this.wallets = this.getItem('cyberone_v2_wallets', INITIAL_WALLETS);
+    // Remove the extra wallets added in the previous version if they exist
+    this.wallets = this.wallets.filter(w => w.id !== 'digipay_lite_w1' && w.id !== 'digipay_lite_w2' && w.id !== 'digipay');
+    this.saveItem('cyberone_v2_wallets', this.wallets);
+
     this.bankAccounts = this.getItem('cyberone_v2_bank_accounts', INITIAL_BANK_ACCOUNTS);
     this.websites = this.getItem('cyberone_v2_websites', INITIAL_WEBSITES);
     this.initialBalances = this.getItem('cyberone_v2_initial_balances', INITIAL_BALANCES);
@@ -139,10 +143,17 @@ class StateStore {
       this.initialBalances.petty_cash = 0;
       this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
     }
-    if (this.initialBalances.digipay !== undefined) {
-      delete this.initialBalances.digipay;
-      this.saveItem('cyberone_v2_initial_balances', this.initialBalances);
-    }
+    
+    // Seed initial sub-wallet balances dynamically for any dual wallets
+    this.wallets.forEach(w => {
+      const isDual = w.id === 'aeps_kntny' || w.name.toLowerCase().includes('digipay lite');
+      if (isDual) {
+        if (this.initialBalances[w.id + '_w1'] === undefined) this.initialBalances[w.id + '_w1'] = 0;
+        if (this.initialBalances[w.id + '_w2'] === undefined) this.initialBalances[w.id + '_w2'] = 0;
+      }
+    });
+
+    this.aepsTransactions = this.getItem('cyberone_v2_aeps_transactions', []);
     this.customers = this.getItem('cyberone_v2_customers', INITIAL_CUSTOMERS);
     
     // Reconstruct staff list dynamically from active credentials
@@ -223,11 +234,7 @@ class StateStore {
       this.saveItem('cyberone_v2_wallets', this.wallets);
     }
 
-    // Clean up/remove digipay wallet if it is present in active state database
-    if (this.wallets.some(w => w.id === 'digipay')) {
-      this.wallets = this.wallets.filter(w => w.id !== 'digipay');
-      this.saveItem('cyberone_v2_wallets', this.wallets);
-    }
+
 
     // Auto-remove Federal Bank (fed_retail) if present in active state database
     if (this.bankAccounts.some(b => b.id === 'fed_retail')) {
@@ -339,14 +346,7 @@ class StateStore {
           delete log.closingBalances.edistrict;
           needRecalculate = true;
         }
-        if (log.openingBalances && log.openingBalances.digipay !== undefined) {
-          delete log.openingBalances.digipay;
-          needRecalculate = true;
-        }
-        if (log.closingBalances && log.closingBalances.digipay !== undefined) {
-          delete log.closingBalances.digipay;
-          needRecalculate = true;
-        }
+
       });
     }
 
@@ -536,6 +536,7 @@ class StateStore {
     this.saveItem('cyberone_v2_daily_logs', this.dailyLogs);
     this.saveItem('cyberone_v2_center_profile', this.centerProfile);
     this.saveItem('cyberone_v2_websites', this.websites);
+    this.saveItem('cyberone_v2_aeps_transactions', this.aepsTransactions);
   }
 
   persistAll() {
@@ -644,6 +645,7 @@ class StateStore {
     this.applications = [];
     this.invoices = [];
     this.activityLogs = [];
+    this.aepsTransactions = [];
     this.openingOverrides = {};
     this.closingOverrides = {};
     
@@ -771,8 +773,12 @@ class StateStore {
         }
       });
       this.wallets.forEach(w => {
-        if (balances[w.id] === undefined) {
-          balances[w.id] = 0;
+        const isDual = w.id === 'aeps_kntny' || w.name.toLowerCase().includes('digipay lite');
+        if (isDual) {
+          if (balances[w.id + '_w1'] === undefined) balances[w.id + '_w1'] = 0;
+          if (balances[w.id + '_w2'] === undefined) balances[w.id + '_w2'] = 0;
+        } else {
+          if (balances[w.id] === undefined) balances[w.id] = 0;
         }
       });
 
@@ -854,6 +860,109 @@ class StateStore {
           }
         }
       });
+      }
+
+      // Reconcile AEPS / DMT transactions
+      if (this.aepsTransactions) {
+        const dateAepsTxns = this.aepsTransactions.filter(t => t.date === dateString && t.status === 'Success');
+        dateAepsTxns.forEach(t => {
+          const amt = parseFloat(t.amount || 0);
+          const wallet = this.wallets.find(w => w.id === t.walletId);
+          const isDual = wallet && (wallet.id === 'aeps_kntny' || wallet.name.toLowerCase().includes('digipay lite'));
+          const svc = parseFloat(t.serviceCharge || 0);
+          const comm = parseFloat(t.commission || 0);
+
+          if (t.type === 'AEPS Withdrawal' || t.type === 'MicroATM Withdrawal' || t.type === 'Aadhaar Pay') {
+            // Wallet balance increases by amount - serviceCharge + commission, Cash decreases by amount (cash paid to customer)
+            // primarily all withdrawal cash is coming to Wallet 2
+            const key = isDual ? `${t.walletId}_w2` : t.walletId;
+            if (balances[key] !== undefined) {
+              balances[key] = parseFloat((balances[key] + amt - svc + comm).toFixed(2));
+            }
+            balances.cash = parseFloat((balances.cash - amt).toFixed(2));
+          } else if (t.type === 'DMT') {
+            // Wallet 1 is only for DMT. Service charge is deducted, commission is credited.
+            // If customer pays by UPI, target bank increases, otherwise cash drawer increases.
+            const key = isDual ? `${t.walletId}_w1` : t.walletId;
+            if (balances[key] !== undefined) {
+              balances[key] = parseFloat((balances[key] - amt - svc + comm).toFixed(2));
+            }
+            if (t.paymentMethod === 'UPI') {
+              const bId = t.bankId || 'main_bob';
+              if (balances[bId] !== undefined) {
+                balances[bId] = parseFloat((balances[bId] + amt + svc).toFixed(2));
+              }
+            } else {
+              balances.cash = parseFloat((balances.cash + amt + svc).toFixed(2));
+            }
+          } else if (t.type === 'Deposit' || t.type === 'Account Opening') {
+            // Deposits and Account Openings go to Wallet 1
+            const key = isDual ? `${t.walletId}_w1` : t.walletId;
+            if (balances[key] !== undefined) {
+              balances[key] = parseFloat((balances[key] - amt - svc + comm).toFixed(2));
+            }
+            if (t.paymentMethod === 'UPI') {
+              const bId = t.bankId || 'main_bob';
+              if (balances[bId] !== undefined) {
+                balances[bId] = parseFloat((balances[bId] + amt).toFixed(2));
+              }
+            } else {
+              balances.cash = parseFloat((balances.cash + amt).toFixed(2));
+            }
+          } else if (t.type === 'Agent Authorisation') {
+            // Daily Agent Authorisation Charge - direct wallet debit, cash drawer unaffected.
+            // Deducted from Wallet 2 for dual wallets.
+            const key = isDual ? `${t.walletId}_w2` : t.walletId;
+            if (balances[key] !== undefined) {
+              balances[key] = parseFloat((balances[key] - amt - svc + comm).toFixed(2));
+            }
+          } else if (t.type === 'Bank Cashout') {
+            // Wallet balance decreases, Bank Account increases
+            // bank cashouts happen from Wallet 2
+            const key = isDual ? `${t.walletId}_w2` : t.walletId;
+            if (balances[key] !== undefined) {
+              balances[key] = parseFloat((balances[key] - amt - svc + comm).toFixed(2));
+            }
+            const bankId = t.bankId || 'main_bob';
+            if (balances[bankId] !== undefined) {
+              balances[bankId] = parseFloat((balances[bankId] + amt).toFixed(2));
+            }
+          } else if (t.type === 'Wallet Transfer') {
+            // Transfer between Wallet 1 and Wallet 2
+            if (isDual) {
+              const srcKey = t.direction === 'w2_to_w1' ? `${t.walletId}_w2` : `${t.walletId}_w1`;
+              const tgtKey = t.direction === 'w2_to_w1' ? `${t.walletId}_w1` : `${t.walletId}_w2`;
+              if (balances[srcKey] !== undefined) {
+                balances[srcKey] = parseFloat((balances[srcKey] - amt).toFixed(2));
+              }
+              if (balances[tgtKey] !== undefined) {
+                balances[tgtKey] = parseFloat((balances[tgtKey] + amt).toFixed(2));
+              }
+            }
+          } else if (t.type === 'CSC Top-up') {
+            // From Digipay (or Digipay Lite Wallet 2) to CSC Wallet
+            const key = isDual ? `${t.walletId}_w2` : t.walletId;
+            if (balances[key] !== undefined) {
+              balances[key] = parseFloat((balances[key] - amt - svc + comm).toFixed(2));
+            }
+            if (balances.csc !== undefined) {
+              balances.csc = parseFloat((balances.csc + amt).toFixed(2));
+            }
+          }
+
+          // Customer Service Fee reconciliation (do not log on register but reconcile with cash/bank)
+          const custFee = parseFloat(t.customerServiceFee || 0);
+          if (custFee > 0) {
+            if (t.customerServiceFeeMethod === 'UPI') {
+              const bankId = t.bankId || 'main_bob';
+              if (balances[bankId] !== undefined) {
+                balances[bankId] = parseFloat((balances[bankId] + custFee).toFixed(2));
+              }
+            } else {
+              balances.cash = parseFloat((balances.cash + custFee).toFixed(2));
+            }
+          }
+        });
       }
 
 
@@ -1236,6 +1345,26 @@ class StateStore {
     this.persistAll();
     return newCustomer;
   }
+
+  registerCustomerFromAeps(customerName, mobile, dateString) {
+    if (!mobile || !customerName) return;
+    const phoneClean = mobile.trim();
+    const nameClean = customerName.trim();
+    if (!phoneClean || !nameClean) return;
+
+    let customer = this.customers.find(c => c.phone === phoneClean);
+    if (!customer) {
+      customer = this.addCustomer({
+        name: nameClean,
+        phone: phoneClean,
+        email: '',
+        address: '',
+        creditBalance: 0
+      });
+    }
+    this.logCustomerVisit(customer.id, dateString || getTodayDateString());
+  }
+
 
   logCustomerVisitPurpose(customerId, logEntry) {
     const customer = this.customers.find(c => c.id === customerId);
@@ -1755,6 +1884,54 @@ class StateStore {
       console.log('Relative server save failed/not supported:', err);
       this.setSyncStatus('offline');
     });
+  }
+
+  addAepsTransaction(txnData) {
+    const id = 'AEPS-TXN-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const newTxn = {
+      id,
+      ...txnData,
+      timestamp: new Date().toISOString()
+    };
+    if (!this.aepsTransactions) {
+      this.aepsTransactions = [];
+    }
+    this.aepsTransactions.push(newTxn);
+    if (newTxn.customerName && newTxn.mobile) {
+      this.registerCustomerFromAeps(newTxn.customerName, newTxn.mobile, newTxn.date);
+    }
+    this.logActivity('Create AEPS ' + newTxn.type.toUpperCase(), `Created AEPS/DMT transaction ${newTxn.id} for ₹${newTxn.amount} in ${newTxn.walletId}`);
+    this.recalculateAllBalances();
+    return newTxn;
+  }
+
+  deleteAepsTransaction(txnId) {
+    if (!this.aepsTransactions) return false;
+    const idx = this.aepsTransactions.findIndex(t => t.id === txnId);
+    if (idx === -1) return false;
+    const txn = this.aepsTransactions[idx];
+    this.aepsTransactions.splice(idx, 1);
+    this.logActivity('Delete AEPS ' + txn.type.toUpperCase(), `Deleted AEPS/DMT transaction ${txnId} for ₹${txn.amount}`);
+    this.recalculateAllBalances();
+    return true;
+  }
+
+  updateAepsTransaction(txnId, updatedData) {
+    if (!this.aepsTransactions) return false;
+    const idx = this.aepsTransactions.findIndex(t => t.id === txnId);
+    if (idx === -1) return false;
+    const oldTxn = this.aepsTransactions[idx];
+    this.aepsTransactions[idx] = {
+      ...oldTxn,
+      ...updatedData
+    };
+    const updatedTxn = this.aepsTransactions[idx];
+    if (updatedTxn.customerName && updatedTxn.mobile) {
+      this.registerCustomerFromAeps(updatedTxn.customerName, updatedTxn.mobile, updatedTxn.date || oldTxn.date);
+    }
+    this.logActivity('Edit AEPS ' + oldTxn.type.toUpperCase(), `Updated AEPS/DMT transaction ${txnId}`);
+    this.recalculateAllBalances();
+    return true;
   }
 }
 

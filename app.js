@@ -249,7 +249,7 @@ class Application {
   }
 
   async checkForUpdates() {
-    const currentVersion = '3.0.7';
+    const currentVersion = '3.1.1';
     try {
       const response = await fetch('https://api.github.com/repos/cyberonecsc/ledger/releases/latest');
       if (response.ok) {
@@ -621,7 +621,7 @@ class Application {
               <a href="#applications"><i data-lucide="file-text" style="width: 18px; height: 18px;"></i><span>Applications</span></a>
             </li>
             <li class="sidebar-item ${this.activeRoute === '#aeps' ? 'active' : ''}">
-              <a href="#aeps"><i data-lucide="send" style="width: 18px; height: 18px;"></i><span>AEPS & Transfer</span></a>
+              <a href="#aeps"><i data-lucide="send" style="width: 18px; height: 18px;"></i><span>AEPS & DMT</span></a>
             </li>
             <li class="sidebar-item ${this.activeRoute === '#customers' ? 'active' : ''}">
               <a href="#customers"><i data-lucide="users" style="width: 18px; height: 18px;"></i><span>Customers</span></a>
@@ -683,7 +683,7 @@ class Application {
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
             <div class="sidebar-version" style="text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 20px; font-family: var(--font-primary); padding: 0 10px; line-height: 1.5; transition: var(--transition-smooth);">
-              <div>v3.0.7</div>
+              <div>v3.1.2</div>
               <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© ${new Date().getFullYear()} XTREME SYSTEMS</div>
               <div style="font-size: 8px; opacity: 0.7; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
             </div>
@@ -885,8 +885,8 @@ class Application {
   }
 
   // Download HTML element as PDF using html2pdf.js loaded from CDN
-  downloadElementAsPDF(elementId, filename, isThermal) {
-    const element = document.getElementById(elementId);
+  downloadElementAsPDF(elementId, filename, isThermal, orientation = 'portrait') {
+    const element = typeof elementId === 'string' ? document.getElementById(elementId) : elementId;
     if (!element) return;
     
     // Save original button content
@@ -902,7 +902,7 @@ class Application {
         html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        isThermal 
           ? { unit: 'mm', format: [80, 220], orientation: 'portrait' } 
-          : { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          : { unit: 'mm', format: 'a4', orientation: orientation }
       };
       html2pdf().set(opt).from(element).save().then(() => {
         if (btn) btn.innerHTML = originalHtml;

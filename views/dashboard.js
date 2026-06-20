@@ -41,7 +41,17 @@ export function renderDashboard(mountPoint, appInstance) {
   });
 
   // Dynamically append all active wallets from the database (or those with non-zero balances)
-  store.wallets.filter(w => w.isActive || (opening[w.id] || 0) !== 0 || (closing[w.id] || 0) !== 0).forEach(w => {
+  store.wallets.filter(w => {
+    const isDual = w.id === 'aeps_kntny' || w.name.toLowerCase().includes('digipay lite');
+    if (isDual) {
+      return w.isActive || 
+        (opening[w.id + '_w1'] || 0) !== 0 || 
+        (closing[w.id + '_w1'] || 0) !== 0 ||
+        (opening[w.id + '_w2'] || 0) !== 0 ||
+        (closing[w.id + '_w2'] || 0) !== 0;
+    }
+    return w.isActive || (opening[w.id] || 0) !== 0 || (closing[w.id] || 0) !== 0;
+  }).forEach(w => {
     let icon = 'globe';
     let color = 'var(--color-primary)';
     
@@ -331,8 +341,13 @@ export function renderDashboard(mountPoint, appInstance) {
           let totalDiff = 0;
 
           const rowsHtml = accountMeta.map(acc => {
-            const opVal = opening[acc.key] || 0;
-            const clVal = closing[acc.key] || 0;
+            const isDual = acc.key === 'aeps_kntny' || acc.name.toLowerCase().includes('digipay lite');
+            const opVal = isDual
+              ? (opening[acc.key + '_w1'] || 0) + (opening[acc.key + '_w2'] || 0)
+              : (opening[acc.key] || 0);
+            const clVal = isDual
+              ? (closing[acc.key + '_w1'] || 0) + (closing[acc.key + '_w2'] || 0)
+              : (closing[acc.key] || 0);
             const diff = clVal - opVal;
 
             totalOpening += opVal;
