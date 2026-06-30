@@ -65,10 +65,11 @@ export function renderPayroll(mountPoint, appInstance) {
   mountPoint.innerHTML = `
     <!-- Top tabs for Staff List, Attendance, and Payout slips + Month Selector -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--panel-border); flex-wrap: wrap; gap: 15px;">
-      <div style="display: flex; gap: 10px;">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <button id="btn-tab-staff" class="btn btn-sm btn-primary payroll-tab" data-target="staff-pane">Staff Members</button>
         <button id="btn-tab-attend" class="btn btn-sm btn-secondary payroll-tab" data-target="attendance-pane">Monthly Attendance</button>
         <button id="btn-tab-payouts" class="btn btn-sm btn-secondary payroll-tab" data-target="payouts-pane">Generate Salary Bills</button>
+        <button id="btn-tab-incentives" class="btn btn-sm btn-secondary payroll-tab" data-target="incentives-pane">Incentive Settings</button>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <label for="payroll-month-select" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Salary Month:</label>
@@ -371,6 +372,60 @@ export function renderPayroll(mountPoint, appInstance) {
         </form>
       </div>
     </div>
+
+    <!-- PANE 4: Incentive Settings -->
+    <div id="incentives-pane" class="payroll-pane" style="display:none;">
+      <div class="glass-card" style="padding:24px; max-width: 700px;">
+        <div class="section-header" style="margin-bottom:15px;">
+          <h3>Staff Performance Incentive Rules</h3>
+          <span style="font-size:12px; color:var(--text-muted);">Define how dynamic monthly bonus incentives are computed for your staff</span>
+        </div>
+        <form id="form-incentive-settings-payroll">
+          <h4 style="font-size:13px; color:var(--color-primary); margin-top:15px; margin-bottom:10px; border-bottom:1px solid var(--panel-border); padding-bottom:5px;">G2C Files Tiered Incentive (per file)</h4>
+          <div class="form-row-3" style="margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">Tier 1 Max Files Limit</label>
+              <input type="number" id="inc-g2c-t1-limit" class="form-control" value="${store.getIncentiveSettings().g2cTier1Limit}" style="font-size:12px;" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">Tier 1 Rate (₹/file)</label>
+              <input type="number" id="inc-g2c-t1-rate" class="form-control" value="${store.getIncentiveSettings().g2cTier1Rate}" style="font-size:12px;" required>
+            </div>
+            <div style="margin-bottom:0;"></div>
+          </div>
+          <div class="form-row-3" style="margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">Tier 2 Max Files Limit</label>
+              <input type="number" id="inc-g2c-t2-limit" class="form-control" value="${store.getIncentiveSettings().g2cTier2Limit}" style="font-size:12px;" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">Tier 2 Rate (₹/file)</label>
+              <input type="number" id="inc-g2c-t2-rate" class="form-control" value="${store.getIncentiveSettings().g2cTier2Rate}" style="font-size:12px;" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">Tier 3 Rate (₹/file for > Tier 2)</label>
+              <input type="number" id="inc-g2c-t3-rate" class="form-control" value="${store.getIncentiveSettings().g2cTier3Rate}" style="font-size:12px;" required>
+            </div>
+          </div>
+
+          <h4 style="font-size:13px; color:var(--color-primary); margin-top:20px; margin-bottom:10px; border-bottom:1px solid var(--panel-border); padding-bottom:5px;">Commission Sharing Incentives</h4>
+          <div class="form-row" style="margin-bottom:20px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">CSC Custom Sales Comm. (%)</label>
+              <input type="number" id="inc-sales-comm-rate" class="form-control" value="${store.getIncentiveSettings().salesCommRate}" style="font-size:12px;" min="0" max="100" required>
+              <span style="font-size:9px; color:var(--text-muted);">% of collected service charges given to staff</span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:11px;">AEPS/DMT Comm. Share (%)</label>
+              <input type="number" id="inc-aeps-comm-rate" class="form-control" value="${store.getIncentiveSettings().aepsCommRate}" style="font-size:12px;" min="0" max="100" required>
+              <span style="font-size:9px; color:var(--text-muted);">% of bank/distributor commissions given to staff</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Incentive Rules</button>
+        </form>
+      </div>
+    </div>
   `;
 
   // Set titles in header
@@ -393,6 +448,22 @@ export function renderPayroll(mountPoint, appInstance) {
   // Tabs navigation
   const tabBtns = document.querySelectorAll('.payroll-tab');
   const panes = document.querySelectorAll('.payroll-pane');
+  const activeTabId = localStorage.getItem('cyberone_payroll_active_tab') || 'staff-pane';
+
+  // Restore active tab visual state on load
+  tabBtns.forEach(btn => {
+    const target = btn.getAttribute('data-target');
+    if (target === activeTabId) {
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-secondary');
+    } else {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    }
+  });
+  panes.forEach(p => {
+    p.style.display = p.id === activeTabId ? 'block' : 'none';
+  });
 
   tabBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -404,6 +475,7 @@ export function renderPayroll(mountPoint, appInstance) {
       e.target.classList.remove('btn-secondary');
 
       const targetId = e.target.getAttribute('data-target');
+      localStorage.setItem('cyberone_payroll_active_tab', targetId);
       panes.forEach(p => {
         p.style.display = p.id === targetId ? 'block' : 'none';
       });
@@ -815,6 +887,30 @@ export function renderPayroll(mountPoint, appInstance) {
     // Refresh page details to draw the View Slip button immediately
     appInstance.handleRouting();
   });
+
+  // Incentive settings save handler
+  const formIncentive = document.getElementById('form-incentive-settings-payroll');
+  if (formIncentive) {
+    formIncentive.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const settings = {
+        g2cTier1Limit: parseInt(document.getElementById('inc-g2c-t1-limit').value),
+        g2cTier1Rate: parseFloat(document.getElementById('inc-g2c-t1-rate').value),
+        g2cTier2Limit: parseInt(document.getElementById('inc-g2c-t2-limit').value),
+        g2cTier2Rate: parseFloat(document.getElementById('inc-g2c-t2-rate').value),
+        g2cTier3Rate: parseFloat(document.getElementById('inc-g2c-t3-rate').value),
+        salesCommRate: parseFloat(document.getElementById('inc-sales-comm-rate').value),
+        aepsCommRate: parseFloat(document.getElementById('inc-aeps-comm-rate').value)
+      };
+      
+      store.saveIncentiveSettings(settings);
+      appInstance.showToast('Staff performance incentive rules updated successfully!', 'success');
+      
+      // Store the active tab as incentives so it stays open after reload
+      localStorage.setItem('cyberone_payroll_active_tab', 'incentives-pane');
+      appInstance.handleRouting();
+    });
+  }
 }
 
 export default renderPayroll;
