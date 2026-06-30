@@ -1494,6 +1494,33 @@ class StateStore {
     return true;
   }
 
+  getIncentiveSettings() {
+    const rawSettings = localStorage.getItem('cyberone_v2_incentive_settings');
+    if (rawSettings) {
+      try {
+        return JSON.parse(rawSettings);
+      } catch (e) {
+        console.error('Failed to parse incentive settings:', e);
+      }
+    }
+    // Default values if not configured
+    return {
+      g2cTier1Limit: 20,
+      g2cTier1Rate: 10,
+      g2cTier2Limit: 50,
+      g2cTier2Rate: 15,
+      g2cTier3Rate: 20,
+      salesCommRate: 5,   // in percent (5%)
+      aepsCommRate: 10     // in percent (10%)
+    };
+  }
+
+  saveIncentiveSettings(settings) {
+    localStorage.setItem('cyberone_v2_incentive_settings', JSON.stringify(settings));
+    this.persistAll();
+    return true;
+  }
+
   // Get Staff Performance metrics and incentive suggestions for a month
   getStaffPerformanceMetrics(staffId, monthString) {
     // 1. G2C Files processed by this staff in selected month
@@ -1528,25 +1555,31 @@ class StateStore {
       });
     }
 
+    const incSettings = this.getIncentiveSettings();
+    const t1Limit = incSettings.g2cTier1Limit;
+    const t1Rate = incSettings.g2cTier1Rate;
+    const t2Limit = incSettings.g2cTier2Limit;
+    const t2Rate = incSettings.g2cTier2Rate;
+    const t3Rate = incSettings.g2cTier3Rate;
+    const sCommPct = incSettings.salesCommRate / 100;
+    const aCommPct = incSettings.aepsCommRate / 100;
+
     // Calculate suggested incentives:
     // - Tiered G2C files incentive:
-    //   <= 20 files: ₹10/file
-    //   21-50 files: ₹15/file (for the count above 20)
-    //   > 50 files: ₹20/file (for the count above 50)
     let g2cIncentive = 0;
-    if (appCount > 50) {
-      g2cIncentive = (20 * 10) + (30 * 15) + ((appCount - 50) * 20);
-    } else if (appCount > 20) {
-      g2cIncentive = (20 * 10) + ((appCount - 20) * 15);
+    if (appCount > t2Limit) {
+      g2cIncentive = (t1Limit * t1Rate) + ((t2Limit - t1Limit) * t2Rate) + ((appCount - t2Limit) * t3Rate);
+    } else if (appCount > t1Limit) {
+      g2cIncentive = (t1Limit * t1Rate) + ((appCount - t1Limit) * t2Rate);
     } else {
-      g2cIncentive = appCount * 10;
+      g2cIncentive = appCount * t1Rate;
     }
 
-    // - Sales Service Charge commission: 5% of service charge volume
-    const salesComm = parseFloat((scVolume * 0.05).toFixed(2));
+    // - Sales Service Charge commission: sCommPct of service charge volume
+    const salesComm = parseFloat((scVolume * sCommPct).toFixed(2));
 
-    // - AEPS/DMT Commission Sharing: 10% of commission earned
-    const aepsCommShare = parseFloat((aepsComm * 0.10).toFixed(2));
+    // - AEPS/DMT Commission Sharing: aCommPct of commission earned
+    const aepsCommShare = parseFloat((aepsComm * aCommPct).toFixed(2));
 
     const totalSuggestedIncentive = parseFloat((g2cIncentive + salesComm + aepsCommShare).toFixed(2));
 
