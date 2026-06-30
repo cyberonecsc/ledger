@@ -48,6 +48,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
+    this.version = '3.1.4';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -263,7 +264,7 @@ class Application {
   }
 
   async checkForUpdates() {
-    const currentVersion = '3.1.4';
+    const currentVersion = this.version;
     try {
       const response = await fetch('https://api.github.com/repos/cyberonecsc/ledger/releases/latest');
       if (response.ok) {
@@ -697,7 +698,7 @@ class Application {
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
             </button>
             <div class="sidebar-version" style="text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 20px; font-family: var(--font-primary); padding: 0 10px; line-height: 1.5; transition: var(--transition-smooth);">
-              <div>v3.1.3</div>
+              <div>v${this.version}</div>
               <div style="margin-top: 8px; font-weight: 600; letter-spacing: 0.5px;">© ${new Date().getFullYear()} XTREME SYSTEMS</div>
               <div style="font-size: 8px; opacity: 0.7; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
             </div>
