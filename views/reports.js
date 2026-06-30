@@ -15,6 +15,7 @@ export function renderReports(mountPoint, appInstance) {
       <button class="btn btn-sm btn-secondary reports-tab" data-target="pl-pane">Profit & Loss Statement</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="wallet-pane">Wallet Reconciliation</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="staff-perf-pane">Staff Performance</button>
+      <button class="btn btn-sm btn-secondary reports-tab" data-target="expense-pane">Expense Review</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="custom-range-pane">Custom Range & Summary</button>
     </div>
 
@@ -107,10 +108,19 @@ export function renderReports(mountPoint, appInstance) {
     <!-- PANE 4: Staff Performance -->
     <div id="staff-perf-pane" class="reports-pane" style="display:none;">
       <div class="glass-card" style="padding:24px;">
-        <div class="section-header" style="margin-bottom:15px;">
-          <h3>Staff G2C Filing Performance</h3>
-          <span style="font-size:12px; color:var(--text-muted);">Monthly processed government files & sales contributions</span>
+        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:15px;">
+          <div>
+            <h3>Staff Performance & Incentives</h3>
+            <span style="font-size:12px; color:var(--text-muted);">Government filings, sales volumes & calculated monthly incentives</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label for="reports-staff-month-select" style="font-size:13px; font-weight:600; color:var(--text-muted);">Month:</label>
+            <select id="reports-staff-month-select" style="background:var(--datepicker-bg); border:1px solid var(--panel-border); color:var(--text-white-invert); font-size:13px; padding:6px 12px; border-radius:var(--border-radius-sm); outline:none; cursor:pointer; font-family:inherit;">
+              <!-- Monthly options will mount here -->
+            </select>
+          </div>
         </div>
+        
         <div class="table-responsive">
           <table class="custom-table">
             <thead>
@@ -118,48 +128,94 @@ export function renderReports(mountPoint, appInstance) {
                 <th>Employee Name</th>
                 <th>Designation Role</th>
                 <th style="text-align: center;">Applications Processed</th>
-                <th>Generated Fees</th>
-                <th>Generated Service Charge</th>
-                <th>Total Sales Generated</th>
+                <th>G2C Service Charge</th>
+                <th>AEPS/DMT Volume</th>
+                <th>AEPS/DMT SC/Comm</th>
+                <th>Total Sales Vol</th>
+                <th style="color:var(--color-success);">Suggested Incentive</th>
               </tr>
             </thead>
-            <tbody>
-              ${store.staff.map(s => {
-                // Filter G2C files processed by this staff
-                const staffApps = store.applications.filter(a => a.assignedStaffId === s.id);
-                const appCount = staffApps.length;
-                
-                // Get sales transactions entered by this staff
-                let salesVolume = 0;
-                let feesVolume = 0;
-                let scVolume = 0;
-
-                Object.keys(store.dailyLogs).forEach(d => {
-                  store.dailyLogs[d].transactions.forEach(t => {
-                    if (t.type === 'sale' && t.staffId === s.id) {
-                      salesVolume += t.amount;
-                      feesVolume += t.deductedAmount;
-                      scVolume += (t.serviceChargeToCash || 0) + (t.serviceChargeToAccount || 0);
-                    }
-                  });
-                });
-
-                return `
-                  <tr>
-                    <td><strong>${s.name}</strong></td>
-                    <td style="text-transform: capitalize;">${s.role}</td>
-                    <td style="text-align: center;"><span class="badge sale">${appCount} files</span></td>
-                    <td>₹${feesVolume.toFixed(2)}</td>
-                    <td style="color:var(--color-success); font-weight:500;">₹${scVolume.toFixed(2)}</td>
-                    <td style="font-weight:700;">₹${salesVolume.toFixed(2)}</td>
-                  </tr>
-                `;
-              }).join('')}
+            <tbody id="reports-staff-tbody">
+              <!-- Rows will render dynamically -->
             </tbody>
           </table>
         </div>
+
         <div id="staff-chart-mount" style="margin-top: 25px; border-top: 1px solid var(--panel-border); padding-top: 20px; display: flex; justify-content: center;">
           <!-- SVG chart will mount here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 4B: Expense Review -->
+    <div id="expense-pane" class="reports-pane" style="display:none;">
+      <div class="glass-card no-print" style="padding: 20px; margin-bottom: 25px;">
+        <h4 style="font-family: var(--font-display); font-weight:700; margin-bottom:15px;">Filter Expenses</h4>
+        <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+          <div class="form-group" style="margin-bottom:0; flex: 1.5; min-width: 180px;">
+            <label class="form-label">Review Period (Month)</label>
+            <input type="month" id="expense-month-filter" class="form-control" value="${currentMonth}">
+          </div>
+          <div class="form-group" style="margin-bottom:0; flex: 1.5; min-width: 180px;">
+            <label class="form-label">Expense Category</label>
+            <select id="expense-category-filter" class="form-control">
+              <option value="all" selected>All Categories</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Supplies">Office Supplies / Printing Materials</option>
+              <option value="Refreshments">Refreshments / Food</option>
+              <option value="Rent">Rent & Taxes</option>
+              <option value="Salary">Staff Payouts</option>
+              <option value="Other">Other Expenses</option>
+            </select>
+          </div>
+          <button id="btn-reset-expense-filters" class="btn btn-secondary" style="height: 38px;">Reset Filters</button>
+        </div>
+      </div>
+
+      <div class="glass-card" style="padding: 30px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid var(--panel-border); padding-bottom:15px;">
+          <h3 style="font-family: var(--font-display); font-weight:700;">OPERATING EXPENSES REPORT</h3>
+          <p id="expense-report-month-text" style="font-size:12px; color:var(--text-muted); margin-top:4px;">CYBERONE CSC CLT-14 | Month: --</p>
+        </div>
+
+        <div class="card-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Total Expenses</span>
+            <div id="expense-kpi-total" style="font-family:var(--font-display); font-size:20px; font-weight:700; color: var(--color-danger); margin-top:5px;">₹0.00</div>
+          </div>
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Cash Outflow</span>
+            <div id="expense-kpi-cash" style="font-family:var(--font-display); font-size:20px; font-weight:700; color: var(--text-white-invert); margin-top:5px;">₹0.00</div>
+          </div>
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Bank Outflow</span>
+            <div id="expense-kpi-bank" style="font-family:var(--font-display); font-size:20px; font-weight:700; color: var(--color-info); margin-top:5px;">₹0.00</div>
+          </div>
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Highest Category</span>
+            <div id="expense-kpi-highest" style="font-family:var(--font-display); font-size:16px; font-weight:700; color: var(--color-success); margin-top:5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+          </div>
+        </div>
+
+        <div id="expense-chart-mount" style="margin-top: 25px; margin-bottom: 25px; padding: 15px; background: var(--bg-card-transparent); border: 1px solid var(--panel-border); border-radius: var(--border-radius-md); display: flex; justify-content: center;" class="no-print">
+          <!-- SVG chart will mount here -->
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Paid From</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="expense-table-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -314,7 +370,61 @@ export function renderReports(mountPoint, appInstance) {
   renderWalletChart();
 
   // Render Staff Performance details
-  renderStaffChart();
+  let staffSelectedMonth = localStorage.getItem('cyberone_reports_staff_month') || currentMonth;
+  const reportsStaffMonthSelect = document.getElementById('reports-staff-month-select');
+  if (reportsStaffMonthSelect) {
+    const activeYear = parseInt(activeDate.substring(0, 4));
+    const activeMonthNum = parseInt(activeDate.substring(5, 7));
+    const monthOptions = [];
+    for (let i = 0; i < 6; i++) {
+      let m = activeMonthNum - i;
+      let y = activeYear;
+      while (m <= 0) {
+        m += 12;
+        y -= 1;
+      }
+      const mStr = m < 10 ? '0' + m : '' + m;
+      const value = `${y}-${mStr}`;
+      const dateObj = new Date(y, m - 1, 2);
+      const label = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+      monthOptions.push({ value, label });
+    }
+    reportsStaffMonthSelect.innerHTML = monthOptions.map(opt => `<option value="${opt.value}" ${opt.value === staffSelectedMonth ? 'selected' : ''}>${opt.label}</option>`).join('');
+    
+    reportsStaffMonthSelect.addEventListener('change', (e) => {
+      staffSelectedMonth = e.target.value;
+      localStorage.setItem('cyberone_reports_staff_month', staffSelectedMonth);
+      renderStaffPerformanceReport(staffSelectedMonth);
+    });
+  }
+
+  renderStaffPerformanceReport(staffSelectedMonth);
+
+  // Render Expense Review details & register event handlers
+  renderExpenseReviewData(currentMonth);
+  const expMonthFilter = document.getElementById('expense-month-filter');
+  const expCatFilter = document.getElementById('expense-category-filter');
+  const expResetBtn = document.getElementById('btn-reset-expense-filters');
+
+  const updateExpenseReport = () => {
+    if (expMonthFilter && expCatFilter) {
+      renderExpenseReviewData(expMonthFilter.value, expCatFilter.value);
+    }
+  };
+
+  if (expMonthFilter) {
+    expMonthFilter.addEventListener('change', updateExpenseReport);
+  }
+  if (expCatFilter) {
+    expCatFilter.addEventListener('change', updateExpenseReport);
+  }
+  if (expResetBtn) {
+    expResetBtn.addEventListener('click', () => {
+      if (expMonthFilter) expMonthFilter.value = currentMonth;
+      if (expCatFilter) expCatFilter.value = 'all';
+      updateExpenseReport();
+    });
+  }
 
   // Print buttons binders
   document.getElementById('btn-print-daybook').addEventListener('click', () => {
@@ -685,29 +795,195 @@ function renderWalletChart() {
   mount.innerHTML = generateWalletSVG(store.wallets, balances);
 }
 
-function renderStaffChart() {
-  const mount = document.getElementById('staff-chart-mount');
-  if (!mount) return;
+function renderStaffPerformanceReport(monthString) {
+  const tbody = document.getElementById('reports-staff-tbody');
+  const chartMount = document.getElementById('staff-chart-mount');
+  if (!tbody) return;
 
   const staffData = store.staff.map(s => {
-    const appCount = store.applications.filter(a => a.assignedStaffId === s.id).length;
-    let salesVolume = 0;
-    Object.keys(store.dailyLogs).forEach(date => {
-      store.dailyLogs[date].transactions.forEach(t => {
-        if (t.type === 'sale' && t.staffId === s.id) {
-          salesVolume += t.amount;
-        }
-      });
-    });
+    const metrics = store.getStaffPerformanceMetrics(s.id, monthString);
     return {
+      id: s.id,
       name: s.name,
       role: s.role,
-      apps: appCount,
-      sales: salesVolume
+      apps: metrics.appCount,
+      sales: metrics.salesVolume + metrics.aepsVolume,
+      scVolume: metrics.scVolume,
+      aepsVolume: metrics.aepsVolume,
+      aepsEarnings: metrics.aepsSc + metrics.aepsComm,
+      incentive: metrics.totalSuggestedIncentive
     };
   });
 
-  mount.innerHTML = generateStaffSVG(staffData);
+  tbody.innerHTML = staffData.map(d => `
+    <tr>
+      <td><strong>${d.name}</strong></td>
+      <td style="text-transform: capitalize;">${d.role}</td>
+      <td style="text-align: center;"><span class="badge sale">${d.apps} files</span></td>
+      <td style="color:var(--color-success); font-weight:500;">₹${d.scVolume.toFixed(2)}</td>
+      <td>₹${d.aepsVolume.toFixed(2)}</td>
+      <td style="color:var(--color-info); font-weight:500;">₹${d.aepsEarnings.toFixed(2)}</td>
+      <td style="font-weight:700;">₹${d.sales.toFixed(2)}</td>
+      <td style="font-weight:700; color:var(--color-success);">₹${d.incentive.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  if (chartMount) {
+    chartMount.innerHTML = generateStaffSVG(staffData);
+  }
+}
+
+function renderExpenseReviewData(monthString, categoryFilter = 'all') {
+  const tableBody = document.getElementById('expense-table-tbody');
+  if (!tableBody) return;
+
+  const reportMonthText = document.getElementById('expense-report-month-text');
+  if (reportMonthText) {
+    const dateObj = new Date(monthString + '-02');
+    const formattedMonth = isNaN(dateObj.getTime()) ? monthString : dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+    reportMonthText.innerText = `${store.centerProfile.name} (${store.centerProfile.code}) | Month: ${formattedMonth}`;
+  }
+
+  let totalExpenses = 0;
+  let cashOutflow = 0;
+  let bankOutflow = 0;
+  const categoryTotals = {};
+  const expensesList = [];
+
+  Object.keys(store.dailyLogs).forEach(date => {
+    if (date.startsWith(monthString)) {
+      const log = store.dailyLogs[date];
+      log.transactions.forEach(t => {
+        if (t.type === 'expense') {
+          const category = t.category || 'Other';
+          
+          // Accumulate category totals regardless of filter (for the chart)
+          categoryTotals[category] = (categoryTotals[category] || 0) + t.amount;
+
+          // Apply category filter for table and KPIs
+          if (categoryFilter === 'all' || category === categoryFilter) {
+            totalExpenses += t.amount;
+            if (t.source === 'cash') {
+              cashOutflow += t.amount;
+            } else {
+              bankOutflow += t.amount;
+            }
+            expensesList.push({
+              date,
+              ...t
+            });
+          }
+        }
+      });
+    }
+  });
+
+  // Sort expenses by date descending
+  expensesList.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  // Populate KPIs
+  document.getElementById('expense-kpi-total').innerText = `₹${totalExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  document.getElementById('expense-kpi-cash').innerText = `₹${cashOutflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  document.getElementById('expense-kpi-bank').innerText = `₹${bankOutflow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  // Find highest category
+  let highestCategory = '--';
+  let highestAmount = 0;
+  Object.keys(categoryTotals).forEach(cat => {
+    if (categoryTotals[cat] > highestAmount) {
+      highestAmount = categoryTotals[cat];
+      highestCategory = cat;
+    }
+  });
+  const highestKpi = document.getElementById('expense-kpi-highest');
+  if (highestKpi) {
+    highestKpi.innerText = highestCategory !== '--' ? `${highestCategory} (₹${Math.round(highestAmount).toLocaleString('en-IN')})` : '--';
+  }
+
+  // Populate table
+  if (expensesList.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted); font-style:italic;">
+          No expenses logged for this period.
+        </td>
+      </tr>
+    `;
+  } else {
+    tableBody.innerHTML = expensesList.map(t => {
+      const sourceLabel = t.source === 'cash' ? 'Cash Drawer' : (store.bankAccounts.find(b => b.id === t.source)?.name || t.source || 'Bank Account');
+      return `
+        <tr>
+          <td><strong>${t.date}</strong></td>
+          <td><span class="badge ${t.category === 'Salary' ? 'warning' : 'danger'}" style="text-transform:capitalize;">${t.category || 'Other'}</span></td>
+          <td>${t.description}</td>
+          <td><code>${sourceLabel}</code></td>
+          <td style="text-align:right; font-weight:700; color:var(--color-danger);">₹${t.amount.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Render SVG Chart for category distribution
+  const chartMount = document.getElementById('expense-chart-mount');
+  if (chartMount) {
+    chartMount.innerHTML = generateExpenseChartSVG(categoryTotals);
+  }
+}
+
+function generateExpenseChartSVG(categoryTotals) {
+  const categories = Object.keys(categoryTotals);
+  if (categories.length === 0) {
+    return `
+      <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:20px;">
+        No expense data to chart.
+      </div>
+    `;
+  }
+
+  // Sort categories by amount descending
+  categories.sort((a, b) => categoryTotals[b] - categoryTotals[a]);
+
+  const maxVal = Math.max(...categories.map(c => categoryTotals[c]), 100);
+  const chartWidth = 500;
+  const barHeight = 22;
+  const spacing = 12;
+  const paddingLeft = 110;
+  const paddingRight = 60;
+  const chartHeight = categories.length * (barHeight + spacing) + 30;
+
+  let barsHtml = '';
+  const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1'];
+
+  categories.forEach((cat, index) => {
+    const amt = categoryTotals[cat];
+    const width = (amt / maxVal) * (chartWidth - paddingLeft - paddingRight);
+    const y = index * (barHeight + spacing) + 15;
+    const color = colors[index % colors.length];
+
+    barsHtml += `
+      <g>
+        <!-- Category Label -->
+        <text x="${paddingLeft - 10}" y="${y + 14}" fill="var(--text-muted)" font-size="10" font-weight="700" text-anchor="end">${cat}</text>
+        
+        <!-- Background track -->
+        <rect x="${paddingLeft}" y="${y}" width="${chartWidth - paddingLeft - paddingRight}" height="${barHeight}" rx="4" fill="var(--bg-card-heavy)" />
+        
+        <!-- Fill Bar -->
+        <rect x="${paddingLeft}" y="${y}" width="${Math.max(width, 4)}" height="${barHeight}" rx="4" fill="${color}" opacity="0.85" />
+        
+        <!-- Amount Label -->
+        <text x="${paddingLeft + width + 8}" y="${y + 14}" fill="var(--text-white-invert)" font-size="10" font-weight="700">₹${Math.round(amt).toLocaleString('en-IN')}</text>
+      </g>
+    `;
+  });
+
+  return `
+    <svg viewBox="0 0 ${chartWidth} ${chartHeight}" style="width: 100%; max-width: ${chartWidth}px; height: auto; font-family: inherit;">
+      <text x="10" y="10" fill="var(--text-muted)" font-size="10" font-weight="700" text-transform="uppercase">Expense Distribution by Category</text>
+      ${barsHtml}
+    </svg>
+  `;
 }
 
 function generateDaybookSVG(opCash, clCash, opBank, clBank) {

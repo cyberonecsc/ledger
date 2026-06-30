@@ -500,6 +500,15 @@ class StateStore {
       this.saveItem('cyberone_v2_last_modified', new Date().toISOString());
     }
 
+    // Migration: retroactively create customer visit log entries for past AEPS/DMT transactions
+    if (this.aepsTransactions && this.customers) {
+      this.aepsTransactions.forEach(t => {
+        if (t.customerName && t.mobile && t.status === 'Success') {
+          this.registerCustomerFromAeps(t.customerName, t.mobile, t.date, t);
+        }
+      });
+    }
+
     // Always recalculate all balances on startup to guarantee database consistency
     this.recalculateAllBalances(true);
   }
@@ -547,6 +556,12 @@ class StateStore {
     localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
     this.saveToLocalStorage();
     
+    // Always write to local server disk immediately if running on localhost to keep local copy updated
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      this.syncDatabaseState();
+    }
+    
     // 1. If Firebase is active and initialized, save to Firebase Realtime Database
     if (firebaseService.isInitialized()) {
       const payload = {};
@@ -580,20 +595,11 @@ class StateStore {
           if (success) {
             console.log("Firebase: Saved database state successfully");
             this.setSyncStatus('synced');
-            
-            // Also write to local server disk if running on localhost
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            if (isLocal) {
-              this.syncDatabaseState();
-            }
           } else {
             console.error("Firebase: Database save failed");
             this.setSyncStatus('error');
           }
         });
-    } else {
-      // 2. Otherwise fall back to local server disk sync
-      this.syncDatabaseState();
     }
   }
 
@@ -1346,7 +1352,7 @@ class StateStore {
     return newCustomer;
   }
 
-  registerCustomerFromAeps(customerName, mobile, dateString) {
+  registerCustomerFromAeps(customerName, mobile, dateString, txn) {
     if (!mobile || !customerName) return;
     const phoneClean = mobile.trim();
     const nameClean = customerName.trim();
@@ -1363,6 +1369,28 @@ class StateStore {
       });
     }
     this.logCustomerVisit(customer.id, dateString || getTodayDateString());
+
+    if (txn) {
+      if (!customer.visitLogs) {
+        customer.visitLogs = [];
+      }
+      const existingLog = customer.visitLogs.find(log => log.aepsTxnId === txn.id);
+      if (existingLog) {
+        existingLog.purpose = `${txn.type} Transaction (₹${txn.amount})`;
+        existingLog.staff = txn.staffId || 'System';
+        existingLog.date = dateString || getTodayDateString();
+      } else {
+        customer.visitLogs.push({
+          id: 'LOG-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+          date: dateString || getTodayDateString(),
+          purpose: `${txn.type} Transaction (₹${txn.amount})`,
+          staff: txn.staffId || 'System',
+          isWebReg: false,
+          aepsTxnId: txn.id
+        });
+      }
+      this.persistAll();
+    }
   }
 
 
@@ -1464,6 +1492,76 @@ class StateStore {
     this.logActivity('Delete Application', `Deleted application log ${appId} for "${app.serviceType}"`);
     this.persistAll();
     return true;
+  }
+
+  // Get Staff Performance metrics and incentive suggestions for a month
+  getStaffPerformanceMetrics(staffId, monthString) {
+    // 1. G2C Files processed by this staff in selected month
+    const staffApps = this.applications.filter(a => a.assignedStaffId === staffId && a.lastUpdated.startsWith(monthString));
+    const appCount = staffApps.length;
+    
+    // 2. Sales volume and collected service charges
+    let salesVolume = 0;
+    let scVolume = 0;
+    Object.keys(this.dailyLogs).forEach(d => {
+      if (d.startsWith(monthString)) {
+        this.dailyLogs[d].transactions.forEach(t => {
+          if (t.type === 'sale' && t.staffId === staffId) {
+            salesVolume += t.amount;
+            scVolume += (t.serviceChargeToCash || 0) + (t.serviceChargeToAccount || 0);
+          }
+        });
+      }
+    });
+
+    // 3. AEPS volume and commission earnings
+    let aepsVolume = 0;
+    let aepsSc = 0;
+    let aepsComm = 0;
+    if (this.aepsTransactions) {
+      this.aepsTransactions.forEach(t => {
+        if (t.staffId === staffId && t.status === 'Success' && t.date && t.date.startsWith(monthString)) {
+          aepsVolume += t.amount;
+          aepsSc += (t.serviceCharge || 0);
+          aepsComm += (t.commission || 0);
+        }
+      });
+    }
+
+    // Calculate suggested incentives:
+    // - Tiered G2C files incentive:
+    //   <= 20 files: ₹10/file
+    //   21-50 files: ₹15/file (for the count above 20)
+    //   > 50 files: ₹20/file (for the count above 50)
+    let g2cIncentive = 0;
+    if (appCount > 50) {
+      g2cIncentive = (20 * 10) + (30 * 15) + ((appCount - 50) * 20);
+    } else if (appCount > 20) {
+      g2cIncentive = (20 * 10) + ((appCount - 20) * 15);
+    } else {
+      g2cIncentive = appCount * 10;
+    }
+
+    // - Sales Service Charge commission: 5% of service charge volume
+    const salesComm = parseFloat((scVolume * 0.05).toFixed(2));
+
+    // - AEPS/DMT Commission Sharing: 10% of commission earned
+    const aepsCommShare = parseFloat((aepsComm * 0.10).toFixed(2));
+
+    const totalSuggestedIncentive = parseFloat((g2cIncentive + salesComm + aepsCommShare).toFixed(2));
+
+    return {
+      appCount,
+      salesVolume,
+      scVolume,
+      aepsVolume,
+      aepsSc,
+      aepsComm,
+      g2cIncentive,
+      salesComm,
+      aepsCommShare,
+      totalSuggestedIncentive
+    };
   }
 
   // Inventory Product Management
@@ -1898,7 +1996,7 @@ class StateStore {
     }
     this.aepsTransactions.push(newTxn);
     if (newTxn.customerName && newTxn.mobile) {
-      this.registerCustomerFromAeps(newTxn.customerName, newTxn.mobile, newTxn.date);
+      this.registerCustomerFromAeps(newTxn.customerName, newTxn.mobile, newTxn.date, newTxn);
     }
     this.logActivity('Create AEPS ' + newTxn.type.toUpperCase(), `Created AEPS/DMT transaction ${newTxn.id} for ₹${newTxn.amount} in ${newTxn.walletId}`);
     this.recalculateAllBalances();
@@ -1911,6 +2009,18 @@ class StateStore {
     if (idx === -1) return false;
     const txn = this.aepsTransactions[idx];
     this.aepsTransactions.splice(idx, 1);
+
+    // Remove matching customer visit log
+    this.customers.forEach(customer => {
+      if (customer.visitLogs) {
+        const logIdx = customer.visitLogs.findIndex(log => log.aepsTxnId === txnId);
+        if (logIdx !== -1) {
+          customer.visitLogs.splice(logIdx, 1);
+          customer.visitCount = Math.max(0, customer.visitCount - 1);
+        }
+      }
+    });
+
     this.logActivity('Delete AEPS ' + txn.type.toUpperCase(), `Deleted AEPS/DMT transaction ${txnId} for ₹${txn.amount}`);
     this.recalculateAllBalances();
     return true;
@@ -1927,7 +2037,7 @@ class StateStore {
     };
     const updatedTxn = this.aepsTransactions[idx];
     if (updatedTxn.customerName && updatedTxn.mobile) {
-      this.registerCustomerFromAeps(updatedTxn.customerName, updatedTxn.mobile, updatedTxn.date || oldTxn.date);
+      this.registerCustomerFromAeps(updatedTxn.customerName, updatedTxn.mobile, updatedTxn.date || oldTxn.date, updatedTxn);
     }
     this.logActivity('Edit AEPS ' + oldTxn.type.toUpperCase(), `Updated AEPS/DMT transaction ${txnId}`);
     this.recalculateAllBalances();

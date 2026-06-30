@@ -58,7 +58,7 @@ export function renderTransactions(mountPoint, appInstance) {
 
   // State for pagination & bulk selection
   let currentPage = 1;
-  const itemsPerPage = 10;
+  let itemsPerPage = parseInt(localStorage.getItem('cyberone_ledger_page_size') || 10);
   const selectedTxnIds = new Set();
 
   // Render view layout
@@ -115,8 +115,17 @@ export function renderTransactions(mountPoint, appInstance) {
       
       <!-- Pagination Controls -->
       <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: var(--bg-card-medium); border-top: 1px solid var(--panel-border); font-size: 13px;">
-        <div style="color: var(--text-muted);">
-          Showing <span id="pagination-start">0</span> to <span id="pagination-end">0</span> of <span id="pagination-total">0</span> transactions
+        <div style="color: var(--text-muted); display: flex; align-items: center; gap: 15px;">
+          <span>Showing <span id="pagination-start">0</span> to <span id="pagination-end">0</span> of <span id="pagination-total">0</span> transactions</span>
+          <div style="display: flex; align-items: center; gap: 6px; margin-left: 15px;">
+            <label for="select-page-size" style="font-size: 12px; font-weight: 500;">Show:</label>
+            <select id="select-page-size" style="background: var(--datepicker-bg); border: 1px solid var(--panel-border); color: var(--text-white-invert); font-size: 11px; padding: 4px 8px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; height: 26px; box-sizing: border-box; font-family: inherit;">
+              <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+              <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
+              <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+              <option value="100" ${itemsPerPage === 100 ? 'selected' : ''}>100</option>
+            </select>
+          </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button id="btn-prev-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
@@ -253,6 +262,16 @@ export function renderTransactions(mountPoint, appInstance) {
     currentPage++;
     redrawTable();
   });
+
+  const selectPageSize = document.getElementById('select-page-size');
+  if (selectPageSize) {
+    selectPageSize.addEventListener('change', (e) => {
+      itemsPerPage = parseInt(e.target.value);
+      localStorage.setItem('cyberone_ledger_page_size', itemsPerPage);
+      currentPage = 1;
+      redrawTable();
+    });
+  }
 
   const txnDatePicker = document.getElementById('txn-date-picker');
   if (txnDatePicker) {
@@ -1382,7 +1401,7 @@ export function renderTransactions(mountPoint, appInstance) {
           cgst: gstDetails.cgst,
           sgst: gstDetails.sgst,
           taxableAmount: gstDetails.taxableAmount,
-          staffId: editTxn ? editTxn.staffId : 'STAFF-04'
+          staffId: editTxn ? editTxn.staffId : (auth.currentUser ? auth.currentUser.staffId : 'STAFF-04')
         };
 
         if (editTxn) {

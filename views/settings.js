@@ -128,6 +128,29 @@ export function renderSettings(mountPoint, appInstance) {
         }).join('')}
       </div>
     </div>
+
+    <!-- Portal & Apps Background Mode Config -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 25px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Interchangeable Background Mode</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Choose a dark or light background presentation style for the workspace.</span>
+      </div>
+      <div class="bg-mode-selection" style="display: flex; gap: 12px;">
+        ${[
+          { id: 'dark', name: 'Dark Mode', desc: 'Sleek dark aesthetics', icon: 'moon' },
+          { id: 'light', name: 'Light Mode', desc: 'Clean bright layout', icon: 'sun' }
+        ].map(mode => {
+          const isActive = (localStorage.getItem('cyberone_v2_bg_mode') || 'dark') === mode.id;
+          return `
+            <div class="bg-mode-card ${isActive ? 'active' : ''}" data-mode-id="${mode.id}" style="flex: 1; border: 2px solid ${isActive ? 'var(--color-primary)' : 'var(--panel-border)'}; background: ${isActive ? 'var(--bg-card-medium)' : 'var(--bg-card-transparent)'}; padding: 16px; border-radius: var(--border-radius-md); text-align: center; cursor: pointer; transition: var(--transition-smooth); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+              <i data-lucide="${mode.icon}" style="width: 24px; height: 24px; color: ${isActive ? 'var(--color-primary)' : 'var(--text-muted)'};"></i>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">${mode.name}</div>
+              <div style="font-size: 10px; color: var(--text-muted);">${mode.desc}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
   `;
 
   // Set titles in header
@@ -244,6 +267,36 @@ export function renderSettings(mountPoint, appInstance) {
       appInstance.showToast(`${themeName} theme applied successfully!`, 'success');
       
       // Re-render layout to update active sidebar classes and backgrounds
+      setTimeout(() => {
+        appInstance.handleRouting();
+      }, 250);
+    });
+  });
+
+  // Background Mode Selection Click Handler
+  document.querySelectorAll('.bg-mode-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const selectedMode = card.getAttribute('data-mode-id');
+      
+      // Update UI selection state
+      document.querySelectorAll('.bg-mode-card').forEach(c => {
+        c.classList.remove('active');
+        c.style.borderColor = 'var(--panel-border)';
+      });
+      card.classList.add('active');
+      card.style.borderColor = 'var(--color-primary)';
+
+      // Save background mode to localStorage
+      localStorage.setItem('cyberone_v2_bg_mode', selectedMode);
+      
+      // Apply immediately
+      document.documentElement.setAttribute('data-bg-mode', selectedMode);
+      
+      store.persistAll();
+      
+      const modeName = card.querySelector('div').nextElementSibling.innerText;
+      appInstance.showToast(`${modeName} applied successfully!`, 'success');
+      
       setTimeout(() => {
         appInstance.handleRouting();
       }, 250);

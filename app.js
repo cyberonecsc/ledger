@@ -63,9 +63,11 @@ class Application {
       loadingScreen.style.display = 'none';
     }
 
-    // Load saved theme on boot
+    // Load saved theme and background mode on boot
     const savedTheme = localStorage.getItem('cyberone_v2_theme') || 'cyberone';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    const savedBgMode = localStorage.getItem('cyberone_v2_bg_mode') || 'dark';
+    document.documentElement.setAttribute('data-bg-mode', savedBgMode);
 
     // Load sidebar collapse state
     const isCollapsed = localStorage.getItem('cyberone_v2_sidebar_collapsed') === 'true';
@@ -248,16 +250,28 @@ class Application {
     }
   }
 
+  compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const p1 = parts1[i] || 0;
+      const p2 = parts2[i] || 0;
+      if (p1 > p2) return 1;
+      if (p1 < p2) return -1;
+    }
+    return 0;
+  }
+
   async checkForUpdates() {
-    const currentVersion = '3.1.1';
+    const currentVersion = '3.1.4';
     try {
       const response = await fetch('https://api.github.com/repos/cyberonecsc/ledger/releases/latest');
       if (response.ok) {
         const data = await response.json();
         const latestVersion = data.tag_name.replace('v', '');
         
-        // Simple version comparison (e.g. "3.0.4" vs "3.0.3")
-        if (latestVersion !== currentVersion) {
+        // Proper semver comparison to only show updates for newer remote versions
+        if (this.compareVersions(latestVersion, currentVersion) > 0) {
           console.log(`Update checker: New version available: v${latestVersion}`);
           this.showUpdateBanner(latestVersion, data.html_url);
         }
@@ -601,7 +615,7 @@ class Application {
             <img id="sidebar-logo-img" src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="logo" style="width:28px; height:28px; object-fit:contain; background:#ffffff; border-radius:4px; padding:2px;" onerror="this.style.display='none';">
             <h1>CYBERONE CSC</h1>
             <button id="sidebar-toggle" style="position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--color-primary); border: 1px solid var(--panel-border); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.5); outline:none; transition: var(--transition-smooth);">
-              <i data-lucide="${isCollapsed ? 'chevron-right' : 'chevron-left'}" style="width: 12px; height: 12px;"></i>
+              <i data-lucide="chevron-left" style="width: 12px; height: 12px;"></i>
             </button>
           </div>
           <ul class="sidebar-menu">
@@ -738,19 +752,14 @@ class Application {
       toggleBtn.addEventListener('click', () => {
         const isCollapsedNow = document.body.classList.toggle('sidebar-collapsed');
         localStorage.setItem('cyberone_v2_sidebar_collapsed', isCollapsedNow);
-        
-        // Refresh the toggle button icon
-        const icon = toggleBtn.querySelector('i');
-        if (icon) {
-          icon.setAttribute('data-lucide', isCollapsedNow ? 'chevron-right' : 'chevron-left');
-        }
-        lucide.createIcons();
       });
     }
 
-    // Load saved theme
+    // Load saved theme & background mode
     const savedTheme = localStorage.getItem('cyberone_v2_theme') || 'cyberone';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    const savedBgMode = localStorage.getItem('cyberone_v2_bg_mode') || 'dark';
+    document.documentElement.setAttribute('data-bg-mode', savedBgMode);
 
     // Submenu expanding toggle
     const submenuToggle = this.root.querySelector('.submenu-toggle');
@@ -1004,7 +1013,10 @@ class Application {
           'cyberone_v2_active_date',
           'cyberone_v2_sidebar_collapsed',
           'cyberone_v2_last_sync_date',
-          'cyberone_v2_local_snapshots'
+          'cyberone_v2_local_snapshots',
+          'cyberone_v2_github_token',
+          'cyberone_v2_github_repo',
+          'cyberone_v2_github_branch'
         ].includes(key)) {
           return;
         }
@@ -1024,11 +1036,6 @@ class Application {
         const localRaw = localStorage.getItem(key);
         let remoteRaw = remoteBackup[key];
         
-        if (key === 'cyberone_v2_github_token') {
-          remoteRaw = deobfuscateToken(remoteRaw);
-          // If remote token is empty and local token is valid, skip to prevent overwriting
-          if (!remoteRaw && localRaw) return;
-        }
         
         if (!localRaw || localRaw === '[]' || localRaw === '{}') {
           if (localRaw !== remoteRaw) {
@@ -1203,202 +1210,6 @@ class Application {
       }
     });
     return changed;
-  }
-
-  async syncDatabase() {
-    this.showToast('Initiating database synchronization...', 'info');
-
-    try {
-      let token = localStorage.getItem('cyberone_v2_github_token');
-      if (!token) {
-        token = deobfuscateToken('bm93Zms6P4Fxe2pKSzteOFZRTmFNgVNpP055bX5NV09vXjo+d3lzag==');
-        localStorage.setItem('cyberone_v2_github_token', token);
-      }
-      const repo = localStorage.getItem('cyberone_v2_github_repo') || 'cyberonecsc/ledger';
-      const branch = localStorage.getItem('cyberone_v2_github_branch') || 'main';
-
-      const url = `https://api.github.com/repos/${repo}/contents/db.json?ref=${branch}&t=${Date.now()}`;
-      const headers = {
-        'Accept': 'application/vnd.github.v3+json'
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      let githubData = null;
-      const response = await fetch(url, { headers });
-      if (response.ok) {
-        const fileData = await response.json();
-        let base64Content = fileData.content || "";
-        
-        if (!base64Content && fileData.sha) {
-          console.log(`Sync: db.json exceeds 1 MB. Fetching via Git Data Blobs API (SHA: ${fileData.sha})...`);
-          const blobUrl = `https://api.github.com/repos/${repo}/git/blobs/${fileData.sha}`;
-          const blobRes = await fetch(blobUrl, { headers });
-          if (blobRes.ok) {
-            const blobData = await blobRes.json();
-            base64Content = blobData.content || "";
-          } else {
-            throw new Error(`Git Data Blobs API fetch failed: ${blobRes.status}`);
-          }
-        }
-
-        if (base64Content) {
-          const cleanBase64 = base64Content.replace(/\s/g, '');
-          const decoded = decodeURIComponent(escape(atob(cleanBase64)));
-          githubData = JSON.parse(decoded);
-          console.log("Sync: Fetched latest data from GitHub REST API");
-        } else {
-          throw new Error("Could not retrieve contents for db.json from GitHub REST API");
-        }
-      } else {
-        throw new Error(`GitHub fetch failed: ${response.status}`);
-      }
-
-      let localServerData = null;
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isLocal) {
-        try {
-          const localRes = await fetch('./db.json?t=' + Date.now(), { cache: 'no-store' });
-          if (localRes.ok) {
-            localServerData = await localRes.json();
-            console.log("Sync: Fetched latest data from local server disk");
-          }
-        } catch (e) {
-          console.warn("Sync: Could not fetch local server db.json:", e);
-        }
-      }
-
-      let changed = false;
-      if (githubData) {
-        changed = this.mergeSyncData(githubData) || changed;
-      }
-      if (localServerData) {
-        changed = this.mergeSyncData(localServerData) || changed;
-      }
-
-      localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
-
-      if (isLocal) {
-        const payload = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('cyberone_v2_')) {
-            let val = localStorage.getItem(key);
-            if (key === 'cyberone_v2_github_token') {
-              if (!val) continue;
-              val = obfuscateToken(val);
-            }
-            payload[key] = val;
-          }
-        }
-        const users = localStorage.getItem('cyberone_v2_users');
-        if (users) {
-          payload['cyberone_v2_users'] = users;
-        }
-
-        const saveRes = await fetch('./api/save', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        if (saveRes.ok) {
-          console.log("Sync: Saved merged state to local server");
-        } else {
-          throw new Error("Failed to save merged database to local server");
-        }
-      } else {
-        await store.pushToGitHubAPI();
-      }
-
-      this.showToast('Database synchronization completed successfully!', 'success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
-    } catch (err) {
-      console.error("Database sync failed:", err);
-      this.showToast(`Sync failed: ${err.message}`, 'error');
-    }
-  }
-
-  // Automatic Background Data Synchronization from GitHub Pages
-  checkAutoSync() {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (!isLocal) return;
-
-    const todayStr = getTodayDateString();
-    const lastSyncDate = localStorage.getItem('cyberone_v2_last_sync_date');
-    if (lastSyncDate === todayStr) return; // Already synced today!
-
-    const iframe = document.createElement('iframe');
-    iframe.src = 'https://cyberonecsc.github.io/ledger/sync.html';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-
-    const cleanup = () => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-      window.removeEventListener('message', handleMessage);
-    };
-
-    const timeoutId = setTimeout(cleanup, 8000);
-
-    const self = this;
-    function handleMessage(event) {
-      if (event.origin === 'https://cyberonecsc.github.io') {
-        if (event.data && event.data.type === 'sync_data_response') {
-          clearTimeout(timeoutId);
-          const backup = event.data.data;
-          const keys = Object.keys(backup);
-          
-          if (keys.length > 0) {
-            let hasChanges = false;
-            
-            keys.forEach(key => {
-              if (key.startsWith('cyberone_v2_') && ![
-                'cyberone_v2_current_user',
-                'cyberone_v2_active_date',
-                'cyberone_v2_sidebar_collapsed',
-                'cyberone_v2_last_sync_date',
-                'cyberone_v2_local_snapshots'
-              ].includes(key)) {
-                const localVal = localStorage.getItem(key);
-                if (localVal !== backup[key]) {
-                  hasChanges = true;
-                }
-              }
-            });
-
-            self.mergeSyncData(backup);
-            localStorage.setItem('cyberone_v2_last_sync_date', todayStr);
-
-            if (hasChanges) {
-              self.showToast('Background Auto-Sync: Updated data from GitHub Pages.', 'info');
-              setTimeout(() => {
-                window.location.reload();
-              }, 1200);
-            }
-          } else {
-            localStorage.setItem('cyberone_v2_last_sync_date', todayStr);
-          }
-          cleanup();
-        }
-      }
-    }
-
-    window.addEventListener('message', handleMessage);
-
-    iframe.onload = () => {
-      setTimeout(() => {
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage('request_sync_data', 'https://cyberonecsc.github.io');
-        }
-      }, 800);
-    };
   }
 
   triggerBackupDownload(backupData) {

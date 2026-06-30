@@ -131,25 +131,6 @@ export function renderBackupRestore(mountPoint, appInstance) {
         </div>
       </div>
     </div>
-
-    <!-- Database Diagnostics Config -->
-    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
-      <div class="section-header" style="margin-bottom:15px;">
-        <h3>System Diagnostics</h3>
-        <span style="font-size:12px; color:var(--text-muted);">View raw database state (Read-Only)</span>
-      </div>
-      <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); padding: 15px; font-family: monospace; font-size: 11px; max-height: 250px; overflow-y: auto; color: #a5f3fc; white-space: pre-wrap;"><strong>Initial Balances (cyberone_v2_initial_balances):</strong>
-${JSON.stringify(store.initialBalances, null, 2)}
-
-<strong style="display:block; margin-top: 15px;">Active Wallets (cyberone_v2_wallets):</strong>
-${JSON.stringify(store.wallets, null, 2)}
-
-<strong style="display:block; margin-top: 15px;">Active Bank Accounts:</strong>
-${JSON.stringify(store.bankAccounts, null, 2)}
-
-<strong style="display:block; margin-top: 15px;">Ledger Dates:</strong>
-${Object.keys(store.dailyLogs).sort().join(', ')}</div>
-    </div>
   `;
 
   // Set titles in header

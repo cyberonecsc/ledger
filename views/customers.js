@@ -164,6 +164,27 @@ export function renderCustomers(mountPoint, appInstance) {
         });
       });
 
+      // Also retrieve related AEPS/DMT transactions matching customer phone
+      if (store.aepsTransactions && customer.phone) {
+        const phoneClean = customer.phone.trim();
+        store.aepsTransactions.forEach(t => {
+          if (t.mobile && t.mobile.trim() === phoneClean) {
+            const isWithdrawal = t.type === 'AEPS Withdrawal' || t.type === 'MicroATM Withdrawal' || t.type === 'Aadhaar Pay';
+            customerTxns.push({
+              date: t.date,
+              description: `${t.type} (${t.bankName || ''}) - RRN: ${t.rrnNo || ''}`,
+              amount: t.amount,
+              type: isWithdrawal ? 'withdrawal' : 'deposit',
+              isAeps: true,
+              timestamp: t.timestamp
+            });
+          }
+        });
+      }
+
+      // Sort descending (newest first)
+      customerTxns.sort((a, b) => b.date.localeCompare(a.date) || (b.timestamp || '').localeCompare(a.timestamp || ''));
+
       container.innerHTML = `
         <div class="modal-header">
           <h4>Citizen Profile & Log Book: ${customer.name}</h4>
@@ -313,7 +334,7 @@ export function renderCustomers(mountPoint, appInstance) {
               <div style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; flex: 1; padding-right: 5px; min-height: 0;">
                 ${customer.visitLogs.length === 0 ? `
                   <div style="font-size:12px; color:var(--text-dimmed); text-align:center; padding:10px;">No visit details logged yet.</div>
-                ` : customer.visitLogs.map(log => `
+                ` : [...customer.visitLogs].reverse().map(log => `
                   <div style="padding:10px; background:var(--bg-card-transparent); border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); font-size:12px;">
                     <div style="display:flex; justify-content:space-between; font-weight:600; color: var(--text-white-invert);">
                       <span>${log.purpose}</span>
@@ -344,7 +365,7 @@ export function renderCustomers(mountPoint, appInstance) {
                       <div style="font-weight:600;">${t.description}</div>
                       <div style="font-size:10px; color:var(--text-dimmed);">${t.date}</div>
                     </div>
-                    <strong style="color: ${t.type === 'sale' ? 'var(--color-success)' : 'var(--color-danger)'};">
+                    <strong style="color: ${(t.type === 'sale' || t.type === 'withdrawal') ? 'var(--color-success)' : 'var(--color-danger)'};">
                       ₹${t.amount.toFixed(2)}
                     </strong>
                   </div>

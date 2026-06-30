@@ -739,8 +739,8 @@ export function renderAEPS(mountPoint, appInstance) {
       return;
     }
 
-    // Draw rows
-    tbody.innerHTML = displayTxns.map(t => {
+    // Draw rows - newest transactions first
+    tbody.innerHTML = [...displayTxns].reverse().map(t => {
       const dateObj = new Date(t.timestamp);
       const formattedTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
@@ -2077,7 +2077,8 @@ export function renderAEPS(mountPoint, appInstance) {
           aadhaar,
           serviceCharge,
           commission,
-          paymentMethod
+          paymentMethod,
+          staffId: auth.currentUser ? auth.currentUser.staffId : 'STAFF-04'
         });
 
         appInstance.showToast('Register row added successfully!', 'success');
@@ -2130,7 +2131,8 @@ export function renderAEPS(mountPoint, appInstance) {
           status: 'Success',
           customerName: 'Internal Transfer',
           bankName: 'Digipay Lite',
-          rrnNo: 'IT-' + Math.random().toString(36).substr(2, 5).toUpperCase()
+          rrnNo: 'IT-' + Math.random().toString(36).substr(2, 5).toUpperCase(),
+          staffId: auth.currentUser ? auth.currentUser.staffId : 'STAFF-04'
         });
 
         appInstance.showToast('Inter-wallet transfer recorded!', 'success');
@@ -2183,7 +2185,8 @@ export function renderAEPS(mountPoint, appInstance) {
             status: 'Success',
             customerName: 'Bank Cashout',
             bankName: selectedBank ? selectedBank.name : 'BOB A/C',
-            rrnNo: 'CO-' + Math.random().toString(36).substr(2, 5).toUpperCase()
+            rrnNo: 'CO-' + Math.random().toString(36).substr(2, 5).toUpperCase(),
+            staffId: auth.currentUser ? auth.currentUser.staffId : 'STAFF-04'
           });
 
           appInstance.showToast('Bank cashout recorded!', 'success');
@@ -2231,7 +2234,8 @@ export function renderAEPS(mountPoint, appInstance) {
           status: 'Success',
           customerName: 'CSC Wallet Top-up',
           bankName: 'CSC',
-          rrnNo: 'CSC-' + Math.random().toString(36).substr(2, 5).toUpperCase()
+          rrnNo: 'CSC-' + Math.random().toString(36).substr(2, 5).toUpperCase(),
+          staffId: auth.currentUser ? auth.currentUser.staffId : 'STAFF-04'
         });
 
         appInstance.showToast('CSC wallet top-up recorded successfully!', 'success');
