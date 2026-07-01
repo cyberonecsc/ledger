@@ -618,6 +618,10 @@ class StateStore {
         overridesCleared = true;
       }
     });
+    if (this.closingOverrides && this.closingOverrides['2026-05-31']) {
+      this.closingOverrides['2026-05-31'] = { ...this.closingOverrides['2026-05-31'], ...balances };
+      overridesCleared = true;
+    }
     if (overridesCleared) {
       this.saveItem('cyberone_v2_opening_overrides', this.openingOverrides);
       this.saveItem('cyberone_v2_closing_overrides', this.closingOverrides);
