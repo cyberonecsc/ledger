@@ -221,13 +221,18 @@ class Application {
           store.setSyncStatus('synced');
           const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
           const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
-          
           let remoteIsOlder = false;
           if (localLastModified && remoteLastModified && new Date(localLastModified) > new Date(remoteLastModified)) {
             remoteIsOlder = true;
           }
           
           const updated = this.mergeSyncData(remoteData, remoteIsOlder);
+          
+          if (remoteIsOlder) {
+            console.log("Firebase: Local database is newer than remote cloud. Syncing local changes back to Firebase.");
+            store.persistAll();
+          }
+
           if (updated) {
             console.log("Firebase: Merging remote changes to local store and refreshing UI");
             store.loadState();
