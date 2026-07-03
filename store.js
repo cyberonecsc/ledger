@@ -556,11 +556,8 @@ class StateStore {
     localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
     this.saveToLocalStorage();
     
-    // Always write to local server disk immediately if running on localhost to keep local copy updated
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) {
-      this.syncDatabaseState();
-    }
+    // Always write to local server disk immediately to keep local copy updated in real-time
+    this.syncDatabaseState();
     
     // 1. If Firebase is active and initialized, save to Firebase Realtime Database
     if (firebaseService.isInitialized()) {

@@ -48,7 +48,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.1.4';
+    this.version = '3.1.5';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -233,11 +233,8 @@ class Application {
             store.loadState();
             auth.reloadUsers();
             
-            // Also write to local server disk if running on localhost
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            if (isLocalhost) {
-              store.syncDatabaseState();
-            }
+            // Write to local server disk to keep local copy updated in real-time
+            store.syncDatabaseState();
             
             if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
               this.needsUIRefresh = true;
@@ -383,10 +380,8 @@ class Application {
           store.loadState();
           auth.reloadUsers(); // Refresh in-memory user list so newly synced accounts work for login
           
-          // Sync with local server disk if running on localhost
-          if (isLocalhost) {
-            store.syncDatabaseState();
-          }
+          // Sync with local server disk
+          store.syncDatabaseState();
           
           // Safeguard active typing/modals before reloading the UI
           if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {

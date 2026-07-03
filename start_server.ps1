@@ -48,7 +48,13 @@ while ($listener.IsListening) {
                 $reader.Close()
                 
                 $dbPath = Join-Path $PSScriptRoot "db.json"
-                [System.IO.File]::WriteAllText($dbPath, $body)
+                $tempPath = Join-Path $PSScriptRoot "temp_payload.json"
+                [System.IO.File]::WriteAllText($tempPath, $body)
+                
+                $mergeScript = Join-Path $PSScriptRoot "merge_db.js"
+                node $mergeScript $tempPath $dbPath
+                
+                Remove-Item $tempPath -ErrorAction SilentlyContinue
                 
                 $response.ContentType = "application/json"
                 $response.AddHeader("Access-Control-Allow-Origin", "*")
