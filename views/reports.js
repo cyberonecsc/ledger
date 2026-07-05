@@ -17,6 +17,7 @@ export function renderReports(mountPoint, appInstance) {
       <button class="btn btn-sm btn-secondary reports-tab" data-target="staff-perf-pane">Staff Performance</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="expense-pane">Expense Review</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="custom-range-pane">Custom Range & Summary</button>
+      <button class="btn btn-sm btn-secondary reports-tab" data-target="gsheet-reconcile-pane">Google Sheet Reconcile</button>
     </div>
 
     <!-- PANE 1: Daily Daybook -->
@@ -332,6 +333,94 @@ export function renderReports(mountPoint, appInstance) {
         </button>
       </div>
     </div>
+
+    <!-- PANE 6: Google Sheet Reconciliation -->
+    <div id="gsheet-reconcile-pane" class="reports-pane" style="display:none;">
+      <div class="glass-card no-print" style="padding: 20px; margin-bottom: 25px;">
+        <h4 style="font-family: var(--font-display); font-weight:700; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="sheet" style="color:var(--color-success); width:20px; height:20px;"></i>
+          Google Sheets Reconciliation Config
+        </h4>
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Google Sheet Workbook URL</label>
+            <input type="text" id="gsheet-url" class="form-control" placeholder="https://docs.google.com/spreadsheets/d/.../edit" style="font-size:12px;">
+            <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
+              Make sure the sheet sharing permissions are set to <strong>"Anyone with the link can view"</strong>.
+            </span>
+          </div>
+          <div style="display:flex; gap:15px; flex-wrap:wrap;">
+            <div class="form-group" style="margin-bottom:0; flex:1; min-width:200px;">
+              <label class="form-label">Daily Tab Naming Scheme</label>
+              <select id="gsheet-naming-scheme" class="form-control" style="font-size:12px;">
+                <option value="day">Day Number (e.g. "5")</option>
+                <option value="day-pad">Two-digit Day (e.g. "05")</option>
+                <option value="date-dmy">Date DD-MM-YYYY (e.g. "05-07-2026")</option>
+                <option value="date-ymd">Date YYYY-MM-DD (e.g. "2026-07-05")</option>
+                <option value="custom">Custom (Type manually below)</option>
+              </select>
+            </div>
+            <div class="form-group" id="group-gsheet-custom-tab" style="margin-bottom:0; flex:1; min-width:200px; display:none;">
+              <label class="form-label">Custom Tab Name Override</label>
+              <input type="text" id="gsheet-custom-tab" class="form-control" placeholder="Sheet1" style="font-size:12px;">
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button id="btn-save-gsheet-config" class="btn btn-sm btn-primary" style="width:180px;">Save Configuration</button>
+            <button id="btn-run-reconciliation" class="btn btn-sm btn-success" style="width:200px; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> Fetch & Reconcile
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reconciliation Dashboard Results (Initially Hidden) -->
+      <div id="reconciliation-results" style="display:none;">
+        <!-- Summary Cards -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:25px;" class="no-print">
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Sheet Entries</span>
+            <div id="recon-kpi-sheet-rows" style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--text-white-invert); margin-top:5px;">0</div>
+          </div>
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Portal Transactions</span>
+            <div id="recon-kpi-portal-txns" style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--text-white-invert); margin-top:5px;">0</div>
+          </div>
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border); border-left:4px solid var(--color-success);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Perfect Matches</span>
+            <div id="recon-kpi-matches" style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--color-success); margin-top:5px;">0</div>
+          </div>
+          <div class="glass-card" style="padding:15px; text-align:center; border: 1px solid var(--panel-border); border-left:4px solid var(--color-warning);">
+            <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Discrepancies / Errors</span>
+            <div id="recon-kpi-errors" style="font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--color-warning); margin-top:5px;">0</div>
+          </div>
+        </div>
+
+        <!-- Discrepancy Comparison List -->
+        <div class="glass-card" style="padding: 20px; margin-bottom: 25px;">
+          <h4 style="font-family: var(--font-display); font-weight:700; margin-bottom:15px; border-bottom:1px solid var(--panel-border); padding-bottom:5px;">Reconciliation Ledger Details</h4>
+          <div class="table-responsive">
+            <table class="custom-table" style="width: 100%; font-size:12px;">
+              <thead>
+                <tr>
+                  <th style="width:250px;">Google Sheet Entry</th>
+                  <th style="width:100px;">Sheet Amount</th>
+                  <th style="width:150px;">Sheet Source</th>
+                  <th style="width:250px;">Portal Entry</th>
+                  <th style="width:100px;">Portal Amount</th>
+                  <th style="width:150px;">Portal Source</th>
+                  <th style="width:100px; text-align:center;">Status</th>
+                  <th style="width:200px;">Notes / Action</th>
+                </tr>
+              </thead>
+              <tbody id="reconciliation-tbody">
+                <!-- Comparisons mount here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   // Set titles in header
@@ -340,11 +429,21 @@ export function renderReports(mountPoint, appInstance) {
 
   lucide.createIcons();
 
-  // Tab switching inside reports page
+  // Tab switching inside reports page with active tab persistence
   const tabButtons = document.querySelectorAll('.reports-tab');
   const panes = document.querySelectorAll('.reports-pane');
+  const activeTab = localStorage.getItem('cyberone_reports_active_tab') || 'daybook-pane';
 
   tabButtons.forEach(btn => {
+    const targetId = btn.getAttribute('data-target');
+    if (targetId === activeTab) {
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-secondary');
+    } else {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    }
+
     btn.addEventListener('click', (e) => {
       tabButtons.forEach(b => {
         b.classList.remove('btn-primary');
@@ -357,8 +456,424 @@ export function renderReports(mountPoint, appInstance) {
       panes.forEach(p => {
         p.style.display = p.id === targetId ? 'block' : 'none';
       });
+      localStorage.setItem('cyberone_reports_active_tab', targetId);
     });
   });
+
+  panes.forEach(p => {
+    p.style.display = p.id === activeTab ? 'block' : 'none';
+  });
+
+  // Google Sheets Reconciliation Bindings
+  const savedUrl = localStorage.getItem('cyberone_gsheet_url') || '';
+  const savedScheme = localStorage.getItem('cyberone_gsheet_scheme') || 'day';
+  const savedCustom = localStorage.getItem('cyberone_gsheet_custom_tab') || '';
+
+  const inputUrl = document.getElementById('gsheet-url');
+  const selectScheme = document.getElementById('gsheet-naming-scheme');
+  const inputCustom = document.getElementById('gsheet-custom-tab');
+  const groupCustom = document.getElementById('group-gsheet-custom-tab');
+
+  if (inputUrl) inputUrl.value = savedUrl;
+  if (selectScheme) {
+    selectScheme.value = savedScheme;
+    if (savedScheme === 'custom') {
+      groupCustom.style.display = 'block';
+    }
+  }
+  if (inputCustom) inputCustom.value = savedCustom;
+
+  if (selectScheme) {
+    selectScheme.addEventListener('change', () => {
+      if (selectScheme.value === 'custom') {
+        groupCustom.style.display = 'block';
+      } else {
+        groupCustom.style.display = 'none';
+      }
+    });
+  }
+
+  const btnSaveConfig = document.getElementById('btn-save-gsheet-config');
+  if (btnSaveConfig) {
+    btnSaveConfig.addEventListener('click', () => {
+      const url = inputUrl.value.trim();
+      const scheme = selectScheme.value;
+      const customTab = inputCustom.value.trim();
+
+      localStorage.setItem('cyberone_gsheet_url', url);
+      localStorage.setItem('cyberone_gsheet_scheme', scheme);
+      localStorage.setItem('cyberone_gsheet_custom_tab', customTab);
+
+      appInstance.showToast('Google Sheet configuration saved successfully!', 'success');
+    });
+  }
+
+  const btnRunReconciliation = document.getElementById('btn-run-reconciliation');
+  if (btnRunReconciliation) {
+    btnRunReconciliation.addEventListener('click', async () => {
+      const url = inputUrl.value.trim();
+      if (!url) {
+        alert('Please enter a Google Sheet URL first!');
+        return;
+      }
+
+      const sheetIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (!sheetIdMatch) {
+        alert('Invalid Google Sheet URL format. Could not extract spreadsheet ID.');
+        return;
+      }
+      const sheetId = sheetIdMatch[1];
+
+      const scheme = selectScheme.value;
+      let tabName = '';
+      const parts = activeDate.split('-');
+      const year = parts[0];
+      const month = parts[1];
+      const day = parts[2];
+
+      if (scheme === 'day') {
+        tabName = parseInt(day).toString();
+      } else if (scheme === 'day-pad') {
+        tabName = day;
+      } else if (scheme === 'date-dmy') {
+        tabName = `${day}-${month}-${year}`;
+      } else if (scheme === 'date-ymd') {
+        tabName = activeDate;
+      } else if (scheme === 'custom') {
+        tabName = inputCustom.value.trim();
+        if (!tabName) {
+          alert('Please enter a custom tab name override!');
+          return;
+        }
+      }
+
+      btnRunReconciliation.disabled = true;
+      btnRunReconciliation.innerHTML = `<i data-lucide="loader" class="spin" style="width:14px; height:14px;"></i> Fetching...`;
+      lucide.createIcons();
+
+      try {
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+        const response = await fetch(csvUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch spreadsheet. Status: ${response.status}. Verify workbook permissions or date tab existence.`);
+        }
+        const csvText = await response.text();
+        const csvRows = parseCSV(csvText);
+
+        if (csvRows.length < 2) {
+          throw new Error(`The fetched sheet tab "${tabName}" is empty or has no data columns.`);
+        }
+
+        performReconciliation(csvRows);
+      } catch (err) {
+        console.error(err);
+        alert(`Reconciliation failed:\n${err.message}\n\nTroubleshooting tips:\n1. Ensure sharing settings in Google Sheets are set to "Anyone with the link can view".\n2. Double check if the tab name "${tabName}" exists in your workbook.\n3. Make sure the workbook URL is correct.`);
+      } finally {
+        btnRunReconciliation.disabled = false;
+        btnRunReconciliation.innerHTML = `<i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> Fetch & Reconcile`;
+        lucide.createIcons();
+      }
+    });
+  }
+
+  function parseCSV(text) {
+    const lines = [];
+    let row = [""];
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      const next = text[i + 1];
+
+      if (c === '"') {
+        if (inQuotes && next === '"') {
+          row[row.length - 1] += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        row.push("");
+      } else if ((c === '\r' || c === '\n') && !inQuotes) {
+        if (c === '\r' && next === '\n') {
+          i++;
+        }
+        lines.push(row);
+        row = [""];
+      } else {
+        row[row.length - 1] += c;
+      }
+    }
+    if (row.length > 1 || row[0] !== "") {
+      lines.push(row);
+    }
+    return lines;
+  }
+
+  function performReconciliation(csvRows) {
+    const headers = csvRows[0].map(h => h.trim().toLowerCase());
+    
+    const findHeaderIdx = (patterns) => {
+      return headers.findIndex(h => patterns.some(p => h.includes(p)));
+    };
+
+    const descIdx = findHeaderIdx(['description', 'desc', 'type']);
+    const amtIdx = findHeaderIdx(['amount', 'amt', 'total']);
+    const cashIdx = findHeaderIdx(['paid by cash', 'cash pay', 'paid_cash']);
+    const upiIdx = findHeaderIdx(['paid by upi', 'upi pay', 'paid_upi']);
+    const fromAccIdx = findHeaderIdx(['from account', 'from bank', 'bank account', 'account']);
+    const cscIdx = findHeaderIdx(['csc wallet', 'csc']);
+    const ibkartIdx = findHeaderIdx(['ibkart']);
+    const airtelPbIdx = findHeaderIdx(['airtel pb', 'apb', 'airtel payments bank']);
+    const paynearbyIdx = findHeaderIdx(['paynearby', 'pnb']);
+    const bsnlIdx = findHeaderIdx(['bsnl']);
+    const viIdx = findHeaderIdx(['vi']);
+    const airtelIdx = findHeaderIdx(['airtel retail', 'airtel topup', 'airtel']);
+
+    if (descIdx === -1 || amtIdx === -1) {
+      alert('Could not find mandatory "Description" or "Amount" columns in the Google Sheet.');
+      return;
+    }
+
+    const sheetItems = [];
+    for (let i = 1; i < csvRows.length; i++) {
+      const row = csvRows[i];
+      if (!row || row.length < 2) continue;
+      
+      const desc = (row[descIdx] || '').trim();
+      const amt = parseFloat((row[amtIdx] || '').replace(/[^0-9.-]/g, '')) || 0;
+      
+      if (!desc && amt === 0) continue;
+
+      const cash = cashIdx !== -1 ? (parseFloat((row[cashIdx] || '').replace(/[^0-9.-]/g, '')) || 0) : 0;
+      const upi = upiIdx !== -1 ? (parseFloat((row[upiIdx] || '').replace(/[^0-9.-]/g, '')) || 0) : 0;
+
+      let source = 'cash';
+      if (upi > 0) source = 'upi';
+      
+      const walletsMap = [
+        { idx: fromAccIdx, id: 'main_bob' },
+        { idx: cscIdx, id: 'csc' },
+        { idx: ibkartIdx, id: 'ibkart' },
+        { idx: airtelPbIdx, id: 'airtel_pb' },
+        { idx: paynearbyIdx, id: 'paynearby' },
+        { idx: bsnlIdx, id: 'bsnl' },
+        { idx: viIdx, id: 'vi' },
+        { idx: airtelIdx, id: 'airtel' }
+      ];
+
+      for (const w of walletsMap) {
+        if (w.idx !== -1 && row[w.idx]) {
+          const val = parseFloat(row[w.idx].replace(/[^0-9.-]/g, '')) || 0;
+          if (val > 0) {
+            source = w.id;
+            break;
+          }
+        }
+      }
+
+      sheetItems.push({ description: desc, amount: amt, cash, upi, source });
+    }
+
+    const dailyLog = store.getOrCreateDailyLog(activeDate);
+    const portalItems = (dailyLog.transactions || []).map(t => {
+      let source = 'cash';
+      if (t.type === 'deposit') {
+        source = t.source === 'account' ? 'main_bob' : t.source;
+      } else {
+        if (t.paidByUPI > 0) source = 'upi';
+        else if (t.deductedFrom && t.deductedFrom !== 'none') {
+          source = t.deductedFrom;
+        }
+      }
+      return {
+        id: t.id,
+        description: t.description,
+        amount: t.amount,
+        cash: t.paidByCash || 0,
+        upi: t.paidByUPI || 0,
+        source
+      };
+    });
+
+    const getFuzzyScore = (sheetItem, portalItem) => {
+      let score = 0;
+      const amtDiff = Math.abs(sheetItem.amount - portalItem.amount);
+      if (amtDiff < 0.01) {
+        score += 100;
+      } else if (amtDiff <= 5.0) {
+        score += 40;
+      }
+
+      const sheetWords = sheetItem.description.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+      const portalWords = portalItem.description.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+      
+      let commonWords = 0;
+      sheetWords.forEach(sw => {
+        if (portalWords.includes(sw)) {
+          commonWords++;
+        }
+      });
+
+      if (commonWords > 0) {
+        score += commonWords * 15;
+      } else {
+        const sDesc = sheetItem.description.toLowerCase();
+        const pDesc = portalItem.description.toLowerCase();
+        if (sDesc.includes(pDesc) || pDesc.includes(sDesc)) {
+          score += 20;
+        }
+      }
+
+      if (sheetItem.source === portalItem.source) {
+        score += 30;
+      }
+
+      return score;
+    };
+
+    const reconRows = [];
+    const matchedPortalIds = new Set();
+
+    // Pass 1: exact matches
+    sheetItems.forEach((sheetItem, sheetIdx) => {
+      let bestMatch = null;
+      let bestScore = -1;
+
+      portalItems.forEach(portalItem => {
+        if (matchedPortalIds.has(portalItem.id)) return;
+        const score = getFuzzyScore(sheetItem, portalItem);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = portalItem;
+        }
+      });
+
+      if (bestMatch && bestScore >= 120) {
+        matchedPortalIds.add(bestMatch.id);
+        reconRows.push({
+          sheetItem,
+          portalItem: bestMatch,
+          status: bestScore >= 145 ? 'MATCH' : 'MISMATCH',
+          notes: bestScore >= 145 ? 'Matches perfectly.' : 'Matched by amount, but description or payment details differ.'
+        });
+      } else {
+        sheetItem.tempIdx = sheetIdx;
+      }
+    });
+
+    // Pass 2: partial matches
+    sheetItems.forEach(sheetItem => {
+      if (reconRows.some(r => r.sheetItem === sheetItem)) return;
+
+      let bestMatch = null;
+      let bestScore = -1;
+
+      portalItems.forEach(portalItem => {
+        if (matchedPortalIds.has(portalItem.id)) return;
+        const score = getFuzzyScore(sheetItem, portalItem);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = portalItem;
+        }
+      });
+
+      if (bestMatch && bestScore >= 60) {
+        matchedPortalIds.add(bestMatch.id);
+        reconRows.push({
+          sheetItem,
+          portalItem: bestMatch,
+          status: 'MISMATCH',
+          notes: 'Matched with description or amount discrepancies.'
+        });
+      } else {
+        reconRows.push({
+          sheetItem,
+          portalItem: null,
+          status: 'MISSING_IN_PORTAL',
+          notes: 'Entry exists in Google Sheet but is missing in portal.'
+        });
+      }
+    });
+
+    // Pass 3: missing in sheet
+    portalItems.forEach(portalItem => {
+      if (matchedPortalIds.has(portalItem.id)) return;
+      reconRows.push({
+        sheetItem: null,
+        portalItem,
+        status: 'MISSING_IN_SHEET',
+        notes: 'Transaction exists in portal but is missing in Google Sheet.'
+      });
+    });
+
+    document.getElementById('reconciliation-results').style.display = 'block';
+    
+    document.getElementById('recon-kpi-sheet-rows').innerText = sheetItems.length;
+    document.getElementById('recon-kpi-portal-txns').innerText = portalItems.length;
+    
+    const matchesCount = reconRows.filter(r => r.status === 'MATCH').length;
+    const errorsCount = reconRows.filter(r => r.status !== 'MATCH').length;
+    
+    document.getElementById('recon-kpi-matches').innerText = matchesCount;
+    document.getElementById('recon-kpi-errors').innerText = errorsCount;
+
+    const tbody = document.getElementById('reconciliation-tbody');
+    
+    const walletNamesMap = {
+      'cash': 'Cash In Hand',
+      'upi': 'UPI/Bank',
+      'main_bob': 'BOB Account',
+      'csc': 'CSC Wallet',
+      'ibkart': 'IBKART',
+      'airtel_pb': 'Airtel PB',
+      'paynearby': 'PayNearby',
+      'bsnl': 'BSNL',
+      'vi': 'VI',
+      'airtel': 'Airtel Retail'
+    };
+
+    tbody.innerHTML = reconRows.map(r => {
+      let statusBadge = '';
+      let rowStyle = '';
+      
+      if (r.status === 'MATCH') {
+        statusBadge = `<span class="badge badge-recon-match"><i data-lucide="check-circle" style="width:12px; height:12px; margin-right:4px;"></i>Match</span>`;
+      } else if (r.status === 'MISMATCH') {
+        statusBadge = `<span class="badge badge-recon-mismatch"><i data-lucide="alert-triangle" style="width:12px; height:12px; margin-right:4px;"></i>Mismatch</span>`;
+        rowStyle = 'background: rgba(245, 158, 11, 0.05);';
+      } else if (r.status === 'MISSING_IN_PORTAL') {
+        statusBadge = `<span class="badge badge-recon-missing-portal"><i data-lucide="plus-circle" style="width:12px; height:12px; margin-right:4px;"></i>Missing in Portal</span>`;
+        rowStyle = 'background: rgba(239, 68, 68, 0.05);';
+      } else if (r.status === 'MISSING_IN_SHEET') {
+        statusBadge = `<span class="badge badge-recon-missing-sheet"><i data-lucide="minus-circle" style="width:12px; height:12px; margin-right:4px;"></i>Missing in Sheet</span>`;
+        rowStyle = 'background: rgba(168, 85, 247, 0.05);';
+      }
+
+      const sDesc = r.sheetItem ? r.sheetItem.description : '—';
+      const sAmt = r.sheetItem ? `₹${r.sheetItem.amount.toFixed(2)}` : '—';
+      const sSrc = r.sheetItem ? (walletNamesMap[r.sheetItem.source] || r.sheetItem.source) : '—';
+
+      const pDesc = r.portalItem ? r.portalItem.description : '—';
+      const pAmt = r.portalItem ? `₹${r.portalItem.amount.toFixed(2)}` : '—';
+      const pSrc = r.portalItem ? (walletNamesMap[r.portalItem.source] || r.portalItem.source) : '—';
+
+      return `
+        <tr style="${rowStyle} border-bottom:1px solid var(--panel-border);">
+          <td><strong>${sDesc}</strong></td>
+          <td style="font-weight:500;">${sAmt}</td>
+          <td style="color:var(--text-muted);">${sSrc}</td>
+          <td><strong>${pDesc}</strong></td>
+          <td style="font-weight:500;">${pAmt}</td>
+          <td style="color:var(--text-muted);">${pSrc}</td>
+          <td style="text-align:center;">${statusBadge}</td>
+          <td style="font-size:11px; color:var(--text-muted);">${r.notes}</td>
+        </tr>
+      `;
+    }).join('');
+
+    lucide.createIcons();
+  }
 
   // Render Daybook details
   renderDaybookData(activeDate);
