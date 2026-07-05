@@ -816,7 +816,10 @@ class StateStore {
               }
             });
           } else if (txn.deductedFrom && txn.deductedFrom !== 'none') {
-            const walletId = txn.deductedFrom;
+            let walletId = txn.deductedFrom;
+            if (walletId === 'aeps_kntny') {
+              walletId = 'aeps_kntny_w1';
+            }
             const cost = parseFloat(txn.deductedAmount || 0);
 
             const targetId = walletId === 'account' ? 'main_bob' : walletId;
@@ -828,7 +831,10 @@ class StateStore {
           }
         } else if (txn.type === 'deposit') {
           const amt = parseFloat(txn.amount);
-          const walletId = txn.targetWallet;
+          let walletId = txn.targetWallet;
+          if (walletId === 'aeps_kntny') {
+            walletId = 'aeps_kntny_w2';
+          }
           
           if (txn.source === 'cash') {
             // Cash Deposit to Bank
@@ -837,7 +843,10 @@ class StateStore {
             balances[targetId] = parseFloat(((balances[targetId] || 0) + amt).toFixed(2));
           } else {
             // Transfer from Bank Account to Digital Wallet
-            const sourceId = txn.source === 'account' ? 'main_bob' : txn.source;
+            let sourceId = txn.source === 'account' ? 'main_bob' : txn.source;
+            if (sourceId === 'aeps_kntny') {
+              sourceId = 'aeps_kntny_w2';
+            }
             if (balances[sourceId] !== undefined) {
               balances[sourceId] = parseFloat((sourceId === 'cash' ? balances.cash : balances[sourceId] - amt).toFixed(2));
             }

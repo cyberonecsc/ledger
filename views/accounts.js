@@ -897,7 +897,13 @@ export function renderAccounts(mountPoint, appInstance) {
         targets.push({ id: b.id, name: `${b.name} (${b.bankName})` });
       });
       store.wallets.filter(w => w.isActive).forEach(w => {
-        targets.push({ id: w.id, name: w.name });
+        const isDual = w.id === 'aeps_kntny' || w.name.toLowerCase().includes('digipay lite');
+        if (isDual) {
+          targets.push({ id: `${w.id}_w1`, name: `${w.name} - Wallet 1` });
+          targets.push({ id: `${w.id}_w2`, name: `${w.name} - Wallet 2` });
+        } else {
+          targets.push({ id: w.id, name: w.name });
+        }
       });
 
       const filteredTargets = targets.filter(t => t.id !== selectedSource);
@@ -931,7 +937,20 @@ export function renderAccounts(mountPoint, appInstance) {
       }
 
       const sourceName = sourceId === 'cash' ? 'Cash' : (sourceId === 'petty_cash' ? 'Petty Cash' : (sourceId === 'outside' ? 'Outside Source' : (bankAccounts.find(b => b.id === sourceId)?.name || 'Bank')));
-      const targetName = targetId === 'cash' ? 'Cash' : (targetId === 'petty_cash' ? 'Petty Cash' : (targetId === 'outside' ? 'Outside (External)' : (bankAccounts.find(b => b.id === targetId)?.name || store.wallets.find(w => w.id === targetId)?.name || 'Wallet')));
+      
+      let targetName = 'Wallet';
+      if (targetId === 'cash') targetName = 'Cash';
+      else if (targetId === 'petty_cash') targetName = 'Petty Cash';
+      else if (targetId === 'outside') targetName = 'Outside (External)';
+      else if (bankAccounts.find(b => b.id === targetId)) {
+        targetName = bankAccounts.find(b => b.id === targetId).name;
+      } else {
+        const baseWalletId = targetId.endsWith('_w1') || targetId.endsWith('_w2') ? targetId.slice(0, -3) : targetId;
+        const walletObj = store.wallets.find(w => w.id === baseWalletId);
+        if (walletObj) {
+          targetName = targetId.endsWith('_w1') ? `${walletObj.name} - Wallet 1` : (targetId.endsWith('_w2') ? `${walletObj.name} - Wallet 2` : walletObj.name);
+        }
+      }
 
       store.addTransaction(appInstance.getActiveDate(), {
         type: 'deposit',
