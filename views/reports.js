@@ -403,14 +403,14 @@ export function renderReports(mountPoint, appInstance) {
             <table class="custom-table" style="width: 100%; font-size:12px;">
               <thead>
                 <tr>
-                  <th style="width:250px;">Google Sheet Entry</th>
-                  <th style="width:100px;">Sheet Amount</th>
-                  <th style="width:150px;">Sheet Source</th>
-                  <th style="width:250px;">Portal Entry</th>
-                  <th style="width:100px;">Portal Amount</th>
-                  <th style="width:150px;">Portal Source</th>
-                  <th style="width:100px; text-align:center;">Status</th>
-                  <th style="width:200px;">Notes / Action</th>
+                  <th>Google Sheet Entry</th>
+                  <th>Sheet Amount</th>
+                  <th>Sheet Source</th>
+                  <th>Portal Entry</th>
+                  <th>Portal Amount</th>
+                  <th>Portal Source</th>
+                  <th style="text-align:center;">Status</th>
+                  <th>Notes / Action</th>
                 </tr>
               </thead>
               <tbody id="reconciliation-tbody">
@@ -517,12 +517,18 @@ export function renderReports(mountPoint, appInstance) {
         return;
       }
 
-      const sheetIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-      if (!sheetIdMatch) {
-        alert('Invalid Google Sheet URL format. Could not extract spreadsheet ID.');
+      let sheetId = '';
+      if (url.includes('/d/')) {
+        const sheetIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (sheetIdMatch) sheetId = sheetIdMatch[1];
+      } else if (url.length >= 40 && !url.includes('/')) {
+        sheetId = url;
+      }
+
+      if (!sheetId) {
+        alert('Invalid Google Sheet URL format or ID. Please paste a full Google Sheets URL or a raw spreadsheet ID.');
         return;
       }
-      const sheetId = sheetIdMatch[1];
 
       const scheme = selectScheme.value;
       let tabName = '';
@@ -564,6 +570,7 @@ export function renderReports(mountPoint, appInstance) {
           throw new Error(`The fetched sheet tab "${tabName}" is empty or has no data columns.`);
         }
 
+        sessionStorage.setItem('cyberone_recon_results_' + activeDate, JSON.stringify(csvRows));
         performReconciliation(csvRows);
       } catch (err) {
         console.error(err);
@@ -873,6 +880,18 @@ export function renderReports(mountPoint, appInstance) {
     }).join('');
 
     lucide.createIcons();
+  }
+
+  // Auto-restore cached reconciliation results for activeDate if they exist
+  try {
+    const cachedCSV = sessionStorage.getItem('cyberone_recon_results_' + activeDate);
+    if (cachedCSV) {
+      setTimeout(() => {
+        performReconciliation(JSON.parse(cachedCSV));
+      }, 100);
+    }
+  } catch (e) {
+    console.warn("Could not restore cached reconciliation data:", e);
   }
 
   // Render Daybook details
