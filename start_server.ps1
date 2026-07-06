@@ -43,6 +43,8 @@ while ($listener.IsListening) {
 
         if ($request.HttpMethod -eq "POST" -and $path -eq "/api/save") {
             try {
+                $clientIP = $request.RemoteEndPoint.Address
+                Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Sync: Received save request from $clientIP" -ForegroundColor Yellow
                 $reader = New-Object System.IO.StreamReader($request.InputStream)
                 $body = $reader.ReadToEnd()
                 $reader.Close()
