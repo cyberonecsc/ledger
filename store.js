@@ -2010,6 +2010,15 @@ class StateStore {
       payload['cyberone_v2_users'] = users;
     }
 
+    const isGithubPages = window.location.hostname.includes('github.io');
+    if (isGithubPages) {
+      console.log('Sync: Running on GitHub Pages. Skipping local server disk save.');
+      if (!firebaseService.isInitialized()) {
+        this.setSyncStatus('offline');
+      }
+      return;
+    }
+
     // Try relative endpoint. Works on localhost and any local LAN IP of the server.
     fetch('./api/save', {
       method: 'POST',
