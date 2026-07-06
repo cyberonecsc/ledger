@@ -48,7 +48,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.1.9';
+    this.version = '3.2.0';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -148,6 +148,18 @@ class Application {
       } else {
         this.setupFirebaseSubscription();
       }
+      
+      // Safe offline changes triggers (decoupled from the real-time read callback)
+      if (localStorage.getItem('cyberone_v2_has_offline_changes') === 'true') {
+        console.log("Firebase: Startup sync - pushing pending offline changes");
+        store.persistAll();
+      }
+      window.addEventListener('online', () => {
+        if (localStorage.getItem('cyberone_v2_has_offline_changes') === 'true') {
+          console.log("Firebase: Connection online - pushing pending offline changes");
+          store.persistAll();
+        }
+      });
     }
 
     // Trigger scheduled backup check
@@ -224,11 +236,6 @@ class Application {
           const remoteIsOlder = hasOffline;
           
           const updated = this.mergeSyncData(remoteData, remoteIsOlder);
-          
-          if (hasOffline) {
-            console.log("Firebase: Local database has pending offline changes. Syncing local changes back to Firebase.");
-            store.persistAll();
-          }
 
           if (updated) {
             console.log("Firebase: Merging remote changes to local store and refreshing UI");
