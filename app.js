@@ -48,7 +48,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.1.8';
+    this.version = '3.1.9';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -219,17 +219,14 @@ class Application {
         if (remoteData) {
           console.log("Firebase: Received database update from remote cloud");
           store.setSyncStatus('synced');
-          const remoteLastModified = remoteData['cyberone_v2_last_modified'] || '';
-          const localLastModified = localStorage.getItem('cyberone_v2_last_modified') || '';
-          let remoteIsOlder = false;
-          if (localLastModified && remoteLastModified && new Date(localLastModified) > new Date(remoteLastModified)) {
-            remoteIsOlder = true;
-          }
+          
+          const hasOffline = localStorage.getItem('cyberone_v2_has_offline_changes') === 'true';
+          const remoteIsOlder = hasOffline;
           
           const updated = this.mergeSyncData(remoteData, remoteIsOlder);
           
-          if (remoteIsOlder) {
-            console.log("Firebase: Local database is newer than remote cloud. Syncing local changes back to Firebase.");
+          if (hasOffline) {
+            console.log("Firebase: Local database has pending offline changes. Syncing local changes back to Firebase.");
             store.persistAll();
           }
 

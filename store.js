@@ -553,7 +553,12 @@ class StateStore {
       console.log("Sync: Database not initialized yet. Skipping persistAll to avoid overwriting with defaults.");
       return;
     }
+    
+    // Set offline changes flag to true before saving locally and writing to Firebase
+    this.hasOfflineChanges = true;
+    localStorage.setItem('cyberone_v2_has_offline_changes', 'true');
     localStorage.setItem('cyberone_v2_last_modified', new Date().toISOString());
+    
     this.saveToLocalStorage();
     
     // Always write to local server disk immediately to keep local copy updated in real-time
@@ -574,7 +579,8 @@ class StateStore {
             'cyberone_v2_firebase_config',
             'cyberone_v2_github_token',
             'cyberone_v2_github_repo',
-            'cyberone_v2_github_branch'
+            'cyberone_v2_github_branch',
+            'cyberone_v2_has_offline_changes' // Exclude local offline changes flag from Firebase payload
           ].includes(key)) {
             continue;
           }
@@ -591,6 +597,8 @@ class StateStore {
         .then(success => {
           if (success) {
             console.log("Firebase: Saved database state successfully");
+            this.hasOfflineChanges = false;
+            localStorage.setItem('cyberone_v2_has_offline_changes', 'false');
             this.setSyncStatus('synced');
           } else {
             console.error("Firebase: Database save failed");
