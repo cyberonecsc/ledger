@@ -1,5 +1,5 @@
 @echo off
-title CYBERONE CSC Local Server
-echo Starting CYBERONE CSC local web server...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start_server.ps1"
+title CYBERONE CSC Local Sync Server
+echo Starting CYBERONE CSC local sync server...
+node "%~dp0server.js"
 pause
