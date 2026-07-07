@@ -5,6 +5,7 @@
 import { auth } from './auth.js';
 import { store, getTodayDateString } from './store.js';
 import { firebaseService, DEFAULT_FIREBASE_CONFIG } from './firebase.js';
+import { localSyncService } from './local_sync.js';
 
 
 // Import View Modules
@@ -90,76 +91,125 @@ class Application {
     // Load database from local server db.json relative location on boot
     await this.loadDatabase();
 
-    // Initialize Firebase configuration if not already present
-    let firebaseConfig = localStorage.getItem('cyberone_v2_firebase_config');
-    if (!firebaseConfig) {
-      firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
-      localStorage.setItem('cyberone_v2_firebase_config', firebaseConfig);
-    }
+    // Initialize Sync Provider (Firebase vs Self-Hosted)
+    const syncProvider = localStorage.getItem('cyberone_v2_sync_provider') || 'firebase';
 
-    if (firebaseConfig) {
-      firebaseService.initialize(firebaseConfig);
+    if (syncProvider === 'selfhosted') {
+      const selfhostedUrl = localStorage.getItem('cyberone_v2_selfhosted_url') || 'http://localhost:8080';
+      localStorage.setItem('cyberone_v2_selfhosted_url', selfhostedUrl); // Seed default if not present
       
-      const isDesktop = !/Mobi|Android|iPhone/i.test(navigator.userAgent);
-      if (isDesktop && store.justMigratedCenterCode) {
-        console.log("Migration: Force-uploading local database from Desktop PC to Firebase on first migration");
-        store.justMigratedCenterCode = false; // Reset flag
-        
-        // Compile and force save local data to Firebase
-        const payload = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('cyberone_v2_')) {
-            if ([
-              'cyberone_v2_current_user',
-              'cyberone_v2_active_date',
-              'cyberone_v2_sidebar_collapsed',
-              'cyberone_v2_last_sync_date',
-              'cyberone_v2_local_snapshots',
-              'cyberone_v2_firebase_config',
-              'cyberone_v2_github_token',
-              'cyberone_v2_github_repo',
-              'cyberone_v2_github_branch'
-            ].includes(key)) {
-              continue;
+      localSyncService.initialize(selfhostedUrl);
+      
+      localSyncService.subscribe((remoteData) => {
+        if (remoteData) {
+          console.log("Self-Hosted: Received database update from remote server");
+          store.setSyncStatus('synced');
+          
+          const hasOffline = localStorage.getItem('cyberone_v2_has_offline_changes') === 'true';
+          const remoteIsOlder = hasOffline;
+          
+          const updated = this.mergeSyncData(remoteData, remoteIsOlder);
+          
+          if (updated) {
+            console.log("Self-Hosted: Merging remote changes to local store and refreshing UI");
+            store.loadState();
+            auth.reloadUsers();
+            
+            // Keep local server copy synced
+            store.syncDatabaseState();
+            
+            if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
+              this.needsUIRefresh = true;
+            } else {
+              this.needsUIRefresh = false;
+              this.handleRouting();
             }
-            payload[key] = localStorage.getItem(key);
           }
         }
-        const users = localStorage.getItem('cyberone_v2_users');
-        if (users) {
-          payload['cyberone_v2_users'] = users;
-        }
-        
-        // Set last modified to now so it's newer than any Android syncs
-        payload['cyberone_v2_last_modified'] = new Date().toISOString();
-        localStorage.setItem('cyberone_v2_last_modified', payload['cyberone_v2_last_modified']);
-        
-        firebaseService.saveData(store.centerProfile.code, payload)
-          .then(success => {
-            if (success) {
-              console.log("Migration: Local database state successfully uploaded and synced to Firebase!");
-              store.setSyncStatus('synced');
-            } else {
-              console.error("Migration: Failed to upload data to Firebase");
-            }
-            this.setupFirebaseSubscription();
-          });
-      } else {
-        this.setupFirebaseSubscription();
-      }
+      });
       
-      // Safe offline changes triggers (decoupled from the real-time read callback)
+      // Startup sync & online listeners for self-hosted provider
       if (localStorage.getItem('cyberone_v2_has_offline_changes') === 'true') {
-        console.log("Firebase: Startup sync - pushing pending offline changes");
+        console.log("Self-Hosted: Startup sync - pushing pending offline changes");
         store.persistAll();
       }
       window.addEventListener('online', () => {
         if (localStorage.getItem('cyberone_v2_has_offline_changes') === 'true') {
-          console.log("Firebase: Connection online - pushing pending offline changes");
+          console.log("Self-Hosted: Connection online - pushing pending offline changes");
           store.persistAll();
         }
       });
+      
+    } else {
+      // Firebase config & initialization
+      let firebaseConfig = localStorage.getItem('cyberone_v2_firebase_config');
+      if (!firebaseConfig) {
+        firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
+        localStorage.setItem('cyberone_v2_firebase_config', firebaseConfig);
+      }
+      
+      if (firebaseConfig) {
+        firebaseService.initialize(firebaseConfig);
+        
+        const isDesktop = !/Mobi|Android|iPhone/i.test(navigator.userAgent);
+        if (isDesktop && store.justMigratedCenterCode) {
+          console.log("Migration: Force-uploading local database from Desktop PC to Firebase on first migration");
+          store.justMigratedCenterCode = false; // Reset flag
+          
+          const payload = {};
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('cyberone_v2_')) {
+              if ([
+                'cyberone_v2_current_user',
+                'cyberone_v2_active_date',
+                'cyberone_v2_sidebar_collapsed',
+                'cyberone_v2_last_sync_date',
+                'cyberone_v2_local_snapshots',
+                'cyberone_v2_firebase_config',
+                'cyberone_v2_github_token',
+                'cyberone_v2_github_repo',
+                'cyberone_v2_github_branch',
+                'cyberone_v2_has_offline_changes'
+              ].includes(key)) {
+                continue;
+              }
+              payload[key] = localStorage.getItem(key);
+            }
+          }
+          const users = localStorage.getItem('cyberone_v2_users');
+          if (users) {
+            payload['cyberone_v2_users'] = users;
+          }
+          
+          payload['cyberone_v2_last_modified'] = new Date().toISOString();
+          localStorage.setItem('cyberone_v2_last_modified', payload['cyberone_v2_last_modified']);
+          
+          firebaseService.saveData(store.centerProfile.code, payload)
+            .then(success => {
+              if (success) {
+                console.log("Migration: Local database state successfully uploaded and synced to Firebase!");
+                store.setSyncStatus('synced');
+              } else {
+                console.error("Migration: Failed to upload data to Firebase");
+              }
+              this.setupFirebaseSubscription();
+            });
+        } else {
+          this.setupFirebaseSubscription();
+        }
+        
+        if (localStorage.getItem('cyberone_v2_has_offline_changes') === 'true') {
+          console.log("Firebase: Startup sync - pushing pending offline changes");
+          store.persistAll();
+        }
+        window.addEventListener('online', () => {
+          if (localStorage.getItem('cyberone_v2_has_offline_changes') === 'true') {
+            console.log("Firebase: Connection online - pushing pending offline changes");
+            store.persistAll();
+          }
+        });
+      }
     }
 
     // Trigger scheduled backup check
@@ -168,8 +218,8 @@ class Application {
 
     // Live database polling (syncs like a Google Sheet)
     setInterval(() => {
-      // Skip polling if Firebase Realtime Sync is active
-      if (firebaseService.isInitialized()) return;
+      // Skip polling if Firebase or Self-Hosted Realtime Sync is active
+      if (firebaseService.isInitialized() || localSyncService.isInitialized()) return;
       
       // Skip if tab is hidden
       if (document.visibilityState !== 'visible') return;

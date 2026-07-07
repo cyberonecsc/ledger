@@ -23,6 +23,7 @@ const targets = [
   'firebase.js',
   'firebase-app.js',
   'firebase-database.js',
+  'local_sync.js',
   'db.json',
   'views'
 ];
