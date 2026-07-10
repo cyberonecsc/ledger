@@ -8,6 +8,15 @@ const DB_FILE = path.join(__dirname, 'db.json');
 // Store all active client SSE response streams
 let sseClients = [];
 
+// Prevent server from crashing due to uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UNHANDLED REJECTION] at:', promise, 'reason:', reason);
+});
+
 // Helper to parse JSON safely
 function parseJSON(str) {
   if (!str) return null;
@@ -163,9 +172,20 @@ const server = http.createServer((req, res) => {
       'Connection': 'keep-alive'
     });
 
+    // Handle stream errors gracefully to prevent node from crashing
+    res.on('error', (err) => {
+      console.error("Sync: SSE client response stream error:", err);
+    });
+
     // Send initial database snapshot to client on connect
     const initialData = readDatabase();
-    res.write(`data: ${JSON.stringify(initialData)}\n\n`);
+    try {
+      res.write(`data: ${JSON.stringify(initialData)}\n\n`);
+    } catch(e) {
+      console.error("Sync: Initial data write failed:", e);
+      res.end();
+      return;
+    }
 
     // Parse query parameters
     const username = url.searchParams.get('username') || 'Guest User';
