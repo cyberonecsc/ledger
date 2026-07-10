@@ -2035,8 +2035,15 @@ class StateStore {
       return;
     }
 
-    // Try relative endpoint. Works on localhost and any local LAN IP of the server.
-    fetch('./api/save', {
+    // Determine the save URL. Use absolute URL if using selfhosted provider.
+    const provider = localStorage.getItem('cyberone_v2_sync_provider') || 'firebase';
+    let saveUrl = './api/save';
+    if (provider === 'selfhosted') {
+      const selfhostedUrl = localStorage.getItem('cyberone_v2_selfhosted_url') || 'http://localhost:8080';
+      saveUrl = `${selfhostedUrl.trim().replace(/\/$/, '')}/api/save`;
+    }
+
+    fetch(saveUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
