@@ -229,6 +229,16 @@ const server = http.createServer((req, res) => {
       try {
         const incomingDb = JSON.parse(body);
         const existingDb = readDatabase();
+
+        // Loop protection: skip if last modified timestamps are identical
+        const incomingMod = incomingDb['cyberone_v2_last_modified'];
+        const existingMod = existingDb['cyberone_v2_last_modified'];
+        if (incomingMod && existingMod && incomingMod === existingMod) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'success', message: 'No changes detected' }));
+          return;
+        }
+
         const mergedDb = mergeDatabases(existingDb, incomingDb);
         writeDatabase(mergedDb);
 
