@@ -240,6 +240,19 @@ const server = http.createServer((req, res) => {
         }
 
         const mergedDb = mergeDatabases(existingDb, incomingDb);
+
+        // Content-level loop protection: skip write/broadcast if database content is exactly identical
+        const existingData = { ...existingDb };
+        const mergedData = { ...mergedDb };
+        delete existingData['cyberone_v2_last_modified'];
+        delete mergedData['cyberone_v2_last_modified'];
+
+        if (JSON.stringify(existingData) === JSON.stringify(mergedData)) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'success', message: 'No content changes' }));
+          return;
+        }
+
         writeDatabase(mergedDb);
 
         console.log(`[${new Date().toLocaleTimeString()}] Sync: Successfully saved and merged data.`);
