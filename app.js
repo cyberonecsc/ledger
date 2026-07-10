@@ -115,9 +115,6 @@ class Application {
             store.loadState();
             auth.reloadUsers();
             
-            // Keep local server copy synced
-            store.syncDatabaseState();
-            
             if (this.isUserInteracting() || this.activeRoute === '#accounts' || this.activeRoute === '#settings') {
               this.needsUIRefresh = true;
             } else {
