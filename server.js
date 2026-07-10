@@ -23,6 +23,38 @@ function parseJSON(str) {
   try { return JSON.parse(str); } catch(e) { return null; }
 }
 
+// Deterministic JSON stringifier to compare database contents logically
+function deterministicStringify(obj) {
+  if (obj === null || obj === undefined) return 'null';
+  if (typeof obj !== 'object') return JSON.stringify(obj);
+  
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(deterministicStringify).join(',') + ']';
+  }
+  
+  const keys = Object.keys(obj).sort();
+  const properties = keys.map(key => {
+    return JSON.stringify(key) + ':' + deterministicStringify(obj[key]);
+  });
+  return '{' + properties.join(',') + '}';
+}
+
+// Parse any embedded JSON strings to compare database contents logically
+function canonicalizeDatabase(db) {
+  const canonical = {};
+  for (const key in db) {
+    if (key === 'cyberone_v2_last_modified') continue;
+    let val = db[key];
+    if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+      try {
+        val = JSON.parse(val);
+      } catch (e) {}
+    }
+    canonical[key] = val;
+  }
+  return canonical;
+}
+
 // Database merging engine (preserves existing daybook records)
 function mergeDatabases(existingDb, incomingDb) {
   const merged = { ...existingDb, ...incomingDb };
@@ -241,15 +273,13 @@ const server = http.createServer((req, res) => {
 
         const mergedDb = mergeDatabases(existingDb, incomingDb);
 
-        // Content-level loop protection: skip write/broadcast if database content is exactly identical
-        const existingData = { ...existingDb };
-        const mergedData = { ...mergedDb };
-        delete existingData['cyberone_v2_last_modified'];
-        delete mergedData['cyberone_v2_last_modified'];
+        // Content-level loop protection: skip write/broadcast if database content is logically identical
+        const canonicalExisting = canonicalizeDatabase(existingDb);
+        const canonicalMerged = canonicalizeDatabase(mergedDb);
 
-        if (JSON.stringify(existingData) === JSON.stringify(mergedData)) {
+        if (deterministicStringify(canonicalExisting) === deterministicStringify(canonicalMerged)) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ status: 'success', message: 'No content changes' }));
+          res.end(JSON.stringify({ status: 'success', message: 'No content changes detected' }));
           return;
         }
 
