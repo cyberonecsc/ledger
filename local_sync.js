@@ -22,6 +22,22 @@ class LocalSyncService {
     console.log(`Sync: Initializing Self-Hosted Sync Service at: ${this.serverUrl}`);
     
     this.connect();
+
+    // Reconnect automatically when the window gains focus (crucial for mobile apps coming from background)
+    window.addEventListener('focus', () => {
+      if (this.isInitialized() && (!this.eventSource || this.eventSource.readyState !== 1)) {
+        console.log("Sync: Window/App focused. Reconnecting stream...");
+        this.connect();
+      }
+    });
+
+    // Reconnect automatically when system internet comes back online
+    window.addEventListener('online', () => {
+      if (this.isInitialized()) {
+        console.log("Sync: System online. Reconnecting stream...");
+        this.connect();
+      }
+    });
   }
 
   isInitialized() {
