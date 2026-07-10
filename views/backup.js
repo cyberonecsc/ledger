@@ -29,6 +29,35 @@ export function renderBackupRestore(mountPoint, appInstance) {
       </div>
     </div>
 
+    <!-- Database Sync Provider Config -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Database Synchronisation Provider</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Choose where your data is synced. Select Firebase or run a self-hosted real-time server.</span>
+      </div>
+      <form id="form-sync-provider">
+        <div class="form-group" style="margin-bottom:15px;">
+          <label class="form-label" style="font-size:11px;">Sync Provider Type</label>
+          <select id="sync-provider-select" class="form-control" style="font-size:12px;">
+            <option value="firebase" ${localStorage.getItem('cyberone_v2_sync_provider') !== 'selfhosted' ? 'selected' : ''}>Firebase Cloud Sync (Google-Hosted)</option>
+            <option value="selfhosted" ${localStorage.getItem('cyberone_v2_sync_provider') === 'selfhosted' ? 'selected' : ''}>Self-Hosted Realtime Server (Node.js HTTP/SSE)</option>
+          </select>
+        </div>
+        
+        <div id="group-selfhosted-config" style="display: ${localStorage.getItem('cyberone_v2_sync_provider') === 'selfhosted' ? 'block' : 'none'}; margin-bottom: 20px;">
+          <div class="form-group">
+            <label class="form-label" style="font-size:11px;">Self-Hosted Server Base URL (or Cloudflare Tunnel Address)</label>
+            <input type="text" id="sync-selfhosted-url" class="form-control" value="${localStorage.getItem('cyberone_v2_selfhosted_url') || 'http://localhost:8080'}" style="font-size:12px;" placeholder="e.g. http://192.168.1.100:8080 or https://ledger.yourtunnel.com">
+            <span style="font-size:10px; color:var(--text-dimmed); margin-top: 4px; display:block;">
+              *Enter the URL of your UAE Backup Server PC. The Attingal clients will connect to this address.
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Sync Settings</button>
+      </form>
+    </div>
+
     <!-- Firebase Realtime Database Sync Configurations -->
     <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 30px;">
       <div class="section-header" style="margin-bottom:15px;">
@@ -432,6 +461,38 @@ export function renderBackupRestore(mountPoint, appInstance) {
         } else {
           appInstance.showToast('Data migration failed. Check network or database rules.', 'error');
         }
+      });
+    }
+
+    // Sync Provider Settings Form Handler
+    const syncSelect = document.getElementById('sync-provider-select');
+    const selfhostedGroup = document.getElementById('group-selfhosted-config');
+    if (syncSelect && selfhostedGroup) {
+      syncSelect.addEventListener('change', () => {
+        if (syncSelect.value === 'selfhosted') {
+          selfhostedGroup.style.display = 'block';
+        } else {
+          selfhostedGroup.style.display = 'none';
+        }
+      });
+    }
+
+    const syncForm = document.getElementById('form-sync-provider');
+    if (syncForm) {
+      syncForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const provider = document.getElementById('sync-provider-select').value;
+        const url = document.getElementById('sync-selfhosted-url').value.trim();
+
+        localStorage.setItem('cyberone_v2_sync_provider', provider);
+        localStorage.setItem('cyberone_v2_selfhosted_url', url);
+
+        appInstance.showToast('Sync settings updated! Restarting database...', 'success');
+        
+        // Auto-reload to apply new sync service configuration instantly
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
       });
     }
   }
