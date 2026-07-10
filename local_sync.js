@@ -9,6 +9,8 @@ class LocalSyncService {
     this.isConnecting = false;
     this.reconnectTimeout = null;
     this.subscribers = [];
+    this.activeConnectionsCount = 0;
+    this.connectionsCountListeners = [];
   }
 
   initialize(url) {
@@ -23,6 +25,12 @@ class LocalSyncService {
 
   isInitialized() {
     return !!this.serverUrl;
+  }
+
+  onConnectionsCountChange(listener) {
+    this.connectionsCountListeners.push(listener);
+    // Invoke immediately with current count
+    try { listener(this.activeConnectionsCount); } catch(e) {}
   }
 
   connect() {
@@ -50,10 +58,22 @@ class LocalSyncService {
           // Ignore keepalives
           if (event.data === ': keepalive') return;
           
-          const remoteData = JSON.parse(event.data);
+          const parsed = JSON.parse(event.data);
+          
+          // Parse connection count updates
+          if (parsed && parsed.type === 'connections_count') {
+            this.activeConnectionsCount = parsed.count;
+            this.connectionsCountListeners.forEach(listener => {
+              try { listener(parsed.count); } catch (e) {
+                console.error("Sync: Error triggering connection count listener:", e);
+              }
+            });
+            return;
+          }
+          
           this.subscribers.forEach(callback => {
             try {
-              callback(remoteData);
+              callback(parsed);
             } catch (e) {
               console.error("Sync: Error triggering callback:", e);
             }

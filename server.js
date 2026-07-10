@@ -112,6 +112,19 @@ function broadcastUpdate(payload) {
   });
 }
 
+// Broadcast connected client count to all open streams
+function broadcastConnectionCount() {
+  const count = sseClients.length;
+  console.log(`Sync: Broadcasting active connections count: ${count}`);
+  const msg = JSON.stringify({
+    type: 'connections_count',
+    count: count
+  });
+  sseClients.forEach(client => {
+    client.write(`data: ${msg}\n\n`);
+  });
+}
+
 // Server implementation
 const server = http.createServer((req, res) => {
   // CORS Headers
@@ -142,10 +155,14 @@ const server = http.createServer((req, res) => {
     // Add client to active clients list
     sseClients.push(res);
     console.log(`Sync: Client connected to stream. Active clients: ${sseClients.length}`);
+    
+    // Broadcast the updated count to everyone
+    broadcastConnectionCount();
 
     req.on('close', () => {
       sseClients = sseClients.filter(client => client !== res);
       console.log(`Sync: Client disconnected. Active clients: ${sseClients.length}`);
+      broadcastConnectionCount();
     });
     return;
   }

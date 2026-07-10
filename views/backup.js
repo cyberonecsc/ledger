@@ -4,6 +4,7 @@
 
 import { store } from '../store.js';
 import { firebaseService } from '../firebase.js';
+import { localSyncService } from '../local_sync.js';
 
 export function renderBackupRestore(mountPoint, appInstance) {
   mountPoint.innerHTML = `
@@ -56,6 +57,18 @@ export function renderBackupRestore(mountPoint, appInstance) {
 
         <button type="submit" class="btn btn-sm btn-primary" style="width:200px;">Save Sync Settings</button>
       </form>
+      
+      <!-- Live Sync Status Visual Verification -->
+      <div id="sync-connection-status-card" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--panel-border); display: none;">
+        <h4 style="font-size: 13px; font-weight: 600; color: var(--text-white-invert); margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block;" id="sync-status-indicator-dot"></span>
+          Live Sync Status
+        </h4>
+        <div style="display: flex; gap: 20px; font-size: 12px; color: var(--text-muted);">
+          <div>Active Connections: <strong id="sync-active-connections-count" style="color: #22c55e;">0</strong></div>
+          <div>Mode: <strong style="color: var(--text-main);">Real-time Sync (SSE)</strong></div>
+        </div>
+      </div>
     </div>
 
     <!-- Firebase Realtime Database Sync Configurations -->
@@ -494,6 +507,26 @@ export function renderBackupRestore(mountPoint, appInstance) {
           window.location.reload();
         }, 1200);
       });
+    }
+
+    // Connection verification display
+    const activeClientsCard = document.getElementById('sync-connection-status-card');
+    const activeClientsCountSpan = document.getElementById('sync-active-connections-count');
+
+    if (activeClientsCard && activeClientsCountSpan) {
+      const provider = localStorage.getItem('cyberone_v2_sync_provider') || 'firebase';
+      if (provider === 'selfhosted' && localSyncService.isInitialized()) {
+        activeClientsCard.style.display = 'block';
+        
+        // Listen for count updates
+        localSyncService.onConnectionsCountChange((count) => {
+          if (activeClientsCountSpan) {
+            activeClientsCountSpan.innerText = count;
+          }
+        });
+      } else {
+        activeClientsCard.style.display = 'none';
+      }
     }
   }
 }
