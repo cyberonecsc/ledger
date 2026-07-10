@@ -9,8 +9,9 @@ class LocalSyncService {
     this.isConnecting = false;
     this.reconnectTimeout = null;
     this.subscribers = [];
+    this.activeClients = [];
     this.activeConnectionsCount = 0;
-    this.connectionsCountListeners = [];
+    this.activeClientsListeners = [];
   }
 
   initialize(url) {
@@ -27,10 +28,10 @@ class LocalSyncService {
     return !!this.serverUrl;
   }
 
-  onConnectionsCountChange(listener) {
-    this.connectionsCountListeners.push(listener);
-    // Invoke immediately with current count
-    try { listener(this.activeConnectionsCount); } catch(e) {}
+  onActiveClientsChange(listener) {
+    this.activeClientsListeners.push(listener);
+    // Invoke immediately with current active clients list
+    try { listener(this.activeClients); } catch(e) {}
   }
 
   connect() {
@@ -43,10 +44,37 @@ class LocalSyncService {
     }
 
     this.isConnecting = true;
-    console.log(`Sync: Connecting to stream at ${this.serverUrl}/api/stream`);
+
+    // Retrieve username details
+    let username = 'Guest';
+    try {
+      const userStr = localStorage.getItem('cyberone_v2_current_user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u && u.username) username = u.username;
+      }
+    } catch(e) {}
+
+    // Determine device descriptor
+    let device = 'Web Browser';
+    const ua = navigator.userAgent;
+    if (/Android/i.test(ua)) {
+      device = 'Android App';
+    } else if (/iPhone|iPad|iPod/i.test(ua)) {
+      device = 'iOS Device';
+    } else if (ua.includes('Electron')) {
+      device = 'Desktop App';
+    } else if (/Mobi/i.test(ua)) {
+      device = 'Mobile Web';
+    } else {
+      device = 'Desktop Browser';
+    }
+
+    const queryParams = `?username=${encodeURIComponent(username)}&device=${encodeURIComponent(device)}`;
+    console.log(`Sync: Connecting to stream at ${this.serverUrl}/api/stream${queryParams}`);
 
     try {
-      this.eventSource = new EventSource(`${this.serverUrl}/api/stream`);
+      this.eventSource = new EventSource(`${this.serverUrl}/api/stream${queryParams}`);
 
       this.eventSource.onopen = () => {
         console.log("Sync: Stream connection opened successfully");
@@ -61,11 +89,12 @@ class LocalSyncService {
           const parsed = JSON.parse(event.data);
           
           // Parse connection count updates
-          if (parsed && parsed.type === 'connections_count') {
-            this.activeConnectionsCount = parsed.count;
-            this.connectionsCountListeners.forEach(listener => {
-              try { listener(parsed.count); } catch (e) {
-                console.error("Sync: Error triggering connection count listener:", e);
+          if (parsed && parsed.type === 'active_clients') {
+            this.activeClients = parsed.clients || [];
+            this.activeConnectionsCount = parsed.count || 0;
+            this.activeClientsListeners.forEach(listener => {
+              try { listener(this.activeClients); } catch (e) {
+                console.error("Sync: Error triggering connection list listener:", e);
               }
             });
             return;

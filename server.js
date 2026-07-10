@@ -108,20 +108,35 @@ function broadcastUpdate(payload) {
   console.log(`Sync: Broadcasting database update to ${sseClients.length} clients...`);
   const dataString = JSON.stringify(payload);
   sseClients.forEach(client => {
-    client.write(`data: ${dataString}\n\n`);
+    try {
+      client.res.write(`data: ${dataString}\n\n`);
+    } catch(e) {
+      console.error("Sync: Error writing update to client socket", e);
+    }
   });
 }
 
-// Broadcast connected client count to all open streams
-function broadcastConnectionCount() {
-  const count = sseClients.length;
-  console.log(`Sync: Broadcasting active connections count: ${count}`);
+// Broadcast connected clients list to all open streams
+function broadcastActiveClients() {
+  const clientsList = sseClients.map(c => ({
+    ip: c.ip,
+    username: c.username,
+    device: c.device
+  }));
+  
+  console.log(`Sync: Broadcasting active clients list of size: ${clientsList.length}`);
   const msg = JSON.stringify({
-    type: 'connections_count',
-    count: count
+    type: 'active_clients',
+    count: clientsList.length,
+    clients: clientsList
   });
+  
   sseClients.forEach(client => {
-    client.write(`data: ${msg}\n\n`);
+    try {
+      client.res.write(`data: ${msg}\n\n`);
+    } catch(e) {
+      console.error("Sync: Error writing connection list to client socket", e);
+    }
   });
 }
 
@@ -152,17 +167,36 @@ const server = http.createServer((req, res) => {
     const initialData = readDatabase();
     res.write(`data: ${JSON.stringify(initialData)}\n\n`);
 
-    // Add client to active clients list
-    sseClients.push(res);
-    console.log(`Sync: Client connected to stream. Active clients: ${sseClients.length}`);
+    // Parse query parameters
+    const username = url.searchParams.get('username') || 'Guest User';
+    const device = url.searchParams.get('device') || 'Web Browser';
     
-    // Broadcast the updated count to everyone
-    broadcastConnectionCount();
+    // Get client IP address
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    let cleanIp = rawIp.replace(/^::ffff:/, '');
+    if (cleanIp === '::1' || cleanIp === '127.0.0.1') {
+      cleanIp = 'Localhost';
+    }
+
+    // Add client details to active clients list
+    const clientRecord = {
+      id: Math.random().toString(36).substring(2, 9),
+      res: res,
+      ip: cleanIp,
+      username: username,
+      device: device
+    };
+    
+    sseClients.push(clientRecord);
+    console.log(`Sync: Client [${username} on ${device}] connected from ${cleanIp}. Active clients: ${sseClients.length}`);
+    
+    // Broadcast the updated list to everyone
+    broadcastActiveClients();
 
     req.on('close', () => {
-      sseClients = sseClients.filter(client => client !== res);
-      console.log(`Sync: Client disconnected. Active clients: ${sseClients.length}`);
-      broadcastConnectionCount();
+      sseClients = sseClients.filter(client => client !== clientRecord);
+      console.log(`Sync: Client [${username}] disconnected. Active clients: ${sseClients.length}`);
+      broadcastActiveClients();
     });
     return;
   }

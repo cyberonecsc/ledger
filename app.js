@@ -49,7 +49,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.2.1';
+    this.version = '3.2.2';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;

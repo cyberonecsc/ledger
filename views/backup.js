@@ -60,13 +60,19 @@ export function renderBackupRestore(mountPoint, appInstance) {
       
       <!-- Live Sync Status Visual Verification -->
       <div id="sync-connection-status-card" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--panel-border); display: none;">
-        <h4 style="font-size: 13px; font-weight: 600; color: var(--text-white-invert); margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+        <h4 style="font-size: 13px; font-weight: 600; color: var(--text-white-invert); margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px;">
           <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block;" id="sync-status-indicator-dot"></span>
-          Live Sync Status
+          Live Sync Status (Real-time SSE)
         </h4>
-        <div style="display: flex; gap: 20px; font-size: 12px; color: var(--text-muted);">
-          <div>Active Connections: <strong id="sync-active-connections-count" style="color: #22c55e;">0</strong></div>
-          <div>Mode: <strong style="color: var(--text-main);">Real-time Sync (SSE)</strong></div>
+        
+        <!-- Connected Devices List -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); padding: 12px; margin-top: 8px;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dimmed); margin-bottom: 8px; font-weight: 700;">
+            Connected Clients (<span id="sync-active-connections-count">0</span>)
+          </div>
+          <div id="sync-clients-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto;">
+            <!-- Injected dynamically -->
+          </div>
         </div>
       </div>
     </div>
@@ -512,16 +518,32 @@ export function renderBackupRestore(mountPoint, appInstance) {
     // Connection verification display
     const activeClientsCard = document.getElementById('sync-connection-status-card');
     const activeClientsCountSpan = document.getElementById('sync-active-connections-count');
+    const clientsListContainer = document.getElementById('sync-clients-list');
 
-    if (activeClientsCard && activeClientsCountSpan) {
+    if (activeClientsCard && activeClientsCountSpan && clientsListContainer) {
       const provider = localStorage.getItem('cyberone_v2_sync_provider') || 'firebase';
       if (provider === 'selfhosted' && localSyncService.isInitialized()) {
         activeClientsCard.style.display = 'block';
         
-        // Listen for count updates
-        localSyncService.onConnectionsCountChange((count) => {
+        // Listen for client list updates
+        localSyncService.onActiveClientsChange((clients) => {
           if (activeClientsCountSpan) {
-            activeClientsCountSpan.innerText = count;
+            activeClientsCountSpan.innerText = clients.length;
+          }
+          if (clientsListContainer) {
+            if (clients.length === 0) {
+              clientsListContainer.innerHTML = `<div style="font-size: 11px; color: var(--text-dimmed); text-align: center; padding: 10px;">No active connections detected</div>`;
+            } else {
+              clientsListContainer.innerHTML = clients.map(c => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(255,255,255,0.03); border-radius: 4px; border-left: 3px solid #22c55e;">
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-weight: 600; color: var(--text-main); font-size: 12px;">${c.username}</span>
+                    <span style="font-size: 10px; color: var(--text-muted);">${c.device}</span>
+                  </div>
+                  <span style="font-family: monospace; font-size: 11px; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 3px; color: #22c55e;">${c.ip}</span>
+                </div>
+              `).join('');
+            }
           }
         });
       } else {
