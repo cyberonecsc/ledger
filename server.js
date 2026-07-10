@@ -270,7 +270,11 @@ const server = http.createServer((req, res) => {
 // Send a keep-alive ping to SSE clients every 20 seconds to prevent connection timeouts
 setInterval(() => {
   sseClients.forEach(client => {
-    client.write(': keepalive\n\n');
+    try {
+      client.res.write(': keepalive\n\n');
+    } catch(e) {
+      console.error("Sync: Keepalive send failed", e);
+    }
   });
 }, 20000);
 
