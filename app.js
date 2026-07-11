@@ -49,12 +49,13 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.2.6';
+    this.version = '3.2.7';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
     this.lastPollTime = 0;
     this._viewDates = {};
+    this.settingsSubmenuForceExpanded = undefined;
     this.init();
   }
 
@@ -615,12 +616,20 @@ class Application {
         item.classList.remove('active');
       });
 
-      // Update Settings submenu visibility based on active route
-      const isSettingsRoute = (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup');
+      // Update Settings submenu visibility based on active route or manual toggle
+      const showSettings = this.settingsSubmenuForceExpanded !== undefined 
+        ? this.settingsSubmenuForceExpanded 
+        : (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup');
+      
       const settingsSubmenu = appContainer.querySelector('.sidebar-item.has-submenu');
       if (settingsSubmenu) {
-        if (isSettingsRoute) {
-          settingsSubmenu.classList.add('active', 'expanded');
+        if (showSettings) {
+          settingsSubmenu.classList.add('expanded');
+          if (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') {
+            settingsSubmenu.classList.add('active');
+          } else {
+            settingsSubmenu.classList.remove('active');
+          }
           const list = settingsSubmenu.querySelector('.submenu-list');
           if (list) list.style.display = 'block';
           const arrow = settingsSubmenu.querySelector('.submenu-arrow');
@@ -657,6 +666,11 @@ class Application {
       lucide.createIcons();
       return;
     }
+
+    // Determine if settings submenu should be expanded (either because user expanded it manually, or by active route)
+    const showSettings = this.settingsSubmenuForceExpanded !== undefined 
+      ? this.settingsSubmenuForceExpanded 
+      : (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup');
 
     // Core layout container (first load only)
     this.root.innerHTML = `
@@ -717,15 +731,15 @@ class Application {
             </div>
             
             <ul class="sidebar-menu" style="margin: 10px 0 0 0; padding: 0;">
-              <li class="sidebar-item has-submenu ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'active expanded' : ''}">
+              <li class="sidebar-item has-submenu ${showSettings ? 'expanded' : ''} ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'active' : ''}">
                 <a href="javascript:void(0);" class="submenu-toggle" style="display: flex; align-items: center; justify-content: space-between;">
                   <span style="display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
                     <span>Settings</span>
                   </span>
-                  <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
+                  <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${showSettings ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
                 </a>
-                <ul class="submenu-list" style="display: ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
+                <ul class="submenu-list" style="display: ${showSettings ? 'block' : 'none'}; padding-left: 20px; list-style: none; margin-top: 4px;">
                   <li class="sidebar-item ${this.activeRoute === '#settings' ? 'active' : ''}">
                     <a href="#settings" style="padding: 6px 12px; font-size: 13px;"><i data-lucide="sliders" style="width: 14px; height: 14px;"></i><span>General</span></a>
                   </li>
@@ -822,6 +836,9 @@ class Application {
         const submenuList = parent.querySelector('.submenu-list');
         const arrow = submenuToggle.querySelector('.submenu-arrow');
         const isExpanded = parent.classList.toggle('expanded');
+        
+        // Persist expanded state to prevent auto-collapsing on sync refreshes
+        this.settingsSubmenuForceExpanded = isExpanded;
         
         if (submenuList) {
           submenuList.style.display = isExpanded ? 'block' : 'none';

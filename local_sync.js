@@ -18,7 +18,11 @@ class LocalSyncService {
     if (!url) return;
     
     // Normalize URL
-    this.serverUrl = url.trim().replace(/\/$/, '');
+    let normalizedUrl = url.trim().replace(/\/$/, '');
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      normalizedUrl = 'http://' + normalizedUrl;
+    }
+    this.serverUrl = normalizedUrl;
     console.log(`Sync: Initializing Self-Hosted Sync Service at: ${this.serverUrl}`);
     
     this.connect();
