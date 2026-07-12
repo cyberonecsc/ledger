@@ -283,6 +283,23 @@ const server = http.createServer((req, res) => {
           return;
         }
 
+        // Diagnostic log: print exactly which keys differ to trace the loop cause
+        const diffKeys = [];
+        for (const key in canonicalMerged) {
+          const se = deterministicStringify(canonicalExisting[key]);
+          const sm = deterministicStringify(canonicalMerged[key]);
+          if (se !== sm) {
+            diffKeys.push({
+              key: key,
+              existingPreview: se.substring(0, 150),
+              mergedPreview: sm.substring(0, 150)
+            });
+          }
+        }
+        if (diffKeys.length > 0) {
+          console.log(`[LOOP DIAGNOSTIC] Diff keys:`, JSON.stringify(diffKeys, null, 2));
+        }
+
         writeDatabase(mergedDb);
 
         console.log(`[${new Date().toLocaleTimeString()}] Sync: Successfully saved and merged data.`);
