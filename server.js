@@ -57,7 +57,12 @@ function canonicalizeDatabase(db) {
 
 // Database merging engine (preserves existing daybook records)
 function mergeDatabases(existingDb, incomingDb) {
-  const merged = { ...existingDb, ...incomingDb };
+  const tExist = existingDb.cyberone_v2_last_modified || '';
+  const tIn = incomingDb.cyberone_v2_last_modified || '';
+  const incomingIsOlder = (tExist && tIn && new Date(tExist) > new Date(tIn));
+
+  // Determine base merged object (last-writer-wins logic for root-level keys)
+  const merged = incomingIsOlder ? { ...incomingDb, ...existingDb } : { ...existingDb, ...incomingDb };
 
   // 1. Merge Activity Logs
   const actKey = 'cyberone_v2_activity_logs';
@@ -76,14 +81,21 @@ function mergeDatabases(existingDb, incomingDb) {
   if (existingDb[logsKey] || incomingDb[logsKey]) {
     const existingLogs = parseJSON(existingDb[logsKey]) || {};
     const incomingLogs = parseJSON(incomingDb[logsKey]) || {};
-    const mergedLogs = { ...existingLogs, ...incomingLogs };
+    
+    // Perform standard shallow merge first
+    const mergedLogs = incomingIsOlder ? { ...incomingLogs, ...existingLogs } : { ...existingLogs, ...incomingLogs };
 
     Object.keys(mergedLogs).forEach(date => {
       const existingTxns = (existingLogs[date] && existingLogs[date].transactions) || [];
       const incomingTxns = (incomingLogs[date] && incomingLogs[date].transactions) || [];
       const txnMap = new Map();
       existingTxns.forEach(t => { if (t && t.id) txnMap.set(t.id, t); });
-      incomingTxns.forEach(t => { if (t && t.id) txnMap.set(t.id, t); });
+      incomingTxns.forEach(t => {
+        if (t && t.id) {
+          const existingTxn = txnMap.get(t.id);
+          txnMap.set(t.id, existingTxn ? (incomingIsOlder ? { ...t, ...existingTxn } : { ...existingTxn, ...t }) : t);
+        }
+      });
       
       if (!mergedLogs[date]) {
         mergedLogs[date] = { date, transactions: [] };
@@ -115,7 +127,7 @@ function mergeDatabases(existingDb, incomingDb) {
         if (item) {
           const k = item[keyProp] || item.id;
           const existingItem = map.get(k);
-          map.set(k, existingItem ? { ...existingItem, ...item } : item);
+          map.set(k, existingItem ? (incomingIsOlder ? { ...item, ...existingItem } : { ...existingItem, ...item }) : item);
         }
       });
       merged[key] = JSON.stringify(Array.from(map.values()));
@@ -123,8 +135,6 @@ function mergeDatabases(existingDb, incomingDb) {
   });
 
   // 4. Update last_modified
-  const tExist = existingDb.cyberone_v2_last_modified || '';
-  const tIn = incomingDb.cyberone_v2_last_modified || '';
   merged.cyberone_v2_last_modified = (tExist && tIn && new Date(tExist) > new Date(tIn)) ? tExist : new Date().toISOString();
 
   return merged;
@@ -179,6 +189,68 @@ function broadcastActiveClients() {
       console.error("Sync: Error writing connection list to client socket", e);
     }
   });
+}
+
+// Helper to recursively find differences between two objects for loop debugging
+function getDetailedDiff(obj1, obj2, path = '') {
+  if (obj1 === obj2) return null;
+  if (typeof obj1 !== typeof obj2) return { path, existing: obj1, merged: obj2 };
+  
+  if (obj1 === null || obj2 === null || typeof obj1 !== 'object') {
+    return { path, existing: obj1, merged: obj2 };
+  }
+  
+  if (Array.isArray(obj1) && Array.isArray(obj2)) {
+    const diffs = [];
+    // Compare items by id or username logically if possible
+    for (let i = 0; i < obj1.length; i++) {
+      const item1 = obj1[i];
+      const idVal = item1 && (item1.id || item1.username);
+      if (idVal) {
+        const item2 = obj2.find(x => x && (x.id === idVal || x.username === idVal));
+        if (!item2) {
+          diffs.push({ path: `${path}[id/user=${idVal}]`, existing: 'present', merged: 'missing' });
+        } else {
+          const d = getDetailedDiff(item1, item2, `${path}[id/user=${idVal}]`);
+          if (d) {
+            if (Array.isArray(d)) diffs.push(...d);
+            else diffs.push(d);
+          }
+        }
+      } else {
+        const d = getDetailedDiff(item1, obj2[i], `${path}[${i}]`);
+        if (d) {
+          if (Array.isArray(d)) diffs.push(...d);
+          else diffs.push(d);
+        }
+      }
+    }
+    // Also check for items in obj2 that are not in obj1
+    for (let i = 0; i < obj2.length; i++) {
+      const item2 = obj2[i];
+      const idVal = item2 && (item2.id || item2.username);
+      if (idVal) {
+        const item1 = obj1.find(x => x && (x.id === idVal || x.username === idVal));
+        if (!item1) {
+          diffs.push({ path: `${path}[id/user=${idVal}]`, existing: 'missing', merged: 'present' });
+        }
+      }
+    }
+    return diffs.length > 0 ? diffs : null;
+  }
+  
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  const allKeys = Array.from(new Set([...keys1, ...keys2]));
+  const diffs = [];
+  for (const key of allKeys) {
+    const d = getDetailedDiff(obj1[key], obj2[key], `${path}.${key}`);
+    if (d) {
+      if (Array.isArray(d)) diffs.push(...d);
+      else diffs.push(d);
+    }
+  }
+  return diffs.length > 0 ? diffs : null;
 }
 
 // Server implementation
@@ -289,10 +361,10 @@ const server = http.createServer((req, res) => {
           const se = deterministicStringify(canonicalExisting[key]);
           const sm = deterministicStringify(canonicalMerged[key]);
           if (se !== sm) {
+            const detailed = getDetailedDiff(canonicalExisting[key], canonicalMerged[key], key);
             diffKeys.push({
               key: key,
-              existingPreview: se.substring(0, 150),
-              mergedPreview: sm.substring(0, 150)
+              detailedDiff: detailed ? (Array.isArray(detailed) ? detailed.slice(0, 5) : [detailed]) : 'order_or_whitespace_diff'
             });
           }
         }
