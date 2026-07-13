@@ -453,6 +453,7 @@ class Application {
       }
     } catch (e) {
       console.error("Could not fetch local database:", e);
+      alert(`[DIAGNOSTIC] LOAD DATABASE FAILED!\nError: ${e.message}\nStack: ${e.stack}`);
       store.setSyncStatus('error');
     } finally {
       store.isDatabaseInitialized = true;

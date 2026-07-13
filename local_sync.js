@@ -134,6 +134,9 @@ class LocalSyncService {
 
       this.eventSource.onerror = (err) => {
         console.error("Sync: Stream error occurred, reconnecting in 5s...", err);
+        if (this.isConnecting) {
+          alert(`[DIAGNOSTIC] STREAM CONNECTION FAILED!\nTarget URL: ${this.serverUrl}/api/stream\nReady State: ${this.eventSource.readyState}`);
+        }
         this.isConnecting = false;
         this.eventSource.close();
         
@@ -169,6 +172,7 @@ class LocalSyncService {
       return false;
     } catch (err) {
       console.error("Sync: Save request failed:", err);
+      alert(`[DIAGNOSTIC] SAVE FETCH FAILED!\nTarget URL: ${this.serverUrl}/api/save\nError: ${err.message}`);
       return false;
     }
   }
