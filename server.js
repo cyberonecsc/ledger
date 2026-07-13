@@ -271,7 +271,7 @@ const server = http.createServer((req, res) => {
   // SSE Stream Endpoint
   if (req.method === 'GET' && url.pathname === '/api/stream') {
     res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
+      'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
     });
@@ -327,6 +327,7 @@ const server = http.createServer((req, res) => {
 
   // REST API Save Endpoint
   if (req.method === 'POST' && url.pathname === '/api/save') {
+    req.setEncoding('utf8');
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -402,13 +403,13 @@ const server = http.createServer((req, res) => {
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {
     '.html': 'text/html; charset=utf-8',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.ico': 'image/x-icon',
-    '.json': 'application/json'
+    '.json': 'application/json; charset=utf-8'
   };
 
   const contentType = mimeTypes[ext] || 'application/octet-stream';
