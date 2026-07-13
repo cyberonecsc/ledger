@@ -25,7 +25,9 @@ const targets = [
   'firebase-database.js',
   'local_sync.js',
   'db.json',
-  'views'
+  'views',
+  'brochure.html',
+  'brochure_cover_graphic.png'
 ];
 
 targets.forEach(target => {
