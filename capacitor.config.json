@@ -2,5 +2,8 @@
   "appId": "com.cyberonecsc.ledger",
   "appName": "CYBERONE CSC Ledger",
   "webDir": "www",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "http"
+  }
 }
