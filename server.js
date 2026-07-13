@@ -127,7 +127,11 @@ function mergeDatabases(existingDb, incomingDb) {
         if (item) {
           const k = item[keyProp] || item.id;
           const existingItem = map.get(k);
-          map.set(k, existingItem ? (incomingIsOlder ? { ...item, ...existingItem } : { ...existingItem, ...item }) : item);
+          let mergedItem = existingItem ? (incomingIsOlder ? { ...item, ...existingItem } : { ...existingItem, ...item }) : item;
+          if (existingItem && item && existingItem.visitCount !== undefined && item.visitCount !== undefined) {
+            mergedItem.visitCount = Math.max(existingItem.visitCount || 0, item.visitCount || 0);
+          }
+          map.set(k, mergedItem);
         }
       });
       merged[key] = JSON.stringify(Array.from(map.values()));

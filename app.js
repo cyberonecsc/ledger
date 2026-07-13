@@ -49,7 +49,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.3.3';
+    this.version = '3.3.4';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -1248,7 +1248,11 @@ class Application {
                     if (key === 'cyberone_v2_applications' && deletedApplicationIds.has(k)) return;
                     if (key === 'cyberone_v2_aeps_transactions' && deletedTransactionIds.has(k)) return;
                     const existing = map.get(k);
-                    map.set(k, existing ? (remoteIsOlder ? { ...item, ...existing } : { ...existing, ...item }) : item);
+                    let mergedItem = existing ? (remoteIsOlder ? { ...item, ...existing } : { ...existing, ...item }) : item;
+                    if (existing && item && existing.visitCount !== undefined && item.visitCount !== undefined) {
+                      mergedItem.visitCount = Math.max(existing.visitCount || 0, item.visitCount || 0);
+                    }
+                    map.set(k, mergedItem);
                   }
                 }
               });
