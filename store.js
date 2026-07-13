@@ -1402,8 +1402,6 @@ class StateStore {
         creditBalance: 0
       });
     }
-    this.logCustomerVisit(customer.id, dateString || getTodayDateString());
-
     if (txn) {
       if (!customer.visitLogs) {
         customer.visitLogs = [];
@@ -1422,8 +1420,12 @@ class StateStore {
           isWebReg: false,
           aepsTxnId: txn.id
         });
+        // Only increment visitCount and update date if not already logged
+        this.logCustomerVisit(customer.id, dateString || getTodayDateString());
       }
       this.persistAll();
+    } else {
+      this.logCustomerVisit(customer.id, dateString || getTodayDateString());
     }
   }
 
