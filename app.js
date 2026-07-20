@@ -25,6 +25,7 @@ import { renderAEPS } from './views/aeps.js';
 import { renderAuditLog } from './views/audit.js';
 import { renderBackupRestore } from './views/backup.js';
 import { renderWebsites } from './views/websites.js';
+import { renderPriceList } from './views/pricelist.js';
 
 
 // Route configurations and permission keys
@@ -44,12 +45,13 @@ const ROUTES = {
   '#settings': { render: renderSettings, permission: 'manage_settings' },
   '#aeps': { render: renderAEPS, permission: 'manage_accounts' },
   '#audit-log': { render: renderAuditLog, permission: 'manage_settings' },
-  '#backup': { render: renderBackupRestore, permission: 'manage_settings' }
+  '#backup': { render: renderBackupRestore, permission: 'manage_settings' },
+  '#pricelist': { render: renderPriceList }
 };
 
 class Application {
   constructor() {
-    this.version = '3.3.4';
+    this.version = '3.3.5';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -709,6 +711,9 @@ class Application {
             </li>
             <li class="sidebar-item ${this.activeRoute === '#inventory' ? 'active' : ''}">
               <a href="#inventory"><i data-lucide="package" style="width: 18px; height: 18px;"></i><span>Inventory</span></a>
+            </li>
+            <li class="sidebar-item ${this.activeRoute === '#pricelist' ? 'active' : ''}">
+              <a href="#pricelist"><i data-lucide="tag" style="width: 18px; height: 18px;"></i><span>Price List</span></a>
             </li>
             <li class="sidebar-item ${this.activeRoute === '#payroll' ? 'active' : ''}">
               <a href="#payroll"><i data-lucide="landmark" style="width: 18px; height: 18px;"></i><span>Payroll</span></a>
