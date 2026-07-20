@@ -79,8 +79,8 @@ export function renderDashboard(mountPoint, appInstance) {
   // Guard balance visibility
   const canViewBalances = auth.hasPermission('view_balances');
 
-  // Find low stock items
-  const lowStockProducts = store.products.filter(p => p.stock <= p.minStock);
+  // Find low stock items (only physical products)
+  const lowStockProducts = store.products.filter(p => p.type === 'product' && p.stock <= p.minStock);
 
   // Find active government applications (not delivered)
   const activeApps = store.applications.filter(a => a.status !== 'delivered');
@@ -120,12 +120,12 @@ export function renderDashboard(mountPoint, appInstance) {
 
   recentProductIds.forEach(id => {
     const product = store.products.find(p => p.id === id);
-    if (product) recentProducts.push(product);
+    if (product && product.type === 'product') recentProducts.push(product);
   });
 
   if (recentProducts.length < 5) {
     store.products.forEach(p => {
-      if (recentProducts.length < 5 && !recentProductIds.has(p.id)) {
+      if (p.type === 'product' && recentProducts.length < 5 && !recentProductIds.has(p.id)) {
         recentProducts.push(p);
       }
     });
