@@ -106,8 +106,8 @@ export function renderInventory(mountPoint, appInstance) {
                 <th style="width: 140px;">${activeTab === 'service' ? 'SAC Code' : 'HSN Code'}</th>
                 <th>Name</th>
                 <th>Category</th>
-                <th style="text-align: right; width: 120px;">Purchase Cost</th>
-                <th style="text-align: right; width: 120px;">Selling Price</th>
+                <th style="text-align: right; width: 120px;">${activeTab === 'service' ? 'Govt Fees' : 'Purchase Cost'}</th>
+                <th style="text-align: right; width: 120px;">${activeTab === 'service' ? 'Service Charge' : 'Selling Price'}</th>
                 ${activeTab === 'product' ? `
                   <th style="text-align: center; width: 120px;">Stock Level</th>
                   <th style="width: 120px;">Alert Level</th>
@@ -456,11 +456,11 @@ export function renderInventory(mountPoint, appInstance) {
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">${activeTab === 'service' ? 'Base Cost (₹)' : 'Purchase Price (₹)'}</label>
+              <label class="form-label">${activeTab === 'service' ? 'Govt Fees / Portal Cost (₹)' : 'Purchase Price (₹)'}</label>
               <input type="number" step="0.01" id="prod-buy" class="form-control" placeholder="Cost price" required>
             </div>
             <div class="form-group">
-              <label class="form-label">${activeTab === 'service' ? 'Service Charge / Price (₹)' : 'Retail Selling Price (₹)'}</label>
+              <label class="form-label">${activeTab === 'service' ? 'Service Charge (₹)' : 'Retail Selling Price (₹)'}</label>
               <input type="number" step="0.01" id="prod-sell" class="form-control" placeholder="Bill price" required>
             </div>
           </div>
@@ -583,11 +583,11 @@ export function renderInventory(mountPoint, appInstance) {
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">${product.type === 'service' ? 'Base Cost (₹)' : 'Purchase Price (₹)'}</label>
+            <label class="form-label">${product.type === 'service' ? 'Govt Fees / Portal Cost (₹)' : 'Purchase Price (₹)'}</label>
             <input type="number" step="0.01" id="edit-prod-buy" class="form-control" value="${product.buyPrice}" required>
           </div>
           <div class="form-group">
-            <label class="form-label">${product.type === 'service' ? 'Service Charge / Price (₹)' : 'Retail Selling Price (₹)'}</label>
+            <label class="form-label">${product.type === 'service' ? 'Service Charge (₹)' : 'Retail Selling Price (₹)'}</label>
             <input type="number" step="0.01" id="edit-prod-sell" class="form-control" value="${product.sellPrice}" required>
           </div>
         </div>
