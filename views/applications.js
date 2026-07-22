@@ -6,6 +6,11 @@ import { store, getTodayDateString } from '../store.js';
 import { auth } from '../auth.js';
 
 export function renderApplications(mountPoint, appInstance) {
+  const titleEl = document.getElementById('page-heading-title');
+  const subEl = document.getElementById('page-heading-sub');
+  if (titleEl) titleEl.innerText = 'Government & Citizen Applications';
+  if (subEl) subEl.innerText = 'Track status, document workflow, and portal applications';
+
   let localActiveDate = getTodayDateString();
   const apps = store.applications;
   const customers = store.customers;

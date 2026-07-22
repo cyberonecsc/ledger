@@ -5,6 +5,11 @@
 import { store } from '../store.js';
 
 export function renderPriceList(mountPoint, appInstance) {
+  const titleEl = document.getElementById('page-heading-title');
+  const subEl = document.getElementById('page-heading-sub');
+  if (titleEl) titleEl.innerText = 'Services & Product Price List';
+  if (subEl) subEl.innerText = 'Browse rates, filter by category, or print official customer price sheets';
+
   let activeTab = 'service'; // 'service' or 'product'
   let categoryFilter = '';
   let searchQuery = '';
