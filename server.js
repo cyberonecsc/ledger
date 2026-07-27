@@ -93,7 +93,15 @@ function mergeDatabases(existingDb, incomingDb) {
       incomingTxns.forEach(t => {
         if (t && t.id) {
           const existingTxn = txnMap.get(t.id);
-          txnMap.set(t.id, existingTxn ? (incomingIsOlder ? { ...t, ...existingTxn } : { ...existingTxn, ...t }) : t);
+          if (!existingTxn) {
+            txnMap.set(t.id, t);
+          } else {
+            const existingTime = new Date(existingTxn.lastUpdated || existingTxn.timestamp || 0).getTime();
+            const incomingTime = new Date(t.lastUpdated || t.timestamp || 0).getTime();
+            if (incomingTime >= existingTime) {
+              txnMap.set(t.id, t);
+            }
+          }
         }
       });
       

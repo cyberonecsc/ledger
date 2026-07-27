@@ -1152,7 +1152,8 @@ class StateStore {
       applicationId: linkedApplicationId,
       serviceChargeToCash,
       serviceChargeToAccount,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      lastUpdated: new Date().toISOString()
     };
 
     if (txnData.applicationId) {
@@ -1379,7 +1380,8 @@ class StateStore {
       ...oldTxn,
       ...updatedData,
       serviceChargeToCash,
-      serviceChargeToAccount
+      serviceChargeToAccount,
+      lastUpdated: new Date().toISOString()
     };
 
     this.logActivity('Edit ' + oldTxn.type.toUpperCase(), `Updated transaction ${txnId} on date ${dateString}: "${oldTxn.description}" (₹${oldTxn.amount}) changed to "${updatedData.description}" (₹${updatedData.amount})`);

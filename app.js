@@ -51,7 +51,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.3.9';
+    this.version = '3.4.0';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -1138,29 +1138,28 @@ class Application {
               const remoteTxns = (remoteLogs[date] && remoteLogs[date].transactions) || [];
               const txnMap = new Map();
               
-              if (remoteIsOlder) {
-                remoteTxns.forEach(t => {
-                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
+              // First add all remote transactions
+              remoteTxns.forEach(t => {
+                if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                  txnMap.set(t.id, t);
+                }
+              });
+              
+              // Merge local transactions: compare timestamps so newer edit wins!
+              localTxns.forEach(t => {
+                if (t && t.id && !deletedTransactionIds.has(t.id)) {
+                  const existing = txnMap.get(t.id);
+                  if (!existing) {
                     txnMap.set(t.id, t);
+                  } else {
+                    const existingTime = new Date(existing.lastUpdated || existing.timestamp || 0).getTime();
+                    const localTime = new Date(t.lastUpdated || t.timestamp || 0).getTime();
+                    if (localTime >= existingTime) {
+                      txnMap.set(t.id, t);
+                    }
                   }
-                });
-                localTxns.forEach(t => {
-                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
-                    txnMap.set(t.id, t);
-                  }
-                });
-              } else {
-                localTxns.forEach(t => {
-                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
-                    txnMap.set(t.id, t);
-                  }
-                });
-                remoteTxns.forEach(t => {
-                  if (t && t.id && !deletedTransactionIds.has(t.id)) {
-                    txnMap.set(t.id, t);
-                  }
-                });
-              }
+                }
+              });
               
               const mergedTxns = Array.from(txnMap.values());
               if (mergedLogs[date]) {
