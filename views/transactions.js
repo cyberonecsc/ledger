@@ -1405,7 +1405,8 @@ export function renderTransactions(mountPoint, appInstance) {
         };
 
         if (editTxn) {
-          store.updateTransaction(activeDate, editTxn.id, txnData);
+          const targetDate = editTxn.date || editTxn.dateStr || activeDate;
+          store.updateTransaction(targetDate, editTxn.id, txnData);
           appInstance.showToast('Transaction updated successfully', 'success');
         } else {
           store.addTransaction(activeDate, txnData);
@@ -1488,7 +1489,8 @@ export function renderTransactions(mountPoint, appInstance) {
         };
 
         if (editTxn) {
-          store.updateTransaction(activeDate, editTxn.id, txnData);
+          const targetDate = editTxn.date || editTxn.dateStr || activeDate;
+          store.updateTransaction(targetDate, editTxn.id, txnData);
           appInstance.showToast('Transaction updated successfully', 'success');
         } else {
           store.addTransaction(activeDate, txnData);

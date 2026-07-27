@@ -1195,11 +1195,23 @@ class StateStore {
   }
 
   deleteTransaction(dateString, txnId) {
-    const log = this.dailyLogs[dateString];
-    if (!log) return false;
+    let targetDate = dateString;
+    let log = this.dailyLogs[targetDate];
+    let idx = log ? (log.transactions || []).findIndex(t => t.id === txnId) : -1;
 
-    const idx = log.transactions.findIndex(t => t.id === txnId);
-    if (idx === -1) return false;
+    // Fallback: If not found in the provided date log, search across all daily logs for txnId
+    if (idx === -1) {
+      for (const d of Object.keys(this.dailyLogs)) {
+        const foundIdx = (this.dailyLogs[d].transactions || []).findIndex(t => t.id === txnId);
+        if (foundIdx !== -1) {
+          targetDate = d;
+          log = this.dailyLogs[d];
+          idx = foundIdx;
+          break;
+        }
+      }
+    }
+    if (idx === -1 || !log) return false;
 
     const txn = log.transactions[idx];
     
@@ -1247,18 +1259,30 @@ class StateStore {
       return true;
     });
 
-    this.logActivity('Delete ' + txn.type.toUpperCase(), `Deleted transaction ${txn.id}: "${txn.description}" for ₹${txn.amount.toFixed(2)} on date ${dateString}`);
+    this.logActivity('Delete ' + txn.type.toUpperCase(), `Deleted transaction ${txn.id}: "${txn.description}" for ₹${txn.amount.toFixed(2)} on date ${targetDate}`);
     log.transactions.splice(idx, 1);
     this.recalculateAllBalances();
     return true;
   }
 
   updateTransaction(dateString, txnId, updatedData) {
-    const log = this.dailyLogs[dateString];
-    if (!log) return false;
+    let targetDate = dateString;
+    let log = this.dailyLogs[targetDate];
+    let idx = log ? (log.transactions || []).findIndex(t => t.id === txnId) : -1;
 
-    const idx = log.transactions.findIndex(t => t.id === txnId);
-    if (idx === -1) return false;
+    // Fallback: If not found in the provided date log, search across all daily logs for txnId
+    if (idx === -1) {
+      for (const d of Object.keys(this.dailyLogs)) {
+        const foundIdx = (this.dailyLogs[d].transactions || []).findIndex(t => t.id === txnId);
+        if (foundIdx !== -1) {
+          targetDate = d;
+          log = this.dailyLogs[d];
+          idx = foundIdx;
+          break;
+        }
+      }
+    }
+    if (idx === -1 || !log) return false;
 
     const oldTxn = log.transactions[idx];
 

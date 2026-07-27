@@ -1,6 +1,6 @@
 {
   "name": "cyberone-csc-ledger",
-  "version": "3.3.8",
+  "version": "3.3.9",
   "description": "CYBERONE CSC Center Management & Accounting Ledger",
   "main": "main.js",
   "scripts": {
