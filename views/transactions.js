@@ -1666,6 +1666,12 @@ export function renderTransactions(mountPoint, appInstance) {
     openAddModal();
   }
 
+  // Auto-open cash count modal if query parameter action=cash-count is present
+  if (appInstance.queryParams && appInstance.queryParams.action === 'cash-count') {
+    const btnShiftCount = document.getElementById('btn-open-shift-count');
+    if (btnShiftCount) btnShiftCount.click();
+  }
+
   // Initial draw of the table when view renders
   redrawTable();
 }

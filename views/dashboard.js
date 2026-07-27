@@ -219,6 +219,14 @@ export function renderDashboard(mountPoint, appInstance) {
           <span style="font-size: 11px; color: var(--text-muted);">Record new sale or expense</span>
         </div>
       </a>
+
+      <a href="#transactions?action=cash-count" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); transition: var(--transition-smooth);">
+        <i data-lucide="banknote" style="width: 24px; height: 24px; color: var(--color-success); filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.4));"></i>
+        <div>
+          <h4 style="font-family: var(--font-display); font-weight: 700; color: var(--text-white-invert); font-size: 15px;">Cash Drawer Count</h4>
+          <span style="font-size: 11px; color: var(--text-muted);">Count physical notes & handover</span>
+        </div>
+      </a>
       <a href="#inventory" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); transition: var(--transition-smooth);">
         <i data-lucide="package-plus" style="width: 24px; height: 24px; color: var(--color-success); filter: drop-shadow(0 0 5px var(--color-success-glow));"></i>
         <div>
