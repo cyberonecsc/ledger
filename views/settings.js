@@ -347,6 +347,8 @@ export function renderSettings(mountPoint, appInstance) {
         appInstance.handleRouting();
       }, 250);
     });
+  });
+
   // Wallet Thresholds Save Handler
   const formThresholds = document.getElementById('form-wallet-thresholds');
   if (formThresholds) {
