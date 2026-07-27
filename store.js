@@ -215,6 +215,18 @@ class StateStore {
 
     this.activityLogs = this.getItem('cyberone_v2_activity_logs', []);
     
+    const DEFAULT_WALLET_THRESHOLDS = {
+      csc: 1000,
+      paynearby: 500,
+      airtel_pb: 500,
+      aeps_kntny: 500,
+      aeps_rr0re: 500,
+      main_bob: 2000,
+      cash: 1000
+    };
+    this.walletThresholds = { ...DEFAULT_WALLET_THRESHOLDS, ...this.getItem('cyberone_v2_wallet_thresholds', {}) };
+    this.shiftCashCounts = this.getItem('cyberone_v2_shift_cash_counts', []);
+    
     // If dailyLogs doesn't exist, we seed an empty ledger sheet for today's date
     if (!this.dailyLogs) {
       this.dailyLogs = {};
@@ -547,6 +559,33 @@ class StateStore {
     this.saveItem('cyberone_v2_center_profile', this.centerProfile);
     this.saveItem('cyberone_v2_websites', this.websites);
     this.saveItem('cyberone_v2_aeps_transactions', this.aepsTransactions);
+    this.saveItem('cyberone_v2_wallet_thresholds', this.walletThresholds);
+    this.saveItem('cyberone_v2_shift_cash_counts', this.shiftCashCounts);
+  }
+
+  updateWalletThresholds(newThresholds) {
+    this.walletThresholds = { ...this.walletThresholds, ...newThresholds };
+    this.persistAll();
+  }
+
+  recordShiftCashCount(countData) {
+    if (!this.shiftCashCounts) this.shiftCashCounts = [];
+    const entry = {
+      id: 'SHIFT-' + Date.now().toString(36).toUpperCase(),
+      timestamp: new Date().toISOString(),
+      staffId: auth.currentUser ? (auth.currentUser.staffId || auth.currentUser.username) : 'UNKNOWN',
+      staffName: auth.currentUser ? auth.currentUser.name : 'Unknown Operator',
+      date: countData.date || getTodayDateString(),
+      counts: countData.counts,
+      totalPhysicalCash: parseFloat(countData.totalPhysicalCash || 0),
+      systemCashBalance: parseFloat(countData.systemCashBalance || 0),
+      variance: parseFloat(countData.variance || 0),
+      notes: countData.notes || ''
+    };
+    this.shiftCashCounts.unshift(entry);
+    this.logActivity('Shift Cash Count', `Handover cash count by ${entry.staffName}: Physical ₹${entry.totalPhysicalCash.toFixed(2)}, System ₹${entry.systemCashBalance.toFixed(2)}, Variance ₹${entry.variance.toFixed(2)}`);
+    this.persistAll();
+    return entry;
   }
 
   persistAll() {

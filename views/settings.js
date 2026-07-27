@@ -151,6 +151,52 @@ export function renderSettings(mountPoint, appInstance) {
         }).join('')}
       </div>
     </div>
+
+    <!-- Wallet Minimum Thresholds Config -->
+    <div class="glass-card" style="padding:24px; max-width: 700px; margin-top: 25px;">
+      <div class="section-header" style="margin-bottom:15px;">
+        <h3>Wallet & Account Minimum Alerts</h3>
+        <span style="font-size:12px; color:var(--text-muted);">Set minimum balance alert limits for wallets and bank accounts.</span>
+      </div>
+      <form id="form-wallet-thresholds">
+        <div class="form-row" style="margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Cash In Hand Min Limit (₹)</label>
+            <input type="number" id="thresh-cash" class="form-control" value="${store.walletThresholds.cash || 1000}" style="font-size:12px;" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">BOB Bank A/C Min Limit (₹)</label>
+            <input type="number" id="thresh-main_bob" class="form-control" value="${store.walletThresholds.main_bob || 2000}" style="font-size:12px;" required>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">CSC Wallet Min Limit (₹)</label>
+            <input type="number" id="thresh-csc" class="form-control" value="${store.walletThresholds.csc || 1000}" style="font-size:12px;" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">PayNearby Min Limit (₹)</label>
+            <input type="number" id="thresh-paynearby" class="form-control" value="${store.walletThresholds.paynearby || 500}" style="font-size:12px;" required>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-bottom:15px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Digipay Lite Min Limit (₹)</label>
+            <input type="number" id="thresh-aeps_kntny" class="form-control" value="${store.walletThresholds.aeps_kntny || 500}" style="font-size:12px;" required>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="font-size:11px;">Airtel Payments Bank Min Limit (₹)</label>
+            <input type="number" id="thresh-airtel_pb" class="form-control" value="${store.walletThresholds.airtel_pb || 500}" style="font-size:12px;" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Alert Limits
+        </button>
+      </form>
+    </div>
   `;
 
   // Set titles in header
@@ -301,7 +347,27 @@ export function renderSettings(mountPoint, appInstance) {
         appInstance.handleRouting();
       }, 250);
     });
-  });
+  // Wallet Thresholds Save Handler
+  const formThresholds = document.getElementById('form-wallet-thresholds');
+  if (formThresholds) {
+    formThresholds.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newThresholds = {
+        cash: parseFloat(document.getElementById('thresh-cash').value || 1000),
+        main_bob: parseFloat(document.getElementById('thresh-main_bob').value || 2000),
+        csc: parseFloat(document.getElementById('thresh-csc').value || 1000),
+        paynearby: parseFloat(document.getElementById('thresh-paynearby').value || 500),
+        aeps_kntny: parseFloat(document.getElementById('thresh-aeps_kntny').value || 500),
+        airtel_pb: parseFloat(document.getElementById('thresh-airtel_pb').value || 500)
+      };
+
+      store.updateWalletThresholds(newThresholds);
+      if (typeof appInstance.updateLowBalanceBadge === 'function') {
+        appInstance.updateLowBalanceBadge();
+      }
+      appInstance.showToast('Wallet minimum alert thresholds updated!', 'success');
+    });
+  }
 }
 
 export default renderSettings;

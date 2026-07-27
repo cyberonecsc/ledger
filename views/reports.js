@@ -17,6 +17,7 @@ export function renderReports(mountPoint, appInstance) {
       <button class="btn btn-sm btn-secondary reports-tab" data-target="staff-perf-pane">Staff Performance</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="expense-pane">Expense Review</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="custom-range-pane">Custom Range & Summary</button>
+      <button class="btn btn-sm btn-secondary reports-tab" data-target="ca-bundle-pane">CA Accounting Bundle</button>
       <button class="btn btn-sm btn-secondary reports-tab" data-target="gsheet-reconcile-pane">Google Sheet Reconcile</button>
     </div>
 
@@ -417,7 +418,26 @@ export function renderReports(mountPoint, appInstance) {
                 <!-- Comparisons mount here -->
               </tbody>
             </table>
+    <!-- PANE 7: CA Accounting Bundle -->
+    <div id="ca-bundle-pane" class="reports-pane" style="display:none;">
+      <div class="glass-card" style="padding: 30px; max-width: 800px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid var(--panel-border); padding-bottom:15px;">
+          <h3 style="font-family: var(--font-display); font-weight:700;">CA MONTHLY ACCOUNTING BUNDLE</h3>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Export clean monthly ledger, GST breakdown, and wallet reconciliations for your accountant / tax filing.</p>
+        </div>
+
+        <div style="display: flex; gap: 15px; align-items: flex-end; justify-content: center; margin-bottom: 25px; flex-wrap: wrap;">
+          <div class="form-group" style="margin-bottom:0; width: 220px;">
+            <label class="form-label">Select Accounting Month</label>
+            <input type="month" id="ca-bundle-month-picker" class="form-control" value="${currentMonth}">
           </div>
+          <button id="btn-export-ca-csv" class="btn btn-success" style="height: 38px; display: inline-flex; align-items: center; gap: 6px;">
+            <i data-lucide="download" style="width: 16px; height: 16px;"></i> Export CA Bundle (CSV)
+          </button>
+        </div>
+
+        <div id="ca-bundle-preview-mount" style="background: var(--bg-card-dark); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); padding: 20px;">
+          <!-- Monthly KPI preview mounts dynamically -->
         </div>
       </div>
     </div>
@@ -459,6 +479,155 @@ export function renderReports(mountPoint, appInstance) {
       localStorage.setItem('cyberone_reports_active_tab', targetId);
     });
   });
+
+  // CA Accounting Bundle Logic
+  const monthPicker = document.getElementById('ca-bundle-month-picker');
+  const btnExportCaCsv = document.getElementById('btn-export-ca-csv');
+  const caPreviewMount = document.getElementById('ca-bundle-preview-mount');
+
+  const updateCaPreview = () => {
+    if (!monthPicker || !caPreviewMount) return;
+    const selectedMonth = monthPicker.value;
+    const monthDates = Object.keys(store.dailyLogs).filter(d => d.startsWith(selectedMonth)).sort();
+
+    let totalSales = 0;
+    let totalExpenses = 0;
+    let totalTaxable = 0;
+    let totalGst = 0;
+    let txnCount = 0;
+
+    monthDates.forEach(d => {
+      const log = store.dailyLogs[d];
+      (log.transactions || []).forEach(t => {
+        if (t.type === 'sale') {
+          totalSales += parseFloat(t.amount || 0);
+          txnCount++;
+          if (t.hasGst) {
+            totalTaxable += parseFloat(t.taxableAmount || 0);
+            totalGst += parseFloat(t.gstAmount || 0);
+          }
+        } else if (t.type === 'expense') {
+          totalExpenses += parseFloat(t.amount || 0);
+        }
+      });
+    });
+
+    const netProfit = totalSales - totalExpenses;
+    const formattedMonth = new Date(selectedMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    caPreviewMount.innerHTML = `
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-white-invert); margin-bottom: 15px; border-bottom: 1px solid var(--panel-border); padding-bottom: 8px;">
+        Accounting Summary for ${formattedMonth}
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; text-align: center;">
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 12px; border-radius: var(--border-radius-sm);">
+          <div style="font-size: 11px; color: var(--text-muted);">Total Sales Turnover</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--color-success); margin-top: 4px;">₹${totalSales.toFixed(2)}</div>
+          <div style="font-size: 10px; color: var(--text-dimmed); margin-top: 2px;">${txnCount} Total Sales</div>
+        </div>
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 12px; border-radius: var(--border-radius-sm);">
+          <div style="font-size: 11px; color: var(--text-muted);">Operating Expenses</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--color-danger); margin-top: 4px;">₹${totalExpenses.toFixed(2)}</div>
+        </div>
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); padding: 12px; border-radius: var(--border-radius-sm);">
+          <div style="font-size: 11px; color: var(--text-muted);">Net Operating Profit</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--color-primary); margin-top: 4px;">₹${netProfit.toFixed(2)}</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); padding: 12px; border-radius: var(--border-radius-sm);">
+          <div style="font-size: 11px; color: var(--text-muted);">Total GST Collected</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--color-warning); margin-top: 4px;">₹${totalGst.toFixed(2)}</div>
+          <div style="font-size: 10px; color: var(--text-dimmed); margin-top: 2px;">Taxable: ₹${totalTaxable.toFixed(0)}</div>
+        </div>
+      </div>
+    `;
+  };
+
+  if (monthPicker) {
+    monthPicker.onchange = updateCaPreview;
+    updateCaPreview();
+  }
+
+  if (btnExportCaCsv) {
+    btnExportCaCsv.onclick = () => {
+      const selectedMonth = monthPicker.value;
+      const monthDates = Object.keys(store.dailyLogs).filter(d => d.startsWith(selectedMonth)).sort();
+      
+      let csv = `CYBERONE CSC DIGITAL CENTER - MONTHLY CA ACCOUNTING BUNDLE\n`;
+      csv += `Center Code: ${store.centerProfile.code}, Month: ${selectedMonth}, GSTIN: ${store.centerProfile.gstin}\n\n`;
+      
+      csv += `=== SECTION 1: SALES & SERVICE TRANSACTIONS ===\n`;
+      csv += `Date,Transaction ID,Description,Amount (INR),Paid Cash,Paid UPI,Paid Credit,Has GST,Taxable Value,CGST (9%),SGST (9%),Total GST\n`;
+
+      let totalSales = 0, totalCash = 0, totalUpi = 0, totalCredit = 0, totalTaxable = 0, totalCgst = 0, totalSgst = 0, totalGst = 0;
+
+      monthDates.forEach(d => {
+        const log = store.dailyLogs[d];
+        (log.transactions || []).forEach(t => {
+          if (t.type === 'sale') {
+            const amt = parseFloat(t.amount || 0);
+            const cash = parseFloat(t.paidByCash || 0);
+            const upi = parseFloat(t.paidByUPI || 0);
+            const credit = parseFloat(t.paidByCredit || 0);
+            const hasGst = t.hasGst ? 'YES' : 'NO';
+            const taxable = parseFloat(t.taxableAmount || amt);
+            const cgst = parseFloat(t.cgst || 0);
+            const sgst = parseFloat(t.sgst || 0);
+            const gst = parseFloat(t.gstAmount || 0);
+
+            totalSales += amt;
+            totalCash += cash;
+            totalUpi += upi;
+            totalCredit += credit;
+            if (t.hasGst) {
+              totalTaxable += taxable;
+              totalCgst += cgst;
+              totalSgst += sgst;
+              totalGst += gst;
+            }
+
+            const cleanDesc = `"${(t.description || '').replace(/"/g, '""')}"`;
+            csv += `${d},${t.id},${cleanDesc},${amt.toFixed(2)},${cash.toFixed(2)},${upi.toFixed(2)},${credit.toFixed(2)},${hasGst},${taxable.toFixed(2)},${cgst.toFixed(2)},${sgst.toFixed(2)},${gst.toFixed(2)}\n`;
+          }
+        });
+      });
+
+      csv += `TOTAL SALES,${totalSales.toFixed(2)},${totalCash.toFixed(2)},${totalUpi.toFixed(2)},${totalCredit.toFixed(2)},,${totalTaxable.toFixed(2)},${totalCgst.toFixed(2)},${totalSgst.toFixed(2)},${totalGst.toFixed(2)}\n\n`;
+
+      csv += `=== SECTION 2: OPERATING EXPENSES ===\n`;
+      csv += `Date,Transaction ID,Category,Description,Amount (INR),Payment Source\n`;
+
+      let totalExp = 0;
+      monthDates.forEach(d => {
+        const log = store.dailyLogs[d];
+        (log.transactions || []).forEach(t => {
+          if (t.type === 'expense') {
+            const amt = parseFloat(t.amount || 0);
+            totalExp += amt;
+            const cleanDesc = `"${(t.description || '').replace(/"/g, '""')}"`;
+            csv += `${d},${t.id},"${t.category || 'Other'}",${cleanDesc},${amt.toFixed(2)},"${t.source || 'cash'}"\n`;
+          }
+        });
+      });
+      csv += `TOTAL EXPENSES,,,,${totalExp.toFixed(2)},\n\n`;
+
+      csv += `=== SECTION 3: MONTHLY RECONCILIATION SUMMARY ===\n`;
+      csv += `Gross Sales Revenue,₹${totalSales.toFixed(2)}\n`;
+      csv += `Total Operating Expenses,₹${totalExp.toFixed(2)}\n`;
+      csv += `Net Operating Profit,₹${(totalSales - totalExp).toFixed(2)}\n`;
+      csv += `Total GST Collected,₹${totalGst.toFixed(2)}\n\n`;
+
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `CYBERONE_CA_Accounting_Bundle_${selectedMonth}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      appInstance.showToast('CA Monthly Bundle exported to CSV!', 'success');
+    };
+  }
 
   panes.forEach(p => {
     p.style.display = p.id === activeTab ? 'block' : 'none';

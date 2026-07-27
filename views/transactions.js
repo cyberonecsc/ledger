@@ -75,6 +75,9 @@ export function renderTransactions(mountPoint, appInstance) {
           <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Delete Selected (<span id="delete-selected-count">0</span>)
         </button>
         <input type="date" id="txn-date-picker" value="${activeDate}" style="background: var(--datepicker-bg); border: 1px solid var(--panel-border); color: var(--datepicker-color); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: var(--datepicker-color-scheme); font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+        <button id="btn-open-shift-count" class="btn btn-secondary" style="height: 38px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px;">
+          <i data-lucide="banknote" style="width: 16px; height: 16px;"></i> Cash Count
+        </button>
         <button id="btn-open-txn-modal" class="btn btn-primary">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add Transaction
         </button>
@@ -164,11 +167,160 @@ export function renderTransactions(mountPoint, appInstance) {
         <!-- Dynamic receipt content mounts here -->
       </div>
     </div>
+
+    <!-- Shift Cash Counter Modal Backdrop -->
+    <div id="shift-count-modal-backdrop" class="modal-backdrop">
+      <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header" style="position: relative;">
+          <h4>Shift Cash Drawer Counter</h4>
+          <button id="shift-modal-close" class="modal-close" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <div id="shift-modal-body" style="padding: 15px 0;">
+          <form id="form-shift-count">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Count physical cash notes in drawer to verify system balance:</div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+              <div>
+                <label class="form-label" style="font-size: 11px;">₹500 Notes</label>
+                <input type="number" min="0" id="cnt-500" class="form-control count-inp" value="0" style="font-size: 12px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 11px;">₹200 Notes</label>
+                <input type="number" min="0" id="cnt-200" class="form-control count-inp" value="0" style="font-size: 12px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 11px;">₹100 Notes</label>
+                <input type="number" min="0" id="cnt-100" class="form-control count-inp" value="0" style="font-size: 12px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 11px;">₹50 Notes</label>
+                <input type="number" min="0" id="cnt-50" class="form-control count-inp" value="0" style="font-size: 12px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 11px;">₹20 Notes</label>
+                <input type="number" min="0" id="cnt-20" class="form-control count-inp" value="0" style="font-size: 12px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 11px;">₹10 Notes</label>
+                <input type="number" min="0" id="cnt-10" class="form-control count-inp" value="0" style="font-size: 12px;">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label class="form-label" style="font-size: 11px;">Coins Total Amount (₹)</label>
+              <input type="number" step="0.01" min="0" id="cnt-coins" class="form-control count-inp" value="0" style="font-size: 12px;">
+            </div>
+
+            <div style="background: var(--bg-card-dark); border: 1px solid var(--panel-border); border-radius: var(--border-radius-sm); padding: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 11px; color: var(--text-dimmed);">Physical Cash</div>
+                <div id="disp-physical-cash" style="font-size: 16px; font-weight: 800; color: var(--text-white-invert);">₹0.00</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: var(--text-dimmed);">System Cash</div>
+                <div id="disp-system-cash" style="font-size: 14px; font-weight: 700; color: var(--text-muted);">₹0.00</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: var(--text-dimmed);">Variance</div>
+                <div id="disp-cash-variance" style="font-size: 14px; font-weight: 800; color: var(--color-success);">₹0.00</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" class="btn btn-success" style="flex: 1;">
+                <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> Save Handover Count
+              </button>
+              <button type="button" id="btn-cancel-shift-count" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   `;
 
   // Set titles in header
   document.getElementById('page-heading-title').innerText = 'Daily Transactions Ledger';
   document.getElementById('page-heading-sub').innerText = `Reconciliation sheet for ${activeDate}`;
+
+  // Cash Counter Handlers
+  const btnOpenShiftCount = document.getElementById('btn-open-shift-count');
+  const shiftModalBackdrop = document.getElementById('shift-count-modal-backdrop');
+  const shiftModalClose = document.getElementById('shift-modal-close');
+  const btnCancelShiftCount = document.getElementById('btn-cancel-shift-count');
+  const formShiftCount = document.getElementById('form-shift-count');
+
+  if (btnOpenShiftCount && shiftModalBackdrop) {
+    const closeShiftModal = () => shiftModalBackdrop.classList.remove('show');
+
+    const updateCalc = () => {
+      const n500 = parseInt(document.getElementById('cnt-500').value || 0) * 500;
+      const n200 = parseInt(document.getElementById('cnt-200').value || 0) * 200;
+      const n100 = parseInt(document.getElementById('cnt-100').value || 0) * 100;
+      const n50 = parseInt(document.getElementById('cnt-50').value || 0) * 50;
+      const n20 = parseInt(document.getElementById('cnt-20').value || 0) * 20;
+      const n10 = parseInt(document.getElementById('cnt-10').value || 0) * 10;
+      const coins = parseFloat(document.getElementById('cnt-coins').value || 0);
+
+      const totalPhysical = n500 + n200 + n100 + n50 + n20 + n10 + coins;
+      const systemCash = (store.getOrCreateDailyLog(activeDate).closingBalances.cash || 0);
+      const variance = totalPhysical - systemCash;
+
+      document.getElementById('disp-physical-cash').innerText = `₹${totalPhysical.toFixed(2)}`;
+      document.getElementById('disp-system-cash').innerText = `₹${systemCash.toFixed(2)}`;
+      const varEl = document.getElementById('disp-cash-variance');
+      
+      if (Math.abs(variance) < 0.01) {
+        varEl.innerText = `₹0.00 (Match)`;
+        varEl.style.color = 'var(--color-success)';
+      } else if (variance > 0) {
+        varEl.innerText = `+₹${variance.toFixed(2)} (Excess)`;
+        varEl.style.color = '#0ea5e9';
+      } else {
+        varEl.innerText = `-₹${Math.abs(variance).toFixed(2)} (Shortage)`;
+        varEl.style.color = 'var(--color-danger)';
+      }
+    };
+
+    btnOpenShiftCount.onclick = () => {
+      shiftModalBackdrop.classList.add('show');
+      updateCalc();
+    };
+
+    if (shiftModalClose) shiftModalClose.onclick = closeShiftModal;
+    if (btnCancelShiftCount) btnCancelShiftCount.onclick = closeShiftModal;
+
+    document.querySelectorAll('.count-inp').forEach(inp => {
+      inp.oninput = updateCalc;
+    });
+
+    if (formShiftCount) {
+      formShiftCount.onsubmit = (e) => {
+        e.preventDefault();
+        const n500 = parseInt(document.getElementById('cnt-500').value || 0);
+        const n200 = parseInt(document.getElementById('cnt-200').value || 0);
+        const n100 = parseInt(document.getElementById('cnt-100').value || 0);
+        const n50 = parseInt(document.getElementById('cnt-50').value || 0);
+        const n20 = parseInt(document.getElementById('cnt-20').value || 0);
+        const n10 = parseInt(document.getElementById('cnt-10').value || 0);
+        const coins = parseFloat(document.getElementById('cnt-coins').value || 0);
+
+        const totalPhysical = (n500*500)+(n200*200)+(n100*100)+(n50*50)+(n20*20)+(n10*10)+coins;
+        const systemCash = (store.getOrCreateDailyLog(activeDate).closingBalances.cash || 0);
+        const variance = totalPhysical - systemCash;
+
+        store.recordShiftCashCount({
+          date: activeDate,
+          counts: { n500, n200, n100, n50, n20, n10, coins },
+          totalPhysicalCash: totalPhysical,
+          systemCashBalance: systemCash,
+          variance
+        });
+
+        appInstance.showToast('Shift cash count recorded & logged!', 'success');
+        closeShiftModal();
+      };
+    }
+  }
 
   // Modal selector references
   const modalBackdrop = document.getElementById('txn-modal-backdrop');

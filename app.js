@@ -51,7 +51,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.4.0';
+    this.version = '3.5.0';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -597,6 +597,41 @@ class Application {
     this.renderLayout(route.render);
   }
 
+  updateLowBalanceBadge() {
+    const badge = document.getElementById('low-balance-header-badge');
+    const textEl = document.getElementById('low-balance-text');
+    if (!badge || !textEl) return;
+
+    const currentBalances = store.getCurrentBalances();
+    const thresholds = store.walletThresholds || {};
+    const lowItems = [];
+
+    if (currentBalances.cash < (thresholds.cash !== undefined ? thresholds.cash : 1000)) {
+      lowItems.push(`Cash (₹${currentBalances.cash.toFixed(0)})`);
+    }
+
+    store.bankAccounts.forEach(b => {
+      const bal = currentBalances[b.id] || 0;
+      const thresh = thresholds[b.id] !== undefined ? thresholds[b.id] : 2000;
+      if (bal < thresh) lowItems.push(`${b.name} (₹${bal.toFixed(0)})`);
+    });
+
+    store.wallets.filter(w => w.isActive).forEach(w => {
+      const bal = currentBalances[w.id] || 0;
+      const thresh = thresholds[w.id] !== undefined ? thresholds[w.id] : 500;
+      if (bal < thresh) lowItems.push(`${w.name} (₹${bal.toFixed(0)})`);
+    });
+
+    if (lowItems.length > 0) {
+      badge.style.display = 'inline-flex';
+      textEl.innerText = `${lowItems.length} Low ${lowItems.length === 1 ? 'Bal' : 'Bals'}`;
+      badge.title = `Low Balances:\n${lowItems.join('\n')}`;
+      badge.onclick = () => { window.location.hash = '#accounts'; };
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
   // Draw core sidebar container if user is authenticated
   renderLayout(contentRenderer) {
     if (this.activeRoute === '#login') {
@@ -667,6 +702,7 @@ class Application {
       }
 
       lucide.createIcons();
+      this.updateLowBalanceBadge();
       return;
     }
 
@@ -791,7 +827,13 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
-                <!-- Cloud Sync Status Badge -->
+              <!-- Low Balance Alert Badge -->
+              <div id="low-balance-header-badge" style="display: none; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 5px 10px; border-radius: var(--border-radius-sm); font-size: 11px; font-weight: 700; cursor: pointer;">
+                <i data-lucide="alert-triangle" style="width: 14px; height: 14px; color: #ef4444;"></i>
+                <span id="low-balance-text">Low Balance</span>
+              </div>
+
+              <!-- Cloud Sync Status Badge -->
               <div id="cloud-sync-badge" class="sync-badge offline">
                 <i data-lucide="cloud-off"></i>
                 <span>Local Mode</span>
