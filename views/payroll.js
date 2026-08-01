@@ -313,9 +313,18 @@ export function renderPayroll(mountPoint, appInstance) {
                 <label class="form-label">Special Bonus / Other (₹)</label>
                 <input type="number" id="edit-salary-special" class="form-control" step="0.01" value="0.00">
               </div>
-              <div class="form-group" style="visibility: hidden;">
-                <!-- placeholder grid -->
+              <div class="form-group">
+                <label class="form-label">Conveyance / Travel Allowance (₹)</label>
+                <input type="number" id="edit-salary-conveyance" class="form-control" step="0.01" value="0.00">
               </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Overtime / Extra Duty Pay (₹)</label>
+                <input type="number" id="edit-salary-overtime" class="form-control" step="0.01" value="0.00">
+              </div>
+              <div class="form-group" style="visibility: hidden;"></div>
             </div>
 
             <div style="margin: 15px 0 10px 0; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px; font-weight: 700; font-size: 13px; color: var(--color-danger);">DEDUCTIONS SUBTRACTIONS</div>
@@ -344,13 +353,21 @@ export function renderPayroll(mountPoint, appInstance) {
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Other Deductions (₹)</label>
+                <label class="form-label">Late Fine / Unexcused LOP (₹)</label>
+                <input type="number" id="edit-salary-fine" class="form-control" step="0.01" value="0.00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Other Deductions / Loss Recovery (₹)</label>
                 <input type="number" id="edit-salary-deductions" class="form-control" step="0.01" value="0.00">
               </div>
+            </div>
+
+            <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Net Salary Payable (₹)</label>
                 <input type="number" id="edit-salary-net" class="form-control" readonly style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-weight: 700;">
               </div>
+              <div class="form-group" style="visibility: hidden;"></div>
             </div>
 
             <div class="form-group" style="margin-top: 15px;">
@@ -534,14 +551,26 @@ export function renderPayroll(mountPoint, appInstance) {
       const basePay = parseFloat(((employee.baseSalary / 30) * days).toFixed(2));
       const metrics = store.getStaffPerformanceMetrics(staffId, selectedMonth);
       const bonus = metrics.totalSuggestedIncentive;
-      const deductions = 0;
+      
+      // Check if an existing salary transaction exists for this staff and month
+      let existingDetails = null;
+      Object.keys(store.dailyLogs).forEach(d => {
+        const log = store.dailyLogs[d];
+        (log.transactions || []).forEach(t => {
+          if (t.type === 'expense' && t.category === 'Salary' && t.salaryDetails && (t.description.includes(staffName) || t.salaryDetails.staffId === staffId)) {
+            if (t.salaryDetails.month === selectedMonth) {
+              existingDetails = t.salaryDetails;
+            }
+          }
+        });
+      });
 
       // Populate editor form inputs
       document.getElementById('edit-salary-name').value = staffName;
-      document.getElementById('edit-salary-days').value = days;
+      document.getElementById('edit-salary-days').value = existingDetails ? (existingDetails.days || days) : days;
       document.getElementById('edit-salary-base').value = employee.baseSalary;
-      document.getElementById('edit-salary-prorata').value = basePay;
-      document.getElementById('edit-salary-bonus').value = bonus;
+      document.getElementById('edit-salary-prorata').value = existingDetails ? (existingDetails.proRata || basePay) : basePay;
+      document.getElementById('edit-salary-bonus').value = existingDetails ? (existingDetails.bonus || bonus) : bonus;
       
       document.getElementById('edit-salary-incentive-breakdown').innerHTML = 
         `Suggested Breakdown:<br>` +
@@ -549,18 +578,21 @@ export function renderPayroll(mountPoint, appInstance) {
         `• Sales Comm (5%): ₹${metrics.salesComm.toFixed(2)} (SC ₹${metrics.scVolume.toFixed(2)})<br>` +
         `• AEPS Sharing (10%): ₹${metrics.aepsCommShare.toFixed(2)}`;
       
-      // Reset new Zoho fields to 0.00
-      document.getElementById('edit-salary-hra').value = "0.00";
-      document.getElementById('edit-salary-medical').value = "0.00";
-      document.getElementById('edit-salary-special').value = "0.00";
-      document.getElementById('edit-salary-pf').value = "0.00";
-      document.getElementById('edit-salary-esi').value = "0.00";
-      document.getElementById('edit-salary-proftax').value = "0.00";
-      document.getElementById('edit-salary-advance').value = "0.00";
+      // Populate allowances & deductions
+      document.getElementById('edit-salary-hra').value = existingDetails ? (existingDetails.hra || "0.00") : "0.00";
+      document.getElementById('edit-salary-medical').value = existingDetails ? (existingDetails.medical || "0.00") : "0.00";
+      document.getElementById('edit-salary-special').value = existingDetails ? (existingDetails.special || "0.00") : "0.00";
+      document.getElementById('edit-salary-conveyance').value = existingDetails ? (existingDetails.conveyance || "0.00") : "0.00";
+      document.getElementById('edit-salary-overtime').value = existingDetails ? (existingDetails.overtime || "0.00") : "0.00";
 
-      document.getElementById('edit-salary-deductions').value = deductions.toFixed(2);
-      document.getElementById('edit-salary-net').value = (basePay + bonus - deductions).toFixed(2);
+      document.getElementById('edit-salary-pf').value = existingDetails ? (existingDetails.pf || "0.00") : "0.00";
+      document.getElementById('edit-salary-esi').value = existingDetails ? (existingDetails.esi || "0.00") : "0.00";
+      document.getElementById('edit-salary-proftax').value = existingDetails ? (existingDetails.profTax || "0.00") : "0.00";
+      document.getElementById('edit-salary-advance').value = existingDetails ? (existingDetails.advance || "0.00") : "0.00";
+      document.getElementById('edit-salary-fine').value = existingDetails ? (existingDetails.fine || "0.00") : "0.00";
+      document.getElementById('edit-salary-deductions').value = existingDetails ? (existingDetails.otherDeductions || "0.00") : "0.00";
 
+      updateNetPayable();
       editorBackdrop.classList.add('show');
     });
   });
@@ -572,15 +604,18 @@ export function renderPayroll(mountPoint, appInstance) {
     const hra = parseFloat(document.getElementById('edit-salary-hra').value || 0);
     const medical = parseFloat(document.getElementById('edit-salary-medical').value || 0);
     const special = parseFloat(document.getElementById('edit-salary-special').value || 0);
+    const conveyance = parseFloat(document.getElementById('edit-salary-conveyance').value || 0);
+    const overtime = parseFloat(document.getElementById('edit-salary-overtime').value || 0);
 
     const pf = parseFloat(document.getElementById('edit-salary-pf').value || 0);
     const esi = parseFloat(document.getElementById('edit-salary-esi').value || 0);
     const proftax = parseFloat(document.getElementById('edit-salary-proftax').value || 0);
     const advance = parseFloat(document.getElementById('edit-salary-advance').value || 0);
+    const fine = parseFloat(document.getElementById('edit-salary-fine').value || 0);
     const deductions = parseFloat(document.getElementById('edit-salary-deductions').value || 0);
 
-    const gross = proRata + bonus + hra + medical + special;
-    const totalDeductions = pf + esi + proftax + advance + deductions;
+    const gross = proRata + bonus + hra + medical + special + conveyance + overtime;
+    const totalDeductions = pf + esi + proftax + advance + fine + deductions;
     const net = gross - totalDeductions;
     document.getElementById('edit-salary-net').value = net.toFixed(2);
   };
@@ -598,10 +633,13 @@ export function renderPayroll(mountPoint, appInstance) {
   document.getElementById('edit-salary-hra').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-medical').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-special').addEventListener('input', updateNetPayable);
+  document.getElementById('edit-salary-conveyance').addEventListener('input', updateNetPayable);
+  document.getElementById('edit-salary-overtime').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-pf').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-esi').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-proftax').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-advance').addEventListener('input', updateNetPayable);
+  document.getElementById('edit-salary-fine').addEventListener('input', updateNetPayable);
   document.getElementById('edit-salary-deductions').addEventListener('input', updateNetPayable);
 
   // Bind click on view slip buttons
@@ -630,14 +668,18 @@ export function renderPayroll(mountPoint, appInstance) {
     const hraVal = parseFloat(extraDetails.hra || 0);
     const medicalVal = parseFloat(extraDetails.medical || 0);
     const specialVal = parseFloat(extraDetails.special || 0);
+    const conveyanceVal = parseFloat(extraDetails.conveyance || 0);
+    const overtimeVal = parseFloat(extraDetails.overtime || 0);
+
     const pfVal = parseFloat(extraDetails.pf || 0);
     const esiVal = parseFloat(extraDetails.esi || 0);
     const proftaxVal = parseFloat(extraDetails.profTax || 0);
     const advanceVal = parseFloat(extraDetails.advance || 0);
+    const fineVal = parseFloat(extraDetails.fine || 0);
     const otherDeductionsVal = parseFloat(extraDetails.otherDeductions || deductionsVal || 0);
 
-    const grossVal = proRataVal + hraVal + medicalVal + bonusVal + specialVal;
-    const totalDeductionsVal = pfVal + esiVal + proftaxVal + advanceVal + otherDeductionsVal;
+    const grossVal = proRataVal + hraVal + medicalVal + bonusVal + specialVal + conveyanceVal + overtimeVal;
+    const totalDeductionsVal = pfVal + esiVal + proftaxVal + advanceVal + fineVal + otherDeductionsVal;
 
     // Render physical slip layout inside modal
     printSlipDiv.innerHTML = `
@@ -682,7 +724,7 @@ export function renderPayroll(mountPoint, appInstance) {
         <div style="display: flex; gap: 20px; font-size: 11px;" class="receipt-split-columns">
           <!-- Left Column: Earnings -->
           <div style="flex: 1; border-right: 1px solid #ddd; padding-right: 15px;" class="receipt-col-earnings">
-            <h4 style="margin: 0 0 8px 0; border-bottom: 1px solid #ddd; padding-bottom: 4px; font-size: 12px; color: var(--color-success);">EARNINGS</h4>
+            <h4 style="margin: 0 0 8px 0; border-bottom: 1px solid #ddd; padding-bottom: 4px; font-size: 12px; color: var(--color-success);">EARNINGS & ALLOWANCES</h4>
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 4px 0;">Basic Pro-rata (30d base)</td>
@@ -703,6 +745,16 @@ export function renderPayroll(mountPoint, appInstance) {
                 <td style="padding: 4px 0;">G2C Service Incentive</td>
                 <td style="padding: 4px 0; text-align:right;">₹${bonusVal.toFixed(2)}</td>
               </tr>` : ''}
+              ${conveyanceVal > 0 ? `
+              <tr>
+                <td style="padding: 4px 0;">Conveyance / Travel</td>
+                <td style="padding: 4px 0; text-align:right;">₹${conveyanceVal.toFixed(2)}</td>
+              </tr>` : ''}
+              ${overtimeVal > 0 ? `
+              <tr>
+                <td style="padding: 4px 0;">Overtime / Extra Duty</td>
+                <td style="padding: 4px 0; text-align:right;">₹${overtimeVal.toFixed(2)}</td>
+              </tr>` : ''}
               ${specialVal > 0 ? `
               <tr>
                 <td style="padding: 4px 0;">Special Bonus / Other</td>
@@ -717,7 +769,7 @@ export function renderPayroll(mountPoint, appInstance) {
 
           <!-- Right Column: Deductions -->
           <div style="flex: 1; padding-left: 5px;" class="receipt-col-deductions">
-            <h4 style="margin: 0 0 8px 0; border-bottom: 1px solid #ddd; padding-bottom: 4px; font-size: 12px; color: var(--color-danger);">DEDUCTIONS</h4>
+            <h4 style="margin: 0 0 8px 0; border-bottom: 1px solid #ddd; padding-bottom: 4px; font-size: 12px; color: var(--color-danger);">DEDUCTIONS & RECOVERIES</h4>
             <table style="width: 100%; border-collapse: collapse;">
               ${pfVal > 0 ? `
               <tr>
@@ -739,12 +791,17 @@ export function renderPayroll(mountPoint, appInstance) {
                 <td style="padding: 4px 0;">Salary Advance</td>
                 <td style="padding: 4px 0; text-align:right;">₹${advanceVal.toFixed(2)}</td>
               </tr>` : ''}
+              ${fineVal > 0 ? `
+              <tr>
+                <td style="padding: 4px 0;">Late Fine / LOP</td>
+                <td style="padding: 4px 0; text-align:right;">₹${fineVal.toFixed(2)}</td>
+              </tr>` : ''}
               ${otherDeductionsVal > 0 ? `
               <tr>
                 <td style="padding: 4px 0;">Other Deductions</td>
                 <td style="padding: 4px 0; text-align:right;">₹${otherDeductionsVal.toFixed(2)}</td>
               </tr>` : ''}
-              ${(pfVal + esiVal + proftaxVal + advanceVal + otherDeductionsVal === 0) ? `
+              ${(pfVal + esiVal + proftaxVal + advanceVal + fineVal + otherDeductionsVal === 0) ? `
               <tr>
                 <td colspan="2" style="padding: 10px 0; text-align: center; color: var(--text-dimmed); font-style: italic;">No deductions this month</td>
               </tr>` : ''}
@@ -778,23 +835,24 @@ export function renderPayroll(mountPoint, appInstance) {
     const btnSlipThermal = document.getElementById('btn-slip-format-thermal');
     const slipContainer = document.getElementById('payroll-slip-print');
 
-    btnSlipNormal.onclick = () => {
-      slipPrintFormat = 'normal';
-      slipContainer.className = 'preview-normal';
-      btnSlipNormal.classList.replace('btn-secondary', 'btn-primary');
-      btnSlipThermal.classList.replace('btn-primary', 'btn-secondary');
-    };
-
-    btnSlipThermal.onclick = () => {
-      slipPrintFormat = 'thermal';
-      slipContainer.className = 'preview-thermal';
-      btnSlipThermal.classList.replace('btn-secondary', 'btn-primary');
-      btnSlipNormal.classList.replace('btn-primary', 'btn-secondary');
-    };
+    if (btnSlipNormal && btnSlipThermal && slipContainer) {
+      btnSlipNormal.onclick = () => {
+        slipPrintFormat = 'normal';
+        slipContainer.className = '';
+        btnSlipNormal.className = 'btn btn-sm btn-primary';
+        btnSlipThermal.className = 'btn btn-sm btn-secondary';
+      };
+      btnSlipThermal.onclick = () => {
+        slipPrintFormat = 'thermal';
+        slipContainer.className = 'thermal-print-preview';
+        btnSlipThermal.className = 'btn btn-sm btn-primary';
+        btnSlipNormal.className = 'btn btn-sm btn-secondary';
+      };
+    }
 
     // Print Payslip
     document.getElementById('btn-print-slip').onclick = () => {
-      appInstance.printElement(slipPrintFormat);
+      window.print();
     };
 
     // Download Payslip
@@ -813,9 +871,8 @@ export function renderPayroll(mountPoint, appInstance) {
                       `*Employee:* ${staffName} (${employee.role})\n` +
                       `*Attendance:* ${daysVal} / 30 days\n` +
                       `---------------------------------\n` +
-                      `Basic Pro-rata Pay: ₹${proRataVal.toFixed(2)}\n` +
-                      `Service Incentive Bonus: +₹${bonusVal.toFixed(2)}\n` +
-                      `Tax / Deductions: -₹${deductionsVal.toFixed(2)}\n` +
+                      `Gross Earnings: ₹${grossVal.toFixed(2)}\n` +
+                      `Total Deductions: -₹${totalDeductionsVal.toFixed(2)}\n` +
                       `---------------------------------\n` +
                       `*Net Salary Paid: ₹${netPayVal.toFixed(2)}*\n` +
                       `---------------------------------\n` +
@@ -842,15 +899,20 @@ export function renderPayroll(mountPoint, appInstance) {
     const hraVal = parseFloat(document.getElementById('edit-salary-hra').value || 0);
     const medicalVal = parseFloat(document.getElementById('edit-salary-medical').value || 0);
     const specialVal = parseFloat(document.getElementById('edit-salary-special').value || 0);
+    const conveyanceVal = parseFloat(document.getElementById('edit-salary-conveyance').value || 0);
+    const overtimeVal = parseFloat(document.getElementById('edit-salary-overtime').value || 0);
+
     const pfVal = parseFloat(document.getElementById('edit-salary-pf').value || 0);
     const esiVal = parseFloat(document.getElementById('edit-salary-esi').value || 0);
     const proftaxVal = parseFloat(document.getElementById('edit-salary-proftax').value || 0);
     const advanceVal = parseFloat(document.getElementById('edit-salary-advance').value || 0);
+    const fineVal = parseFloat(document.getElementById('edit-salary-fine').value || 0);
     const deductionsVal = parseFloat(document.getElementById('edit-salary-deductions').value || 0);
     
     const netPayVal = parseFloat(document.getElementById('edit-salary-net').value || 0);
 
     const extraDetailsObj = {
+      staffId: activeStaffId,
       month: selectedMonth,
       days: daysVal,
       proRata: proRataVal,
@@ -858,12 +920,15 @@ export function renderPayroll(mountPoint, appInstance) {
       hra: hraVal,
       medical: medicalVal,
       special: specialVal,
+      conveyance: conveyanceVal,
+      overtime: overtimeVal,
       pf: pfVal,
       esi: esiVal,
       profTax: proftaxVal,
       advance: advanceVal,
+      fine: fineVal,
       otherDeductions: deductionsVal,
-      deductions: deductionsVal
+      deductions: (pfVal + esiVal + proftaxVal + advanceVal + fineVal + deductionsVal)
     };
 
     // Save transaction to store
