@@ -51,7 +51,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.6.0';
+    this.version = '3.7.0';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -706,7 +706,12 @@ class Application {
       return;
     }
 
-    // Determine if settings submenu should be expanded (either because user expanded it manually, or by active route)
+    // Determine user role & active workspace mode
+    const userRole = auth.currentUser ? auth.currentUser.role : 'staff';
+    const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
+    const currentWorkspaceMode = localStorage.getItem('cyberone_workspace_mode') || (isOwnerOrAdmin ? 'admin' : 'staff');
+
+    // Determine if settings submenu should be expanded
     const showSettings = this.settingsSubmenuForceExpanded !== undefined 
       ? this.settingsSubmenuForceExpanded 
       : (this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup');
@@ -723,40 +728,76 @@ class Application {
               <i data-lucide="chevron-left" style="width: 12px; height: 12px;"></i>
             </button>
           </div>
+
           <ul class="sidebar-menu">
-            <li class="sidebar-item ${this.activeRoute === '#dashboard' ? 'active' : ''}">
-              <a href="#dashboard"><i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i><span>Dashboard</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#transactions' ? 'active' : ''}">
-              <a href="#transactions"><i data-lucide="receipt" style="width: 18px; height: 18px;"></i><span>Transactions</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#websites' ? 'active' : ''}">
-              <a href="#websites"><i data-lucide="globe" style="width: 18px; height: 18px;"></i><span>Important Websites</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#invoices' ? 'active' : ''}">
-              <a href="#invoices"><i data-lucide="printer" style="width: 18px; height: 18px;"></i><span>Invoices</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#applications' ? 'active' : ''}">
-              <a href="#applications"><i data-lucide="file-text" style="width: 18px; height: 18px;"></i><span>Applications</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#aeps' ? 'active' : ''}">
-              <a href="#aeps"><i data-lucide="send" style="width: 18px; height: 18px;"></i><span>AEPS & DMT</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#customers' ? 'active' : ''}">
-              <a href="#customers"><i data-lucide="users" style="width: 18px; height: 18px;"></i><span>Customers</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#inventory' ? 'active' : ''}">
-              <a href="#inventory"><i data-lucide="package" style="width: 18px; height: 18px;"></i><span>Inventory</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#pricelist' ? 'active' : ''}">
-              <a href="#pricelist"><i data-lucide="tag" style="width: 18px; height: 18px;"></i><span>Price List</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#payroll' ? 'active' : ''}">
-              <a href="#payroll"><i data-lucide="landmark" style="width: 18px; height: 18px;"></i><span>Payroll</span></a>
-            </li>
-            <li class="sidebar-item ${this.activeRoute === '#reports' ? 'active' : ''}">
-              <a href="#reports"><i data-lucide="bar-chart-3" style="width: 18px; height: 18px;"></i><span>Reports</span></a>
-            </li>
+            ${currentWorkspaceMode === 'staff' ? `
+              <!-- Staff Simplified Desk View -->
+              <li class="sidebar-item ${this.activeRoute === '#dashboard' ? 'active' : ''}">
+                <a href="#dashboard"><i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i><span>Dashboard</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#transactions' ? 'active' : ''}">
+                <a href="#transactions"><i data-lucide="receipt" style="width: 18px; height: 18px;"></i><span>Daily Sales & Ledger</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#pricelist' ? 'active' : ''}">
+                <a href="#pricelist"><i data-lucide="tag" style="width: 18px; height: 18px;"></i><span>Price List & Fees</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#applications' ? 'active' : ''}">
+                <a href="#applications"><i data-lucide="file-text" style="width: 18px; height: 18px;"></i><span>Applications Tracker</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#customers' ? 'active' : ''}">
+                <a href="#customers"><i data-lucide="users" style="width: 18px; height: 18px;"></i><span>Customers</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#websites' ? 'active' : ''}">
+                <a href="#websites"><i data-lucide="globe" style="width: 18px; height: 18px;"></i><span>Important Websites</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#invoices' ? 'active' : ''}">
+                <a href="#invoices"><i data-lucide="printer" style="width: 18px; height: 18px;"></i><span>Invoices & Receipts</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#inventory' ? 'active' : ''}">
+                <a href="#inventory"><i data-lucide="package" style="width: 18px; height: 18px;"></i><span>Inventory</span></a>
+              </li>
+            ` : `
+              <!-- Admin / Owner Portal View -->
+              <li style="font-size: 9px; font-weight: 800; color: var(--color-primary); letter-spacing: 1px; padding: 12px 15px 4px 15px; text-transform: uppercase;">⚡ DAILY OPERATIONS</li>
+              <li class="sidebar-item ${this.activeRoute === '#dashboard' ? 'active' : ''}">
+                <a href="#dashboard"><i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i><span>Dashboard</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#transactions' ? 'active' : ''}">
+                <a href="#transactions"><i data-lucide="receipt" style="width: 18px; height: 18px;"></i><span>Transactions</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#applications' ? 'active' : ''}">
+                <a href="#applications"><i data-lucide="file-text" style="width: 18px; height: 18px;"></i><span>Applications</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#aeps' ? 'active' : ''}">
+                <a href="#aeps"><i data-lucide="send" style="width: 18px; height: 18px;"></i><span>AEPS & DMT</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#customers' ? 'active' : ''}">
+                <a href="#customers"><i data-lucide="users" style="width: 18px; height: 18px;"></i><span>Customers</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#inventory' ? 'active' : ''}">
+                <a href="#inventory"><i data-lucide="package" style="width: 18px; height: 18px;"></i><span>Inventory</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#pricelist' ? 'active' : ''}">
+                <a href="#pricelist"><i data-lucide="tag" style="width: 18px; height: 18px;"></i><span>Price List</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#websites' ? 'active' : ''}">
+                <a href="#websites"><i data-lucide="globe" style="width: 18px; height: 18px;"></i><span>Important Websites</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#invoices' ? 'active' : ''}">
+                <a href="#invoices"><i data-lucide="printer" style="width: 18px; height: 18px;"></i><span>Invoices</span></a>
+              </li>
+
+              <li style="font-size: 9px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; padding: 14px 15px 4px 15px; text-transform: uppercase; border-top: 1px solid var(--panel-border); margin-top: 8px;">📊 FINANCIALS & MANAGEMENT</li>
+              <li class="sidebar-item ${this.activeRoute === '#accounts' ? 'active' : ''}">
+                <a href="#accounts"><i data-lucide="wallet" style="width: 18px; height: 18px;"></i><span>Accounts & Wallets</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#reports' ? 'active' : ''}">
+                <a href="#reports"><i data-lucide="bar-chart-3" style="width: 18px; height: 18px;"></i><span>Financial Reports & CA</span></a>
+              </li>
+              <li class="sidebar-item ${this.activeRoute === '#payroll' ? 'active' : ''}">
+                <a href="#payroll"><i data-lucide="landmark" style="width: 18px; height: 18px;"></i><span>Payroll & Attendance</span></a>
+              </li>
+            `}
           </ul>
           
           <div class="sidebar-footer">
@@ -772,12 +813,13 @@ class Application {
               </div>
             </div>
             
+            ${currentWorkspaceMode === 'admin' ? `
             <ul class="sidebar-menu" style="margin: 10px 0 0 0; padding: 0;">
               <li class="sidebar-item has-submenu ${showSettings ? 'expanded' : ''} ${(this.activeRoute === '#settings' || this.activeRoute === '#users' || this.activeRoute === '#accounts' || this.activeRoute === '#audit-log' || this.activeRoute === '#backup') ? 'active' : ''}">
                 <a href="javascript:void(0);" class="submenu-toggle" style="display: flex; align-items: center; justify-content: space-between;">
                   <span style="display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
-                    <span>Settings</span>
+                    <span>Settings & Admin</span>
                   </span>
                   <i data-lucide="chevron-down" class="submenu-arrow" style="width: 14px; height: 14px; transition: transform 0.2s; transform: ${showSettings ? 'rotate(180deg)' : 'rotate(0deg)'};"></i>
                 </a>
@@ -800,6 +842,7 @@ class Application {
                 </ul>
               </li>
             </ul>
+            ` : ''}
 
             <button id="sidebar-logout" class="btn-logout" style="margin-top: 15px;">
               <i data-lucide="log-out" style="width: 14px; height: 14px;"></i><span>Logout</span>
@@ -827,6 +870,18 @@ class Application {
               </div>
             </div>
             <div class="header-actions" style="display:flex; align-items:center; gap:12px;">
+              <!-- Admin / Staff Workspace Switcher -->
+              ${isOwnerOrAdmin ? `
+                <button id="btn-toggle-workspace-mode" class="btn btn-xs" style="background: ${currentWorkspaceMode === 'admin' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(16, 185, 129, 0.15)'}; border: 1px solid ${currentWorkspaceMode === 'admin' ? 'var(--color-primary)' : 'var(--color-success)'}; color: var(--text-white-invert); font-weight: 700; font-size: 11px; padding: 5px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="${currentWorkspaceMode === 'admin' ? 'shield' : 'layout'}" style="width: 14px; height: 14px; color: ${currentWorkspaceMode === 'admin' ? 'var(--color-primary)' : 'var(--color-success)'};"></i>
+                  <span>${currentWorkspaceMode === 'admin' ? 'Admin Portal Mode' : 'Staff Front-Desk View'}</span>
+                </button>
+              ` : `
+                <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--color-success); font-weight: 700; font-size: 11px; padding: 5px 10px; border-radius: var(--border-radius-sm); display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Staff Desk View
+                </div>
+              `}
+
               <!-- Low Balance Alert Badge -->
               <div id="low-balance-header-badge" style="display: none; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 5px 10px; border-radius: var(--border-radius-sm); font-size: 11px; font-weight: 700; cursor: pointer;">
                 <i data-lucide="alert-triangle" style="width: 14px; height: 14px; color: #ef4444;"></i>
@@ -859,6 +914,17 @@ class Application {
       this.showToast('Logged out successfully', 'success');
       window.location.hash = '#login';
     });
+
+    // Workspace mode switcher button
+    const btnToggleWorkspace = document.getElementById('btn-toggle-workspace-mode');
+    if (btnToggleWorkspace) {
+      btnToggleWorkspace.addEventListener('click', () => {
+        const newMode = currentWorkspaceMode === 'admin' ? 'staff' : 'admin';
+        localStorage.setItem('cyberone_workspace_mode', newMode);
+        this.showToast(`Switched to ${newMode === 'admin' ? 'Admin Portal Mode' : 'Staff Front-Desk View'}`, 'success');
+        this.handleRouting();
+      });
+    }
 
     // Collapsible sidebar toggle click
     const toggleBtn = document.getElementById('sidebar-toggle');

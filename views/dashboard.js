@@ -234,6 +234,13 @@ export function renderDashboard(mountPoint, appInstance) {
           <span style="font-size: 11px; color: var(--text-muted);">Register stock or service</span>
         </div>
       </a>
+      <a href="#pricelist" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08); transition: var(--transition-smooth);">
+        <i data-lucide="tag" style="width: 24px; height: 24px; color: var(--color-warning); filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));"></i>
+        <div>
+          <h4 style="font-family: var(--font-display); font-weight: 700; color: var(--text-white-invert); font-size: 15px;">Check Price List</h4>
+          <span style="font-size: 11px; color: var(--text-muted);">Lookup service & Govt fees</span>
+        </div>
+      </a>
       <a href="#customers" class="glass-card" style="display: flex; align-items: center; gap: 15px; padding: 20px; text-decoration: none; border-color: rgba(6, 182, 212, 0.35); background: rgba(6, 182, 212, 0.08); transition: var(--transition-smooth);">
         <i data-lucide="user-plus" style="width: 24px; height: 24px; color: var(--color-info); filter: drop-shadow(0 0 5px var(--color-info-glow));"></i>
         <div>
