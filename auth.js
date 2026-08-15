@@ -228,6 +228,9 @@ class AuthService {
     this.users.push(newUser);
     localStorage.setItem('cyberone_v2_users', JSON.stringify(this.users));
     this.triggerStateChange();
+    if (typeof window !== 'undefined' && window.AppInstance && window.AppInstance.store) {
+      window.AppInstance.store.persistAll();
+    }
     return { success: true, user: newUser };
   }
 
@@ -260,6 +263,9 @@ class AuthService {
     }
 
     this.triggerStateChange();
+    if (typeof window !== 'undefined' && window.AppInstance && window.AppInstance.store) {
+      window.AppInstance.store.persistAll();
+    }
     return { success: true, user: this.users[idx] };
   }
 
@@ -272,6 +278,9 @@ class AuthService {
     this.users.splice(index, 1);
     localStorage.setItem('cyberone_v2_users', JSON.stringify(this.users));
     this.triggerStateChange();
+    if (typeof window !== 'undefined' && window.AppInstance && window.AppInstance.store) {
+      window.AppInstance.store.persistAll();
+    }
     return { success: true };
   }
 }
