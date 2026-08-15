@@ -20,6 +20,15 @@ export function renderLogin(mountPoint, appInstance) {
     const signupLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px; background: #ffffff; border-radius: 8px; padding: 4px;" onerror="this.outerHTML='<i data-lucide=\\'user-plus\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
     const resetLogoHtml = `<img src="${logoSrc}" class="login-logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 15px; background: #ffffff; border-radius: 8px; padding: 4px;" onerror="this.outerHTML='<i data-lucide=\\'key-round\\' class=\\'login-logo\\' style=\\'width: 48px; height: 48px; display: inline-block;\\'></i>'; lucide.createIcons();">`;
 
+    const versionStr = appInstance ? appInstance.version : '3.8.2';
+    const loginFooterHtml = `
+      <div class="login-footer-info" style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--panel-border); font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+        <div style="font-weight: 700; color: var(--color-primary); font-size: 12px; letter-spacing: 0.5px;">CYBERONE CSC Platform v${versionStr}</div>
+        <div style="margin-top: 4px; font-weight: 600; color: var(--text-main);">© ${new Date().getFullYear()} XTREME SYSTEMS</div>
+        <div style="font-size: 10px; opacity: 0.75; margin-top: 2px;">Site Maintained by XTREME SYSTEMS</div>
+      </div>
+    `;
+
     if (viewMode === 'login') {
       // Render Sign In form
       mountPoint.innerHTML = `
@@ -60,6 +69,8 @@ export function renderLogin(mountPoint, appInstance) {
                 <a href="#" id="link-forgot-password" style="color: var(--color-primary); font-weight: 600; text-decoration: none; outline: none;">Forgot Password?</a>
               </div>
             </div>
+
+            ${loginFooterHtml}
           </div>
         </div>
       `;
@@ -153,6 +164,8 @@ export function renderLogin(mountPoint, appInstance) {
               <span style="color: var(--text-muted);">Already have an account? </span>
               <a href="#" id="toggle-login" style="color: var(--color-primary); font-weight: 600; text-decoration: none; outline: none;">Sign In</a>
             </div>
+
+            ${loginFooterHtml}
           </div>
         </div>
       `;
@@ -210,6 +223,8 @@ export function renderLogin(mountPoint, appInstance) {
               <span style="color: var(--text-muted);">Remembered password? </span>
               <a href="#" id="toggle-reset-login" style="color: var(--color-primary); font-weight: 600; text-decoration: none; outline: none;">Sign In</a>
             </div>
+
+            ${loginFooterHtml}
           </div>
         </div>
       `;
