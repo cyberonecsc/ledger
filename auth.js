@@ -124,12 +124,34 @@ class AuthService {
   }
 
   login(username, password) {
-    // Always refresh from localStorage before checking credentials,
-    // so newly synced user accounts from GitHub are available immediately
+    // Always refresh from localStorage before checking credentials
     this.reloadUsers();
-    const user = this.users.find(
-      u => u.username.toLowerCase() === username.toLowerCase() && u.password === password
+
+    if (!username || !password) {
+      return { success: false, message: 'Please enter both username and password' };
+    }
+
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    let user = this.users.find(
+      u => u.username.toLowerCase() === cleanUser && (u.password === password || u.password === cleanPass)
     );
+
+    // Fallback lookup directly in localStorage if in-memory array wasn't updated yet
+    if (!user) {
+      try {
+        const rawUsers = localStorage.getItem('cyberone_v2_users');
+        if (rawUsers) {
+          const parsed = JSON.parse(rawUsers);
+          if (Array.isArray(parsed)) {
+            user = parsed.find(u => u.username && u.username.toLowerCase() === cleanUser && (u.password === password || u.password === cleanPass));
+          }
+        }
+      } catch (e) {
+        console.error('Fallback user lookup error:', e);
+      }
+    }
     
     if (user) {
       this.currentUser = {
@@ -140,6 +162,7 @@ class AuthService {
         staffId: user.staffId || (user.username.toUpperCase() === 'SHIBURCN' ? '465314670016' : 'STAFF-04')
       };
       localStorage.setItem('cyberone_v2_current_user', JSON.stringify(this.currentUser));
+      this.triggerStateChange();
       return { success: true, user: this.currentUser };
     }
     return { success: false, message: 'Invalid username or password' };
