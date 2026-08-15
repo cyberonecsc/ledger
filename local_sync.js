@@ -15,10 +15,16 @@ class LocalSyncService {
   }
 
   initialize(url) {
-    if (!url) return;
+    let targetUrl = url;
+    if (!targetUrl || targetUrl.includes('localhost')) {
+      if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.includes('github.io')) {
+        targetUrl = `${window.location.protocol}//${window.location.hostname}:8080`;
+      }
+    }
+    if (!targetUrl) return;
     
     // Normalize URL
-    let normalizedUrl = url.trim().replace(/\/$/, '');
+    let normalizedUrl = targetUrl.trim().replace(/\/$/, '');
     if (!/^https?:\/\//i.test(normalizedUrl)) {
       normalizedUrl = 'http://' + normalizedUrl;
     }
@@ -133,10 +139,7 @@ class LocalSyncService {
       };
 
       this.eventSource.onerror = (err) => {
-        console.error("Sync: Stream error occurred, reconnecting in 5s...", err);
-        if (this.isConnecting) {
-          alert(`[DIAGNOSTIC] STREAM CONNECTION FAILED!\nTarget URL: ${this.serverUrl}/api/stream\nReady State: ${this.eventSource.readyState}`);
-        }
+        console.warn("Sync: Stream error occurred, reconnecting in 5s...", err);
         this.isConnecting = false;
         this.eventSource.close();
         
@@ -172,7 +175,6 @@ class LocalSyncService {
       return false;
     } catch (err) {
       console.error("Sync: Save request failed:", err);
-      alert(`[DIAGNOSTIC] SAVE FETCH FAILED!\nTarget URL: ${this.serverUrl}/api/save\nError: ${err.message}`);
       return false;
     }
   }

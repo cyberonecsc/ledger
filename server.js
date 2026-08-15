@@ -128,18 +128,25 @@ function mergeDatabases(existingDb, incomingDb) {
     if (existingDb[key] || incomingDb[key]) {
       const existingArr = parseJSON(existingDb[key]) || [];
       const incomingArr = parseJSON(incomingDb[key]) || [];
-      const keyProp = (existingArr.length > 0 && existingArr[0] && existingArr[0].username) ? 'username' : 'id';
+      const keyProp = (key === 'cyberone_v2_users') ? 'username' : 'id';
       const map = new Map();
-      existingArr.forEach(item => { if (item) map.set(item[keyProp] || item.id, item); });
+      existingArr.forEach(item => {
+        if (item) {
+          const k = item[keyProp] || item.username || item.id;
+          if (k) map.set(k, item);
+        }
+      });
       incomingArr.forEach(item => {
         if (item) {
-          const k = item[keyProp] || item.id;
-          const existingItem = map.get(k);
-          let mergedItem = existingItem ? (incomingIsOlder ? { ...item, ...existingItem } : { ...existingItem, ...item }) : item;
-          if (existingItem && item && existingItem.visitCount !== undefined && item.visitCount !== undefined) {
-            mergedItem.visitCount = Math.max(existingItem.visitCount || 0, item.visitCount || 0);
+          const k = item[keyProp] || item.username || item.id;
+          if (k) {
+            const existingItem = map.get(k);
+            let mergedItem = existingItem ? (incomingIsOlder ? { ...item, ...existingItem } : { ...existingItem, ...item }) : item;
+            if (existingItem && item && existingItem.visitCount !== undefined && item.visitCount !== undefined) {
+              mergedItem.visitCount = Math.max(existingItem.visitCount || 0, item.visitCount || 0);
+            }
+            map.set(k, mergedItem);
           }
-          map.set(k, mergedItem);
         }
       });
       merged[key] = JSON.stringify(Array.from(map.values()));
