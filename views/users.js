@@ -59,7 +59,14 @@ export function renderUserManagement(mountPoint, appInstance) {
                       `}
                       <div style="min-width: 0; flex-grow: 1;">
                         <strong style="font-size:13px; display:block; color: var(--text-white-invert); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${u.name}</strong>
-                        <span style="font-size:11px; color:var(--text-muted);">@${u.username} <code style="color:var(--color-primary);">(${u.role})</code></span>
+                        <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                          <span>@${u.username} <code style="color:var(--color-primary);">(${u.role})</code></span>
+                          <span style="opacity:0.4;">•</span>
+                          <span style="font-family:monospace; color:var(--color-primary); font-weight:600;" class="user-pass-display" data-username="${u.username}">••••••••</span>
+                          <button type="button" class="btn-toggle-account-pass" data-username="${u.username}" data-pass="${u.password}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; align-items:center;" title="Show/Hide Password">
+                            <i data-lucide="eye" style="width:13px; height:13px;"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
                     
@@ -88,36 +95,42 @@ export function renderUserManagement(mountPoint, appInstance) {
           
           <!-- Right Column: Privilege matrix visualizer -->
           <div>
-            <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:12px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Role Privilege Mapping</h5>
-            <div class="table-responsive" style="border:none;">
-              <table class="privilege-table">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h5 style="font-family:var(--font-display); font-weight:700; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px; margin:0;">Role Permissions Matrix</h5>
+              <span style="font-size:11px; color:var(--text-muted);">Owner holds full access by default</span>
+            </div>
+            
+            <div class="table-responsive" style="border:1px solid var(--panel-border); border-radius:var(--border-radius-sm); overflow:hidden;">
+              <table class="table" style="font-size:12px; margin:0;">
                 <thead>
-                  <tr>
-                    <th>Operation Privilege</th>
-                    <th style="color:var(--color-primary);">Owner</th>
-                    <th>Admin</th>
-                    <th>Accountant</th>
-                    <th>Staff</th>
+                  <tr style="background:var(--bg-card-medium);">
+                    <th style="padding:10px 12px;">Feature / Module</th>
+                    <th style="padding:10px 12px; text-align:center;">Admin</th>
+                    <th style="padding:10px 12px; text-align:center;">Accountant</th>
+                    <th style="padding:10px 12px; text-align:center;">Staff</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${privilegeKeys.map(p => `
+                  ${[
+                    { key: 'view_balances', label: 'View Total Cash & Bank Balances' },
+                    { key: 'edit_balances', label: 'Edit Balances & Opening Amount' },
+                    { key: 'manage_ledger', label: 'Create & Edit Ledger Transactions' },
+                    { key: 'manage_applications', label: 'Register & Track Certificates' },
+                    { key: 'manage_accounts', label: 'Manage Custom Bank Accounts' },
+                    { key: 'manage_customers', label: 'Manage Customer Directory' },
+                    { key: 'manage_inventory', label: 'Manage Accessories Stock' },
+                    { key: 'manage_payroll', label: 'Process Staff Payroll & Salary Bills' },
+                    { key: 'manage_settings', label: 'Configure System Settings & Cloud' }
+                  ].map(p => `
                     <tr>
-                      <td>${p.label}</td>
-                      <!-- Owner has locked full access -->
-                      <td>
-                        <input type="checkbox" class="checkbox-custom" checked disabled>
-                      </td>
-                      <!-- Admin privileges -->
-                      <td>
+                      <td style="font-weight:600; color:var(--text-main);">${p.label}</td>
+                      <td style="text-align:center;">
                         <input type="checkbox" class="checkbox-custom privilege-checkbox" data-role="admin" data-priv="${p.key}" ${auth.privileges.admin[p.key] ? 'checked' : ''}>
                       </td>
-                      <!-- Accountant privileges -->
-                      <td>
+                      <td style="text-align:center;">
                         <input type="checkbox" class="checkbox-custom privilege-checkbox" data-role="accountant" data-priv="${p.key}" ${auth.privileges.accountant[p.key] ? 'checked' : ''}>
                       </td>
-                      <!-- Staff privileges -->
-                      <td>
+                      <td style="text-align:center;">
                         <input type="checkbox" class="checkbox-custom privilege-checkbox" data-role="staff" data-priv="${p.key}" ${auth.privileges.staff[p.key] ? 'checked' : ''}>
                       </td>
                     </tr>
@@ -150,7 +163,12 @@ export function renderUserManagement(mountPoint, appInstance) {
               
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="font-size:11px; margin-bottom:4px;">Password</label>
-                <input type="password" id="op-password" class="form-control" placeholder="••••••••" style="font-size:12px; padding:8px 12px;" required>
+                <div style="position: relative;">
+                  <input type="password" id="op-password" class="form-control" placeholder="••••••••" style="font-size:12px; padding:8px 36px 8px 12px;" required>
+                  <button type="button" class="btn-toggle-password" data-target="op-password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; outline: none;" title="Toggle Password Visibility">
+                    <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                  </button>
+                </div>
               </div>
               
               <div class="form-row">
@@ -210,6 +228,41 @@ export function renderUserManagement(mountPoint, appInstance) {
 
     // Re-initialize lucide icons
     lucide.createIcons();
+
+    // Bind Password Toggle for Modal Form
+    mountPoint.querySelectorAll('.btn-toggle-password').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = btn.dataset.target;
+        const input = mountPoint.querySelector(`#${targetId}`);
+        if (input) {
+          const isPass = input.type === 'password';
+          input.type = isPass ? 'text' : 'password';
+          btn.innerHTML = isPass 
+            ? `<i data-lucide="eye-off" style="width: 16px; height: 16px; color: var(--color-primary);"></i>` 
+            : `<i data-lucide="eye" style="width: 16px; height: 16px;"></i>`;
+          lucide.createIcons();
+        }
+      });
+    });
+
+    // Bind Password Toggle for Accounts List Rows
+    mountPoint.querySelectorAll('.btn-toggle-account-pass').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const username = btn.dataset.username;
+        const realPass = btn.dataset.pass;
+        const displayEl = mountPoint.querySelector(`.user-pass-display[data-username="${username}"]`);
+        if (displayEl) {
+          const isHidden = displayEl.innerText === '••••••••';
+          displayEl.innerText = isHidden ? realPass : '••••••••';
+          btn.innerHTML = isHidden 
+            ? `<i data-lucide="eye-off" style="width:13px; height:13px; color:var(--color-primary);"></i>` 
+            : `<i data-lucide="eye" style="width:13px; height:13px;"></i>`;
+          lucide.createIcons();
+        }
+      });
+    });
 
     // Bind Sync Cloud Users button click
     const btnSyncCloud = document.getElementById('btn-sync-cloud-users');

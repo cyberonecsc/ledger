@@ -53,7 +53,12 @@ export function renderLogin(mountPoint, appInstance) {
 
               <div class="form-group">
                 <label class="form-label" for="password">Password</label>
-                <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+                <div style="position: relative;">
+                  <input type="password" id="password" class="form-control" placeholder="Enter password" required style="padding-right: 40px;">
+                  <button type="button" class="btn-toggle-password" data-target="password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; outline: none;" title="Toggle Password Visibility">
+                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                  </button>
+                </div>
               </div>
 
               <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
@@ -104,7 +109,12 @@ export function renderLogin(mountPoint, appInstance) {
 
               <div class="form-group">
                 <label class="form-label" for="new-password">Password</label>
-                <input type="password" id="new-password" class="form-control" placeholder="Create password" required>
+                <div style="position: relative;">
+                  <input type="password" id="new-password" class="form-control" placeholder="Create password" required style="padding-right: 40px;">
+                  <button type="button" class="btn-toggle-password" data-target="new-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; outline: none;" title="Toggle Password Visibility">
+                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                  </button>
+                </div>
               </div>
 
               <div class="form-group">
@@ -212,7 +222,12 @@ export function renderLogin(mountPoint, appInstance) {
 
               <div class="form-group" style="margin-top: 15px;">
                 <label class="form-label" for="reset-new-password">New Password</label>
-                <input type="password" id="reset-new-password" class="form-control" placeholder="Enter new password" required disabled>
+                <div style="position: relative;">
+                  <input type="password" id="reset-new-password" class="form-control" placeholder="Enter new password" required disabled style="padding-right: 40px;">
+                  <button type="button" class="btn-toggle-password" data-target="reset-new-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; outline: none;" title="Toggle Password Visibility">
+                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                  </button>
+                </div>
               </div>
 
               <button type="submit" id="reset-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 15px;" disabled>
@@ -232,6 +247,25 @@ export function renderLogin(mountPoint, appInstance) {
       bindResetEvents();
     }
     lucide.createIcons();
+    bindPasswordToggles();
+  };
+
+  const bindPasswordToggles = () => {
+    mountPoint.querySelectorAll('.btn-toggle-password').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = btn.dataset.target;
+        const input = mountPoint.querySelector(`#${targetId}`);
+        if (input) {
+          const isPass = input.type === 'password';
+          input.type = isPass ? 'text' : 'password';
+          btn.innerHTML = isPass 
+            ? `<i data-lucide="eye-off" style="width: 18px; height: 18px; color: var(--color-primary);"></i>` 
+            : `<i data-lucide="eye" style="width: 18px; height: 18px;"></i>`;
+          lucide.createIcons();
+        }
+      });
+    });
   };
 
   const bindLoginEvents = () => {
