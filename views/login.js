@@ -245,13 +245,8 @@ export function renderLogin(mountPoint, appInstance) {
       const res = auth.login(userVal, passVal);
       if (res.success) {
         appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
-        if (window.location.hash === '#dashboard') {
-          appInstance.handleRouting();
-        } else {
-          window.location.hash = '#dashboard';
-          // Explicitly invoke handleRouting to handle cases where hash didn't trigger hashchange
-          setTimeout(() => appInstance.handleRouting(), 50);
-        }
+        window.location.hash = '#dashboard';
+        appInstance.handleRouting();
       } else {
         errorDiv.style.display = 'flex';
         errorDiv.innerText = res.message;

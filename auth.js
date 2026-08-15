@@ -162,7 +162,6 @@ class AuthService {
         staffId: user.staffId || (user.username.toUpperCase() === 'SHIBURCN' ? '465314670016' : 'STAFF-04')
       };
       localStorage.setItem('cyberone_v2_current_user', JSON.stringify(this.currentUser));
-      this.triggerStateChange();
       return { success: true, user: this.currentUser };
     }
     return { success: false, message: 'Invalid username or password' };
