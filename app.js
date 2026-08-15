@@ -51,7 +51,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.9.1';
+    this.version = '3.9.2';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -118,7 +118,7 @@ class Application {
             store.loadState();
             auth.reloadUsers();
             
-            if (this.isUserInteracting() || ['#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(this.activeRoute)) {
+            if (this.isUserInteracting() || this.isDeferredRoute()) {
               this.needsUIRefresh = true;
             } else {
               this.needsUIRefresh = false;
@@ -239,8 +239,8 @@ class Application {
     document.addEventListener('focusout', () => {
       setTimeout(() => {
         if (this.needsUIRefresh && !this.isUserInteracting()) {
-          if (['#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(this.activeRoute)) {
-            console.log("On accounts, settings, or database page, deferring UI reload to prevent resetting input fields.");
+          if (this.isDeferredRoute()) {
+            console.log("On deferred page, deferring UI reload to prevent resetting input fields.");
             return;
           }
           console.log("User finished interaction. Triggering pending UI reload.");
@@ -253,8 +253,8 @@ class Application {
     document.addEventListener('click', () => {
       setTimeout(() => {
         if (this.needsUIRefresh && !this.isUserInteracting()) {
-          if (['#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(this.activeRoute)) {
-            console.log("On accounts, settings, or database page, deferring UI reload to prevent resetting input fields.");
+          if (this.isDeferredRoute()) {
+            console.log("On deferred page, deferring UI reload to prevent resetting input fields.");
             return;
           }
           console.log("User finished clicking. Triggering pending UI reload.");
@@ -295,7 +295,7 @@ class Application {
             // Write to local server disk to keep local copy updated in real-time
             store.syncDatabaseState();
             
-            if (this.isUserInteracting() || ['#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(this.activeRoute)) {
+            if (this.isUserInteracting() || this.isDeferredRoute()) {
               this.needsUIRefresh = true;
             } else {
               this.needsUIRefresh = false;
@@ -443,7 +443,7 @@ class Application {
           store.syncDatabaseState();
           
           // Safeguard active typing/modals before reloading the UI
-          if (this.isUserInteracting() || ['#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(this.activeRoute)) {
+          if (this.isUserInteracting() || this.isDeferredRoute()) {
             console.log("Database updated in background, but user is interacting or on configuration pages. Deferring UI reload.");
             this.needsUIRefresh = true;
           } else {
@@ -479,6 +479,11 @@ class Application {
     }
 
     return false;
+  }
+
+  isDeferredRoute() {
+    const route = this.activeRoute || window.location.hash || '#login';
+    return ['#login', '#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(route);
   }
 
   updateSyncBadge(status) {
