@@ -51,7 +51,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.9.3';
+    this.version = '3.9.4';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -1275,12 +1275,12 @@ class Application {
             const remoteData = JSON.parse(remoteRaw);
             
             if (Array.isArray(localData) && Array.isArray(remoteData)) {
-              // Determine unique key property (defaults to 'id', or 'username' if objects have it)
-              const keyProp = (localData.length > 0 && localData[0] && localData[0].username) ? 'username' : 'id';
+              // Determine unique key property (defaults to 'username' for users array, or 'id' for other entities)
+              const keyProp = (key === 'cyberone_v2_users') ? 'username' : 'id';
               const map = new Map();
               localData.forEach(item => {
                 if (item) {
-                  const k = item[keyProp] || item.id;
+                  const k = item[keyProp] || item.username || item.id;
                   if (k) {
                     if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
@@ -1292,7 +1292,7 @@ class Application {
               });
               remoteData.forEach(item => {
                 if (item) {
-                  const k = item[keyProp] || item.id;
+                  const k = item[keyProp] || item.username || item.id;
                   if (k) {
                     if (key === 'cyberone_v2_customers' && deletedCustomerIds.has(k)) return;
                     if (key === 'cyberone_v2_products' && deletedProductIds.has(k)) return;
