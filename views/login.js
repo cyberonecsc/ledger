@@ -4,6 +4,7 @@
 
 import { auth } from '../auth.js';
 import { store } from '../store.js';
+import { firebaseService } from '../firebase.js';
 
 export function renderLogin(mountPoint, appInstance) {
   let viewMode = 'login'; // 'login', 'signup', 'reset'
@@ -237,20 +238,52 @@ export function renderLogin(mountPoint, appInstance) {
     const form = document.getElementById('login-form');
     const errorDiv = document.getElementById('login-error');
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const userVal = document.getElementById('username').value.trim();
       const passVal = document.getElementById('password').value;
       
-      const res = auth.login(userVal, passVal);
+      let res = auth.login(userVal, passVal);
       if (res.success) {
         appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
         window.location.hash = '#dashboard';
         appInstance.handleRouting();
-      } else {
-        errorDiv.style.display = 'flex';
-        errorDiv.innerText = res.message;
+        return;
       }
+
+      // If initial local login check failed, attempt on-demand cloud fetch from Firebase
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.innerText = 'Checking Cloud Accounts...';
+
+      try {
+        if (firebaseService.isInitialized()) {
+          const remoteData = await firebaseService.getData(store.centerProfile.code);
+          if (remoteData) {
+            const updated = appInstance.mergeSyncData(remoteData, false);
+            if (updated) {
+              store.loadState();
+              auth.reloadUsers();
+              res = auth.login(userVal, passVal);
+              if (res.success) {
+                appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
+                window.location.hash = '#dashboard';
+                appInstance.handleRouting();
+                return;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('On-demand cloud login sync error:', err);
+      } finally {
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Sign In';
+          lucide.createIcons();
+        }
+      }
+
+      errorDiv.style.display = 'flex';
+      errorDiv.innerText = res.message;
     });
 
     const toggleLink = document.getElementById('toggle-signup');

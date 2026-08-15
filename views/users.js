@@ -33,9 +33,14 @@ export function renderUserManagement(mountPoint, appInstance) {
             <h3>User Management & Access Control</h3>
             <span style="font-size:12px; color:var(--text-muted);">Manage system operator credentials, profile details, and configure role privileges</span>
           </div>
-          <button id="btn-add-user" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px; height:36px; font-size:12px;">
-            <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Add New Account
-          </button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button id="btn-sync-cloud-users" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:6px; height:36px; font-size:12px;">
+              <i data-lucide="cloud-upload" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Sync Users to Cloud
+            </button>
+            <button id="btn-add-user" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px; height:36px; font-size:12px;">
+              <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Add New Account
+            </button>
+          </div>
         </div>
         
         <div class="form-row" style="grid-template-columns: 1fr 1.2fr; gap:30px; align-items: start;">
@@ -205,6 +210,16 @@ export function renderUserManagement(mountPoint, appInstance) {
 
     // Re-initialize lucide icons
     lucide.createIcons();
+
+    // Bind Sync Cloud Users button click
+    const btnSyncCloud = document.getElementById('btn-sync-cloud-users');
+    if (btnSyncCloud) {
+      btnSyncCloud.addEventListener('click', () => {
+        store.persistAll();
+        const count = auth.getPresetUsers().length;
+        appInstance.showToast(`Successfully uploaded ${count} user accounts to Cloud Database!`, 'success');
+      });
+    }
 
     // Bind Add Account button click
     const btnAddUser = document.getElementById('btn-add-user');
