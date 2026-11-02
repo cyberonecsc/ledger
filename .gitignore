@@ -22,3 +22,8 @@ node_modules/
 dist/
 www/
 
+# IDE and Agent metadata
+.agents/
+.idea/
+*.iml
+

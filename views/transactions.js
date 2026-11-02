@@ -57,7 +57,7 @@ export function renderTransactions(mountPoint, appInstance) {
   }).join('');
 
   // State for pagination & bulk selection
-  let currentPage = 1;
+  let currentPage = window._cyberone_ledger_current_page || 1;
   let itemsPerPage = parseInt(localStorage.getItem('cyberone_ledger_page_size') || 10);
   const selectedTxnIds = new Set();
 
@@ -131,11 +131,11 @@ export function renderTransactions(mountPoint, appInstance) {
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <button id="btn-prev-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+          <button type="button" id="btn-prev-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
             <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Previous
           </button>
           <span style="font-weight: 600; color: var(--text-white-invert); padding: 0 8px; font-family: var(--font-primary);">Page <span id="pagination-current">1</span> of <span id="pagination-max">1</span></span>
-          <button id="btn-next-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+          <button type="button" id="btn-next-page" class="btn btn-sm btn-secondary" style="padding: 6px 12px; font-weight: 600; outline: none; border: 1px solid var(--panel-border); display: flex; align-items: center; gap: 4px; cursor: pointer;">
             Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
           </button>
         </div>
@@ -399,19 +399,26 @@ export function renderTransactions(mountPoint, appInstance) {
   // Search input handler
   searchInput.addEventListener('input', () => {
     currentPage = 1;
+    window._cyberone_ledger_current_page = 1;
     redrawTable();
   });
 
   // Pagination navigation handlers
-  btnPrevPage.addEventListener('click', () => {
+  btnPrevPage.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (currentPage > 1) {
       currentPage--;
+      window._cyberone_ledger_current_page = currentPage;
       redrawTable();
     }
   });
 
-  btnNextPage.addEventListener('click', () => {
+  btnNextPage.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     currentPage++;
+    window._cyberone_ledger_current_page = currentPage;
     redrawTable();
   });
 
@@ -421,6 +428,7 @@ export function renderTransactions(mountPoint, appInstance) {
       itemsPerPage = parseInt(e.target.value);
       localStorage.setItem('cyberone_ledger_page_size', itemsPerPage);
       currentPage = 1;
+      window._cyberone_ledger_current_page = 1;
       redrawTable();
     });
   }
@@ -428,6 +436,7 @@ export function renderTransactions(mountPoint, appInstance) {
   const txnDatePicker = document.getElementById('txn-date-picker');
   if (txnDatePicker) {
     txnDatePicker.addEventListener('change', (e) => {
+      window._cyberone_ledger_current_page = 1;
       appInstance.setActiveDate(e.target.value);
     });
   }
@@ -497,6 +506,7 @@ export function renderTransactions(mountPoint, appInstance) {
 
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
+    window._cyberone_ledger_current_page = currentPage;
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, totalItems);

@@ -26,12 +26,16 @@ import { renderAuditLog } from './views/audit.js';
 import { renderBackupRestore } from './views/backup.js';
 import { renderWebsites } from './views/websites.js';
 import { renderPriceList } from './views/pricelist.js';
+import { renderPOS } from './views/pos.js';
+import { renderSelection } from './views/selection.js';
 
 
 // Route configurations and permission keys
 const ROUTES = {
   '#login': { render: renderLogin, public: true },
+  '#selection': { render: renderSelection, permission: 'manage_ledger' }, // Mode Selection Hub
   '#dashboard': { render: renderDashboard, permission: 'manage_ledger' }, // Base landing
+  '#pos': { render: renderPOS, permission: 'manage_ledger' }, // Quick Sales POS
   '#transactions': { render: renderTransactions, permission: 'manage_ledger' },
   '#websites': { render: renderWebsites, permission: 'manage_applications' },
   '#applications': { render: renderApplications, permission: 'manage_applications' },
@@ -51,7 +55,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.9.4';
+    this.version = '3.9.5';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -483,7 +487,7 @@ class Application {
 
   isDeferredRoute() {
     const route = this.activeRoute || window.location.hash || '#login';
-    return ['#login', '#accounts', '#settings', '#backup', '#users', '#audit-log'].includes(route);
+    return ['#login', '#selection', '#accounts', '#settings', '#backup', '#users', '#audit-log', '#pos', '#transactions'].includes(route);
   }
 
   updateSyncBadge(status) {
@@ -542,7 +546,7 @@ class Application {
 
   handleRouting() {
     this.needsUIRefresh = false;
-    let hash = window.location.hash || '#dashboard';
+    let hash = window.location.hash || '#selection';
 
     // Parse query params if any
     let path = hash;
@@ -575,7 +579,7 @@ class Application {
     const route = ROUTES[path];
 
     if (!route) {
-      window.location.hash = '#dashboard';
+      window.location.hash = '#selection';
       return;
     }
 
@@ -588,7 +592,7 @@ class Application {
     }
 
     if (isLoggedIn && path === '#login') {
-      window.location.hash = '#dashboard';
+      window.location.hash = '#selection';
       return;
     }
 
@@ -642,6 +646,20 @@ class Application {
     if (this.activeRoute === '#login') {
       this.root.innerHTML = `<div id="login-container"></div>`;
       const mount = document.getElementById('login-container');
+      contentRenderer(mount, this);
+      return;
+    }
+
+    if (this.activeRoute === '#selection') {
+      this.root.innerHTML = `<div id="selection-container" style="width:100%; min-height:100vh; overflow-y:auto;"></div>`;
+      const mount = document.getElementById('selection-container');
+      contentRenderer(mount, this);
+      return;
+    }
+
+    if (this.activeRoute === '#pos') {
+      this.root.innerHTML = `<div id="pos-container" style="width:100%; min-height:100vh; height:100vh; overflow:hidden; padding: 12px 16px; box-sizing: border-box; background: var(--bg-dark, #090d16);"></div>`;
+      const mount = document.getElementById('pos-container');
       contentRenderer(mount, this);
       return;
     }
@@ -729,6 +747,18 @@ class Application {
             </button>
           </div>
           <ul class="sidebar-menu">
+            <li class="sidebar-item" style="margin-bottom: 6px;">
+              <a href="#selection" style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px;">
+                <i data-lucide="grid" style="width: 18px; height: 18px; color: #818cf8;"></i>
+                <span style="font-weight: 700; color: #818cf8;">Switch Mode</span>
+              </a>
+            </li>
+            <li class="sidebar-item" style="margin-bottom: 10px;">
+              <a href="#pos" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px;">
+                <i data-lucide="zap" style="width: 18px; height: 18px; color: #f59e0b;"></i>
+                <span style="font-weight: 700; color: #f59e0b;">⚡ CYBERONE POS</span>
+              </a>
+            </li>
             <li class="sidebar-item ${this.activeRoute === '#dashboard' ? 'active' : ''}">
               <a href="#dashboard"><i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i><span>Dashboard</span></a>
             </li>

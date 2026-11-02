@@ -280,7 +280,7 @@ export function renderLogin(mountPoint, appInstance) {
       let res = auth.login(userVal, passVal);
       if (res.success) {
         appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
-        window.location.hash = '#dashboard';
+        window.location.hash = '#selection';
         appInstance.handleRouting();
         return;
       }
@@ -300,7 +300,7 @@ export function renderLogin(mountPoint, appInstance) {
               res = auth.login(userVal, passVal);
               if (res.success) {
                 appInstance.showToast(`Welcome back, ${res.user.name}!`, 'success');
-                window.location.hash = '#dashboard';
+                window.location.hash = '#selection';
                 appInstance.handleRouting();
                 return;
               }
