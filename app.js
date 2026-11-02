@@ -84,11 +84,8 @@ class Application {
       document.body.classList.add('sidebar-collapsed');
     }
 
-    // Initialize active date to today's date on first session load
-    if (!sessionStorage.getItem('cyberone_session_active')) {
-      localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
-      sessionStorage.setItem('cyberone_session_active', 'true');
-    }
+    // Initialize active date to current calendar date
+    localStorage.setItem('cyberone_v2_active_date', getTodayDateString());
 
     // Listen to store sync status changes to update the visual badge
     store.onSyncStatusChange((status) => {
@@ -219,6 +216,22 @@ class Application {
     // Trigger scheduled backup check
     this.checkScheduledBackup();
     setInterval(() => this.checkScheduledBackup(), 60000);
+
+    // Automatic Midnight Rollover Watcher (clears daily transactions and rolls active date over at 12:00 AM)
+    this._lastTrackedDate = getTodayDateString();
+    setInterval(() => {
+      const currentDate = getTodayDateString();
+      if (currentDate !== this._lastTrackedDate) {
+        console.log(`[Midnight Rollover] Calendar day changed from ${this._lastTrackedDate} to ${currentDate}. Rolling over daily ledger!`);
+        this._lastTrackedDate = currentDate;
+        this._viewDates = {};
+        if (this._userExplicitDates) this._userExplicitDates = {};
+        localStorage.setItem('cyberone_v2_active_date', currentDate);
+        store.getOrCreateDailyLog(currentDate);
+        this.showToast(`🌅 New Day: ${currentDate}. Daily ledger reset for today!`, 'info');
+        this.handleRouting();
+      }
+    }, 15000);
 
     // Live database polling (syncs like a Google Sheet)
     setInterval(() => {
@@ -526,18 +539,26 @@ class Application {
       this._viewDates = {};
     }
     const r = this.activeRoute || '#dashboard';
-    if (!this._viewDates[r]) {
-      this._viewDates[r] = getTodayDateString();
+    const today = getTodayDateString();
+
+    // Auto-rollover: If date not set, or if previous auto-date was yesterday, roll forward to today
+    if (!this._viewDates[r] || (!this._userExplicitDates?.[r] && this._viewDates[r] < today)) {
+      this._viewDates[r] = today;
     }
     return this._viewDates[r];
   }
 
-  setActiveDate(dateString) {
-    if (!this._viewDates) {
-      this._viewDates = {};
-    }
+  setActiveDate(dateString, isUserAction = true) {
+    if (!this._viewDates) this._viewDates = {};
+    if (!this._userExplicitDates) this._userExplicitDates = {};
     const r = this.activeRoute || '#dashboard';
     this._viewDates[r] = dateString;
+    if (isUserAction && dateString !== getTodayDateString()) {
+      this._userExplicitDates[r] = true;
+    } else {
+      delete this._userExplicitDates[r];
+    }
+    localStorage.setItem('cyberone_v2_active_date', dateString);
     this.showToast(`Selected Date: ${dateString}`, 'info');
     
     // Force re-render of current view to update data

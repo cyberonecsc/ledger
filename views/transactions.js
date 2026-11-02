@@ -75,6 +75,9 @@ export function renderTransactions(mountPoint, appInstance) {
           <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Delete Selected (<span id="delete-selected-count">0</span>)
         </button>
         <input type="date" id="txn-date-picker" value="${activeDate}" style="background: var(--datepicker-bg); border: 1px solid var(--panel-border); color: var(--datepicker-color); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: var(--border-radius-sm); outline: none; cursor: pointer; color-scheme: var(--datepicker-color-scheme); font-family: var(--font-primary); height: 38px; box-sizing: border-box;">
+        <button id="btn-goto-today" class="btn btn-secondary" style="height: 38px; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 6px 10px;" title="Jump to Today">
+          <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> Today
+        </button>
         <button id="btn-open-shift-count" class="btn btn-secondary" style="height: 38px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px;">
           <i data-lucide="banknote" style="width: 16px; height: 16px;"></i> Cash Count
         </button>
@@ -438,6 +441,14 @@ export function renderTransactions(mountPoint, appInstance) {
     txnDatePicker.addEventListener('change', (e) => {
       window._cyberone_ledger_current_page = 1;
       appInstance.setActiveDate(e.target.value);
+    });
+  }
+
+  const btnGotoToday = document.getElementById('btn-goto-today');
+  if (btnGotoToday) {
+    btnGotoToday.addEventListener('click', () => {
+      window._cyberone_ledger_current_page = 1;
+      appInstance.setActiveDate(getTodayDateString(), false);
     });
   }
 

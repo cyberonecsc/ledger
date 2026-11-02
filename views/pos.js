@@ -164,7 +164,7 @@ export function renderPOS(mountPoint, appInstance) {
           <img src="${localStorage.getItem('cyberone_v2_custom_logo') || './logo.png'}" alt="CYBERONE Logo" style="width: 32px; height: 32px; object-fit: contain; background: #ffffff; border-radius: 6px; padding: 2px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); flex-shrink: 0;" onerror="this.src='./logo.png';">
           <div>
             <h2 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; line-height: 1.2; letter-spacing: 0.5px;">CYBERONE POS</h2>
-            <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Center: ${store.centerProfile?.code || 'CYBERONE'} • ${todayDateString}</span>
+            <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Center: ${store.centerProfile?.code || 'CYBERONE'} • <span id="pos-header-date-badge">${todayDateString}</span></span>
           </div>
         </div>
       </div>
@@ -1258,8 +1258,12 @@ export function renderPOS(mountPoint, appInstance) {
 
     if (!logList) return;
 
-    // Retrieve today transactions
-    const dailyLog = store.dailyLogs && store.dailyLogs[todayDateString];
+    // Retrieve today transactions dynamically
+    const currentToday = getTodayDateString();
+    const headerDateEl = document.getElementById('pos-header-date-badge');
+    if (headerDateEl) headerDateEl.innerText = currentToday;
+
+    const dailyLog = store.dailyLogs && store.dailyLogs[currentToday];
     const txns = (dailyLog && dailyLog.transactions) ? [...dailyLog.transactions].reverse() : [];
 
     let totalAmount = 0;
@@ -1673,10 +1677,11 @@ export function renderPOS(mountPoint, appInstance) {
     }
 
     // Build Transaction Object
+    const currentToday = getTodayDateString();
     const txnDescription = cart.map(i => `${i.label} (x${i.quantity})`).join(', ');
     const newTxn = {
       id: 'TXN-POS-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase(),
-      date: todayDateString,
+      date: currentToday,
       timestamp: new Date().toISOString(),
       type: 'sale',
       category: cart[0].category || 'POS Sale',
@@ -1732,7 +1737,7 @@ export function renderPOS(mountPoint, appInstance) {
     }
 
     // Commit Transaction to Ledger Store
-    store.addTransaction(todayDateString, newTxn);
+    store.addTransaction(currentToday, newTxn);
 
     appInstance.showToast('Sale completed & logged into ledger!', 'success');
 
@@ -1757,21 +1762,112 @@ export function renderPOS(mountPoint, appInstance) {
     renderDailyTransactionsLog();
   }
 
-  // Cash Drawer / Cash Tray trigger function
-  function triggerCashDrawerKick() {
-    const win = window.open('', '_blank', 'width=250,height=250');
-    if (win) {
-      win.document.write(`
-        <html>
-          <head><title>Opening Cash Tray...</title></head>
-          <body style="font-family:sans-serif; text-align:center; padding:20px;" onload="window.print(); window.close();">
-            <p style="font-size:12px; color:#666;">Sending drawer kick pulse to POS printer...</p>
-          </body>
-        </html>
-      `);
-      win.document.close();
+  // Cached serial port instance for instant silent drawer triggers
+  let activeDrawerPort = null;
+
+  // Cash Drawer / Cash Tray trigger function (Sends electronic pulse signal directly to hardware, NO print dialog)
+  async function triggerCashDrawerKick() {
+    // ESC/POS Cash Drawer kick pulses:
+    // ESC p 0 25 250 (Pin 2: pulse ON 50ms, pulse OFF 500ms)
+    // ESC p 1 25 250 (Pin 5)
+    // ESC < (0x1B, 0x3C)
+    // BEL (0x07)
+    const kickCommands = new Uint8Array([
+      0x1B, 0x70, 0x00, 0x19, 0xFA,
+      0x1B, 0x70, 0x01, 0x19, 0xFA,
+      0x1B, 0x3C,
+      0x07
+    ]);
+
+    // 1. Direct Web Serial Kick (Chrome / Edge on desktop)
+    if ('serial' in navigator) {
+      try {
+        if (!activeDrawerPort) {
+          const authorizedPorts = await navigator.serial.getPorts();
+          if (authorizedPorts && authorizedPorts.length > 0) {
+            activeDrawerPort = authorizedPorts[0];
+          } else {
+            // Prompt cashier once to pair their POS receipt printer / USB drawer trigger
+            appInstance.showToast('Please select your POS Printer or USB COM port to pair drawer...', 'info');
+            activeDrawerPort = await navigator.serial.requestPort();
+          }
+        }
+
+        if (activeDrawerPort) {
+          try {
+            await activeDrawerPort.open({ baudRate: 9600 });
+          } catch (openErr) {
+            // If already open, ignore and proceed to write
+          }
+
+          if (activeDrawerPort.writable) {
+            const writer = activeDrawerPort.writable.getWriter();
+            await writer.write(kickCommands);
+            writer.releaseLock();
+            appInstance.showToast('⚡ Cash Tray signal pulse sent!', 'success');
+            return;
+          }
+        }
+      } catch (err) {
+        if (err.name !== 'NotFoundError') {
+          console.warn('Web Serial drawer kick attempt:', err);
+        }
+      }
     }
-    appInstance.showToast('Cash Tray trigger pulse sent to printer!', 'info');
+
+    // 2. Direct WebUSB Kick fallback
+    if ('usb' in navigator) {
+      try {
+        const devices = await navigator.usb.getDevices();
+        if (devices && devices.length > 0) {
+          const dev = devices[0];
+          await dev.open();
+          if (dev.configuration === null) await dev.selectConfiguration(1);
+          await dev.claimInterface(0);
+          const iface = dev.configuration.interfaces[0]?.alternate;
+          const outEndpoint = iface?.endpoints?.find(e => e.direction === 'out');
+          if (outEndpoint) {
+            await dev.transferOut(outEndpoint.endpointNumber, kickCommands);
+            appInstance.showToast('⚡ Cash Tray signal pulse sent via USB!', 'success');
+            return;
+          }
+        }
+      } catch (usbErr) {
+        console.warn('WebUSB drawer kick attempt:', usbErr);
+      }
+    }
+
+    // 3. Local POS Bridge / Daemon fallback (e.g. localhost:8080 or port 9100)
+    try {
+      const resp = await fetch('http://127.0.0.1:8080/open-drawer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'open_drawer' }),
+        signal: AbortSignal.timeout(600)
+      });
+      if (resp.ok) {
+        appInstance.showToast('⚡ Cash Tray signal sent via POS bridge!', 'success');
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback if no port selected yet
+    if ('serial' in navigator && !activeDrawerPort) {
+      try {
+        appInstance.showToast('Click to select your POS Printer / USB drawer trigger device...', 'info');
+        activeDrawerPort = await navigator.serial.requestPort();
+        if (activeDrawerPort) {
+          await activeDrawerPort.open({ baudRate: 9600 });
+          const writer = activeDrawerPort.writable.getWriter();
+          await writer.write(kickCommands);
+          writer.releaseLock();
+          appInstance.showToast('⚡ Cash Tray paired & signal sent!', 'success');
+          return;
+        }
+      } catch (_) {}
+    }
+
+    appInstance.showToast('⚡ Cash Tray signal triggered (Silent Mode - No Print)', 'info');
   }
 
   // Thermal Receipt Modal (with Easy Dismiss, Click-Outside, ESC, and Auto-Close on Print)
@@ -2195,10 +2291,25 @@ export function renderPOS(mountPoint, appInstance) {
     };
     window.addEventListener('keydown', handleKeydown);
 
+    // Periodic date rollover check for active POS screen
+    let lastPosDate = getTodayDateString();
+    const posDateTimer = setInterval(() => {
+      const nowDay = getTodayDateString();
+      if (nowDay !== lastPosDate) {
+        lastPosDate = nowDay;
+        const badge = document.getElementById('pos-header-date-badge');
+        if (badge) badge.innerText = nowDay;
+        store.getOrCreateDailyLog(nowDay);
+        renderDailyTransactionsLog();
+        appInstance.showToast(`🌅 New Day: ${nowDay}. Daily transactions reset for today!`, 'info');
+      }
+    }, 10000);
+
     // Cleanup listener on unmount
     const observer = new MutationObserver(() => {
       if (!document.getElementById('pos-tiles-container')) {
         window.removeEventListener('keydown', handleKeydown);
+        clearInterval(posDateTimer);
         observer.disconnect();
       }
     });
