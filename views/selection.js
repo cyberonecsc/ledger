@@ -10,7 +10,7 @@ export function renderSelection(mountPoint, appInstance) {
   const customLogo = localStorage.getItem('cyberone_v2_custom_logo') || './logo.png';
   const centerName = store.centerProfile?.name || 'CYBERONE CSC CENTER';
   const centerCode = store.centerProfile?.code || '465314670016';
-  const versionStr = appInstance ? appInstance.version : '3.9.5';
+  const versionStr = appInstance ? appInstance.version : '3.9.6';
 
   mountPoint.innerHTML = `
     <div class="selection-screen-wrapper" style="min-height: 100vh; width: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 40px 20px; box-sizing: border-box; background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%, #090d16 100%);">
