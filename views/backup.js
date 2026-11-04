@@ -471,12 +471,39 @@ export function renderBackupRestore(mountPoint, appInstance) {
         }
 
         // Add last modified timestamp
-        payload['cyberone_v2_last_modified'] = new Date().toISOString();
-        localStorage.setItem('cyberone_v2_last_modified', payload['cyberone_v2_last_modified']);
+        // Safety: Fetch existing cloud data first to prevent destructive overwrite from stale devices
+        let finalPayload = payload;
+        try {
+          const existingCloud = await firebaseService.getData(store.centerProfile.code);
+          if (existingCloud && typeof existingCloud === 'object') {
+            const localLogs = JSON.parse(payload['cyberone_v2_daily_logs'] || '{}');
+            let cloudLogs = existingCloud['cyberone_v2_daily_logs'] || {};
+            if (typeof cloudLogs === 'string') {
+              try { cloudLogs = JSON.parse(cloudLogs); } catch(e) { cloudLogs = {}; }
+            }
+            const mergedLogs = { ...cloudLogs };
+            for (const date in localLogs) {
+              if (!mergedLogs[date]) {
+                mergedLogs[date] = localLogs[date];
+              } else {
+                const cloudTxns = mergedLogs[date].transactions || [];
+                const localTxns = localLogs[date].transactions || [];
+                const txnMap = new Map();
+                cloudTxns.forEach(t => { if (t && t.id) txnMap.set(t.id, t); });
+                localTxns.forEach(t => { if (t && t.id) txnMap.set(t.id, t); });
+                mergedLogs[date].transactions = Array.from(txnMap.values());
+              }
+            }
+            finalPayload = { ...existingCloud, ...payload };
+            finalPayload['cyberone_v2_daily_logs'] = JSON.stringify(mergedLogs);
+          }
+        } catch(mergeErr) {
+          console.warn('Firebase pre-migration merge check error:', mergeErr);
+        }
 
-        const success = await firebaseService.saveData(store.centerProfile.code, payload);
+        const success = await firebaseService.saveData(store.centerProfile.code, finalPayload);
         if (success) {
-          appInstance.showToast('Data migration to Firebase completed successfully!', 'success');
+          appInstance.showToast('Data migration to Firebase completed successfully (non-destructive merge)!', 'success');
         } else {
           appInstance.showToast('Data migration failed. Check network or database rules.', 'error');
         }
