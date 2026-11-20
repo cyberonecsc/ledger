@@ -55,7 +55,7 @@ const ROUTES = {
 
 class Application {
   constructor() {
-    this.version = '3.9.6';
+    this.version = '3.9.7';
     this.root = document.getElementById('app-root');
     this.activeRoute = null;
     this.needsUIRefresh = false;
@@ -1223,7 +1223,20 @@ class Application {
             const localLogs = JSON.parse(localRaw || '{}');
             const remoteLogs = JSON.parse(remoteRaw || '{}');
             let logChanged = false;
-            const mergedLogs = { ...remoteLogs, ...localLogs };
+            const mergedLogs = { ...remoteLogs };
+            Object.keys(localLogs).forEach(date => {
+              if (!mergedLogs[date]) {
+                mergedLogs[date] = localLogs[date];
+              } else {
+                const localTxns = (localLogs[date] && localLogs[date].transactions) || [];
+                const remoteTxns = (remoteLogs[date] && remoteLogs[date].transactions) || [];
+                if (localTxns.length === 0 && remoteTxns.length > 0) {
+                  // Keep remote day entirely (prevents empty local day from wiping remote balances/txns)
+                } else {
+                  mergedLogs[date] = { ...mergedLogs[date], ...localLogs[date] };
+                }
+              }
+            });
             
             Object.keys(mergedLogs).forEach(date => {
               // Delete daily log keys before June 1st

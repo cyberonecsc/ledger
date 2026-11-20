@@ -1091,7 +1091,7 @@ class StateStore {
       closingBalances: prevBalances
     };
 
-    this.recalculateAllBalances();
+    this.recalculateAllBalances(true);
     return this.dailyLogs[dateString];
   }
 
